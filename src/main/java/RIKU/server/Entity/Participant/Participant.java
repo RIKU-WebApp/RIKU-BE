@@ -1,5 +1,6 @@
-package RIKU.server.Entity;
+package RIKU.server.Entity.Participant;
 
+import RIKU.server.Entity.BaseEntity;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;

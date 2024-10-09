@@ -1,7 +1,7 @@
 package RIKU.server.Entity.Board;
 
 import RIKU.server.Entity.BaseEntity;
-import RIKU.server.Entity.Participant;
+import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
 import lombok.Getter;
