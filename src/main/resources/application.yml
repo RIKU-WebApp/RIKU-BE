@@ -1,10 +1,8 @@
 spring:
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:local}
+    active: local
     group:
-      "local": "localDB"
+      "local": "localPort, localDB"
       "dev": "devDB"
       "prod": "prodDB"
 ---
-server:
-  port: 8080

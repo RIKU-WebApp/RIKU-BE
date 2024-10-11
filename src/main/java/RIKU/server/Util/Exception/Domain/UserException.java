@@ -1,4 +1,4 @@
-package RIKU.server.Util.Exception;
+package RIKU.server.Util.Exception.Domain;
 
 import RIKU.server.Util.BaseResponseStatus;
 import lombok.Getter;

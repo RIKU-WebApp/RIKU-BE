@@ -39,7 +39,7 @@ public abstract class Post extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "post_type", insertable = false, updatable = false)
-    private PostType type; // 게시글 유형: REGULAR, FLASH, LSD, EVENT
+    private PostType type; // 게시글 유형: REGULAR, FLASH, TRAINING, EVENT
 
     @Column(name = "post_image_url")
     private String postImageUrl;

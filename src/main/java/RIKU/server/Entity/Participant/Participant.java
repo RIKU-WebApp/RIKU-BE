@@ -37,7 +37,7 @@ public class Participant extends BaseEntity {
     }
 
     // 참여 의사 후 출석 코드 미 입력 시 상태 ABSENT로 변경
-    public void noShow() {
+    public void absent() {
         this.status = ParticipantStatus.ABSENT;
     }
 }

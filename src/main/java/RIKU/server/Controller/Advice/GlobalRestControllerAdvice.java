@@ -1,6 +1,6 @@
 package RIKU.server.Controller.Advice;
 
-import RIKU.server.Util.Exception.CustomException;
+import RIKU.server.Util.Exception.Domain.CustomException;
 import RIKU.server.Util.BaseResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
