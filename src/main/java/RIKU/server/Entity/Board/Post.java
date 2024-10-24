@@ -5,6 +5,7 @@ import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import static jakarta.persistence.FetchType.LAZY;
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "post_type")
 @Getter
+@NoArgsConstructor
 public abstract class Post extends BaseEntity {
 
     @Id
@@ -37,18 +39,25 @@ public abstract class Post extends BaseEntity {
     @Column(columnDefinition = "Text")
     private String content; // 게시글 내용
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "post_type", insertable = false, updatable = false)
-    private PostType type; // 게시글 유형: REGULAR, FLASH, TRAINING, EVENT
-
     @Column(name = "post_image_url")
     private String postImageUrl;
+
+    @Column(name = "post_status")
+    private PostStatus postStatus;
 
     @Column(name = "attendance_code")
     private String attendanceCode;
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Participant> Participants = new ArrayList<>();
+
+    public Post (User createdBy, String title, String location, LocalDateTime date, String content) {
+        this.createdBy = createdBy;
+        this.title = title;
+        this.location = location;
+        this.date = date;
+        this.content = content;
+    }
 
 
     // 출석 코드를 생성하는 메서드
