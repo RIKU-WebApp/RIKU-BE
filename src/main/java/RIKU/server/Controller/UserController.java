@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @RestController
 @Slf4j
 @RequiredArgsConstructor
@@ -25,16 +28,16 @@ public class UserController {
 
     /**
      * 회원가입
-     * @param requestDto
-     * @param bindingResult
-     * @return
      */
     @PostMapping("/signup")
-    public BaseResponse<Object> signUp(@Validated @RequestBody UserSignUpRequestDto requestDto, BindingResult bindingResult) {
+    public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody UserSignUpRequestDto requestDto, BindingResult bindingResult) {
         if (bindingResult.hasFieldErrors()) throw new ValidationException(bindingResult);
-        userService.signUp(requestDto);
+        Long userId = userService.signUp(requestDto);
 
-        return new BaseResponse<>(new Object());
+        Map<String, Long> response = new HashMap<>();
+        response.put("userId", userId);
+
+        return new BaseResponse<>(response);
     }
 
     @PostMapping("/login")

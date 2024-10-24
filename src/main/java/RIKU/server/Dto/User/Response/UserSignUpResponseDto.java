@@ -10,18 +10,16 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserLoginResponseDto {
-
+public class UserSignUpResponseDto {
     private Long userId;
     private String loginId;
     private String name;
 
-    public static UserLoginResponseDto of (User user) {
-        return UserLoginResponseDto.builder()
+    public static UserSignUpResponseDto of (User user) {
+        return UserSignUpResponseDto.builder()
                 .userId(user.getId())
                 .loginId(user.getLoginId())
                 .name(user.getName())
                 .build();
     }
-
 }

@@ -9,7 +9,6 @@ import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +31,7 @@ public class UserService {
         if(userRepository.existsByLoginId(requestDto.getLoginId())) throw new UserException(BaseResponseStatus.DUPLICATED_LOGINID);
 
         // TODO 2. DTO를 Entity로 변환
-        String encodedPassword = new BCryptPasswordEncoder().encode(requestDto.getPassword());
+        String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
         User user = requestDto.toEntity(encodedPassword);
 
         return userRepository.save(user).getId();
