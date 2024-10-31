@@ -20,7 +20,7 @@ public class ReadPostsResponseDto {
     private LocalDateTime date;
     private int participants; // 참가자 수
     private PostStatus postStatus;
-    private String postImages;
+    private String postImageUrl;
 
     public static ReadPostsResponseDto of (Post post) {
         return ReadPostsResponseDto.builder()
@@ -28,6 +28,7 @@ public class ReadPostsResponseDto {
                 .date(post.getDate())
                 .participants(post.getParticipants().size())
                 .postStatus(post.getPostStatus())
+                .postImageUrl(post.getPostImageUrl())
                 .build();
     }
 

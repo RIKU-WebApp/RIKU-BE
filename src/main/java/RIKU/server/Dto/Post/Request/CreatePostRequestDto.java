@@ -1,9 +1,10 @@
 package RIKU.server.Dto.Post.Request;
 
-import jakarta.persistence.Column;
+import RIKU.server.Entity.Board.FlashPost;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -22,10 +23,19 @@ public class CreatePostRequestDto {
 
     private LocalDateTime date; // 집합 날짜 및 시간
 
-    @Column(columnDefinition = "Text")
     private String content; // 게시글 내용
 
+    private MultipartFile postImage;
 
 
+    public FlashPost flashToEntity(String postImageUrl) {
+        return FlashPost.builder()
+                .title(title)
+                .location(location)
+                .date(date)
+                .content(content)
+                .postImageUrl(postImageUrl)
+                .build();
+    }
 
 }

@@ -42,8 +42,9 @@ public abstract class Post extends BaseEntity {
     @Column(name = "post_image_url")
     private String postImageUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "post_status")
-    private PostStatus postStatus;
+    private PostStatus postStatus = PostStatus.NOW; // 모집 상태(모집중)
 
     @Column(name = "attendance_code")
     private String attendanceCode;
@@ -51,12 +52,13 @@ public abstract class Post extends BaseEntity {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Participant> Participants = new ArrayList<>();
 
-    public Post (User createdBy, String title, String location, LocalDateTime date, String content) {
+    public Post (User createdBy, String title, String location, LocalDateTime date, String content, String postImageUrl) {
         this.createdBy = createdBy;
         this.title = title;
         this.location = location;
         this.date = date;
         this.content = content;
+        this.postImageUrl = postImageUrl;
     }
 
 

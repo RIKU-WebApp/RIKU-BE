@@ -1,14 +1,18 @@
 package RIKU.server.Controller.Post;
 
+import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Service.Post.FlashPostService;
 import RIKU.server.Util.BaseResponse;
+import RIKU.server.Util.Exception.Validation.ValidationException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +25,24 @@ public class FlashPostController {
     public BaseResponse<List<ReadPostsResponseDto>> getFlashPosts() {
         List<ReadPostsResponseDto> posts = flashPostService.getAllFlashPosts();
         return new BaseResponse<>(posts);
+    }
+
+    @PostMapping("/post")
+    public BaseResponse<Map<String, Long>> createFlashPost(
+            @ModelAttribute @Validated
+            CreatePostRequestDto requestDto,
+            BindingResult bindingResult) {
+
+        // 유효성 검증 실패 시 처리
+        if (bindingResult.hasErrors()) throw new ValidationException(bindingResult);
+
+        Long postId = flashPostService.save(requestDto);
+
+        Map<String, Long> response = new HashMap<>();
+        response.put("postId", postId);
+
+        return new BaseResponse<>(response);
+
     }
 
 
