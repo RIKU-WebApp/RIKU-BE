@@ -28,7 +28,7 @@ public class UserService {
     @Transactional
     public Long signUp(UserSignUpRequestDto requestDto) {
         // TODO 1. 로그인 아이디 중복 체크
-        if(userRepository.existsByLoginId(requestDto.getLoginId())) throw new UserException(BaseResponseStatus.DUPLICATED_LOGINID);
+        if(userRepository.existsByStudentId(requestDto.getStudentId())) throw new UserException(BaseResponseStatus.DUPLICATED_STUDENTID);
 
         // TODO 2. DTO를 Entity로 변환
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
@@ -40,7 +40,7 @@ public class UserService {
     @Transactional
     public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
         // TODO 1. 로그인 아이디 조회
-        User user = userRepository.findByLoginId(requestDto.getLoginId())
+        User user = userRepository.findByStudentId(requestDto.getStudentId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // TODO 2. 비밀번호 검증

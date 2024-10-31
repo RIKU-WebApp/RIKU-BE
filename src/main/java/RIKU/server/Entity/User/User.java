@@ -20,8 +20,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(name = "login_id", nullable = false, unique = true)
-    private String loginId; // 학번
+    @Column(name = "student_id", nullable = false, unique = true)
+    private String studentId; // 학번
 
     @Column(nullable = false)
     private String password;
@@ -42,8 +42,8 @@ public class User extends BaseEntity {
     private UserRole userRole = UserRole.INACTIVE;
 
     @Builder
-    public User(String loginId, String password, String name, String college, String major, String phone) {
-        this.loginId = loginId;
+    public User(String studentId, String password, String name, String college, String major, String phone) {
+        this.studentId = studentId;
         this.password = password;
         this.name = name;
         this.college = college;

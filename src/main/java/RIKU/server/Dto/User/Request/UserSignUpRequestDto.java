@@ -15,7 +15,7 @@ import org.hibernate.validator.constraints.Length;
 public class UserSignUpRequestDto {
 
     @Pattern(regexp = "^([0-9]){9}$", message = "숫자 9자리")
-    private String loginId;
+    private String studentId;
 
     @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$", message = "영문, 숫자, 특수문자 혼합")
     @Length(min = 8, max = 20, message = "8 ~ 20자리 이내")
@@ -34,7 +34,7 @@ public class UserSignUpRequestDto {
     // Dto 객체를 Entity로 변환
     public User toEntity(String encodedPassword) {
         return User.builder()
-                .loginId(this.loginId)
+                .studentId(this.studentId)
                 .password(encodedPassword)
                 .name(this.name)
                 .college(this.college)

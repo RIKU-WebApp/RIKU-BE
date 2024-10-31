@@ -12,13 +12,13 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserSignUpResponseDto {
     private Long userId;
-    private String loginId;
+    private String studentId;
     private String name;
 
     public static UserSignUpResponseDto of (User user) {
         return UserSignUpResponseDto.builder()
                 .userId(user.getId())
-                .loginId(user.getLoginId())
+                .studentId(user.getStudentId())
                 .name(user.getName())
                 .build();
     }

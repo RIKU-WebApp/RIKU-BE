@@ -13,13 +13,13 @@ import lombok.NoArgsConstructor;
 public class UserLoginResponseDto {
 
     private Long userId;
-    private String loginId;
+    private String studentId;
     private String name;
 
     public static UserLoginResponseDto of (User user) {
         return UserLoginResponseDto.builder()
                 .userId(user.getId())
-                .loginId(user.getLoginId())
+                .studentId(user.getStudentId())
                 .name(user.getName())
                 .build();
     }
