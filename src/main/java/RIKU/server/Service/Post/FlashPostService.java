@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class FlashPostService {
 
     private final PostRepository postRepository;
-    private final S3Uploader s3Uplader;
+    private final S3Uploader s3Uploader;
 
     public List<ReadPostsResponseDto> getAllFlashPosts() {
         List<FlashPost> posts = postRepository.findAllFlashPosts();
@@ -38,7 +38,7 @@ public class FlashPostService {
         if (requestDto.getPostImage() != null && !requestDto.getPostImage().isEmpty()) {
             try {
                 log.info("Received file: {}", requestDto.getPostImage().getOriginalFilename());
-                postImageUrl = s3Uplader.upload(requestDto.getPostImage(), "postImg"); // S3에 이미지 업로드
+                postImageUrl = s3Uploader.upload(requestDto.getPostImage(), "postImg"); // S3에 이미지 업로드
                 log.info("Post Image URL after upload: {}", postImageUrl);
             } catch (IOException e) {
                 log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
