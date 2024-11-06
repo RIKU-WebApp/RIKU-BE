@@ -2,7 +2,7 @@ spring:
   profiles:
     active: local
     group:
-      "local": "localPort, localDB, localS3"
-      "dev": "devPort, devDB, devS3"
-      "prod": "prodPort, prodDB, prodS3"
+      "local": "localPort, localDB, localS3, localSecret"
+      "dev": "devPort, devDB, devS3, devSecret"
+      "prod": "prodPort, prodDB, prodS3, prodSecret"
 ---
