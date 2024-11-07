@@ -15,12 +15,14 @@ public class UserLoginResponseDto {
     private Long userId;
     private String studentId;
     private String name;
+    private String token;
 
-    public static UserLoginResponseDto of (User user) {
+    public static UserLoginResponseDto of (User user, String token) {
         return UserLoginResponseDto.builder()
                 .userId(user.getId())
                 .studentId(user.getStudentId())
                 .name(user.getName())
+                .token(token)
                 .build();
     }
 

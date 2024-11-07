@@ -1,5 +1,7 @@
 package RIKU.server.Config;
 
+import RIKU.server.Security.JwtAuthenticationFilter;
+import RIKU.server.Security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,10 +10,19 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -20,32 +31,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // csrf 설정을 disable
-                .csrf((csrfConfig) ->
-                        csrfConfig.disable()
-                )
-                // HTTP 인증 요구 비활성화
-//                .authorizeHttpRequests(auth -> auth
-//                        .anyRequest().authenticated()
-//                )
-                // Session 사용 설정 해제
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // h2 console 화면을 사용하기 위해 해당 옵션들 disable
-                .headers((headerConfig) ->
-                        headerConfig.frameOptions(frameOptionsConfig ->
-                                frameOptionsConfig.disable()
-                        )
-                );
-        // 요청별 권한 설정
-//                .authorizeHttpRequests((authorizeRequests) ->
-//                        authorizeRequests
-//                                .requestMatchers(PathRequest.toH2Console()).permitAll()
-//                                .requestMatchers("/", "/user/signup", "/user/login").permitAll()
-////                                .anyRequest().authenticated()
-//                );
-
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/users/login", "/users/signup").permitAll()
+                        // H2 콘솔 경로를 허용
+                        .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .headers(headers -> headers
+                        // H2 콘솔 표시를 위해 X-Frame-Options 비활성화
+                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
