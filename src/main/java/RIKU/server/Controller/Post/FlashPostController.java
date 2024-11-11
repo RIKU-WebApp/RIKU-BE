@@ -1,11 +1,14 @@
 package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
+import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
+import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.FlashPostService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.ValidationException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -21,12 +24,14 @@ public class FlashPostController {
 
     private final FlashPostService flashPostService;
 
+    // 번개런 게시글 조회
     @GetMapping("")
     public BaseResponse<List<ReadPostsResponseDto>> getFlashPosts() {
         List<ReadPostsResponseDto> posts = flashPostService.getAllFlashPosts();
         return new BaseResponse<>(posts);
     }
 
+    // 번개런 게시글 생성
     @PostMapping("/post")
     public BaseResponse<Map<String, Long>> createFlashPost(
             @ModelAttribute @Validated
@@ -42,6 +47,17 @@ public class FlashPostController {
         response.put("postId", postId);
 
         return new BaseResponse<>(response);
+
+    }
+
+    // 번개런 게시글 상세 조회
+    @GetMapping("/post/{postId}")
+    public BaseResponse<ReadPostDetailResponseDto> getPost(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        long userId = authMember.getId();
+        ReadPostDetailResponseDto responseDto = flashPostService.getFlashPostDetail(userId, postId);
+        return new BaseResponse<>(responseDto);
 
     }
 

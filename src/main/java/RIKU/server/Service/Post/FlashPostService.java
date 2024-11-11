@@ -1,13 +1,16 @@
 package RIKU.server.Service.Post;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
+import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Entity.Board.FlashPost;
+import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Service.S3Uploader;
 import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.Exception.Domain.PostException;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +31,7 @@ public class FlashPostService {
     private final UserRepository userRepository;
     private final S3Uploader s3Uploader;
 
+    // 번개런 게시글 조회
     public List<ReadPostsResponseDto> getAllFlashPosts() {
         List<FlashPost> posts = postRepository.findAllFlashPosts();
 
@@ -36,6 +40,7 @@ public class FlashPostService {
                 .collect(Collectors.toList());
     }
 
+    // 번개런 게시글 생성
     @Transactional
     public Long save(CreatePostRequestDto requestDto) {
         String postImageUrl = null;
@@ -64,6 +69,14 @@ public class FlashPostService {
         log.info("FlashPost saved with ID: {} and Image URL: {}", savedPost.getId(), savedPost.getPostImageUrl());
 
         return savedPost.getId();
+    }
+
+    // 번개런 게시글 상세 조회
+    public ReadPostDetailResponseDto getFlashPostDetail(long userId, long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        return ReadPostDetailResponseDto.of(post);
     }
 
 }
