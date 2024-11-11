@@ -5,6 +5,8 @@ import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
 import RIKU.server.Dto.User.Response.UserLoginResponseDto;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.UserRepository;
+import RIKU.server.Security.AuthMember;
+import RIKU.server.Security.JwtInfo;
 import RIKU.server.Security.JwtTokenProvider;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.UserException;
@@ -22,7 +24,6 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 회원 가입
@@ -39,20 +40,5 @@ public class UserService {
         return userRepository.save(user).getId();
     }
 
-    @Transactional
-    public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
-        // TODO 1. 로그인 아이디 조회
-        User user = userRepository.findByStudentId(requestDto.getStudentId())
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-        // TODO 2. 비밀번호 검증
-        if(!passwordEncoder.matches(requestDto.getPassword(), user.getPassword())) {
-            throw new UserException(BaseResponseStatus.INVALID_PASSWORD);
-        }
-
-        String token = jwtTokenProvider.generateToken(user.getStudentId());
-
-        return UserLoginResponseDto.of(user, token);
-    }
 
 }

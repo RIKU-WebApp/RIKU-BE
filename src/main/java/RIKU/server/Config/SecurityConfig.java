@@ -2,10 +2,12 @@ package RIKU.server.Config;
 
 import RIKU.server.Security.JwtAuthenticationFilter;
 import RIKU.server.Security.JwtTokenProvider;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +31,17 @@ public class SecurityConfig {
     }
 
     @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring().
+                requestMatchers(new AntPathRequestMatcher("/h2-console/**"))
+                .requestMatchers(new AntPathRequestMatcher( "/favicon.ico"))
+                .requestMatchers(new AntPathRequestMatcher( "/css/**"))
+                .requestMatchers(new AntPathRequestMatcher( "/js/**"))
+                .requestMatchers(new AntPathRequestMatcher( "/img/**"))
+                .requestMatchers(new AntPathRequestMatcher( "/lib/**"));
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -36,14 +49,15 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/users/login", "/users/signup").permitAll()
+                        .requestMatchers("/users/**").permitAll()
+                        .requestMatchers("run/flash/post").hasRole("MEMBER")
+                        .requestMatchers("/**").hasRole("ADMIN")
                         // H2 콘솔 경로를 허용
-                        .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
+                        .requestMatchers(PathRequest.toH2Console()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers
-                        // H2 콘솔 표시를 위해 X-Frame-Options 비활성화
-                        .frameOptions(frameOptions -> frameOptions.sameOrigin())
+                        .frameOptions(frameOptions -> frameOptions.disable())
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();

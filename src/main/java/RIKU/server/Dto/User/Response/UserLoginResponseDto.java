@@ -1,6 +1,7 @@
 package RIKU.server.Dto.User.Response;
 
 import RIKU.server.Entity.User.User;
+import RIKU.server.Security.JwtInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,15 +15,13 @@ public class UserLoginResponseDto {
 
     private Long userId;
     private String studentId;
-    private String name;
-    private String token;
+    private JwtInfo jwtInfo;
 
-    public static UserLoginResponseDto of (User user, String token) {
+    public static UserLoginResponseDto of (Long id, String studentId, JwtInfo jwtInfo) {
         return UserLoginResponseDto.builder()
-                .userId(user.getId())
-                .studentId(user.getStudentId())
-                .name(user.getName())
-                .token(token)
+                .userId(id)
+                .studentId(studentId)
+                .jwtInfo(jwtInfo)
                 .build();
     }
 

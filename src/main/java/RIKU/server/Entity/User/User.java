@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "Users")
@@ -37,6 +38,7 @@ public class User extends BaseEntity {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Setter
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
     private UserRole userRole = UserRole.INACTIVE;
@@ -50,4 +52,5 @@ public class User extends BaseEntity {
         this.major = major;
         this.phone = phone;
     }
+
 }

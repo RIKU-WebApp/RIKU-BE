@@ -40,13 +40,6 @@ public class UserController {
         return new BaseResponse<>(response);
     }
 
-    @PostMapping("/login")
-    public BaseResponse<UserLoginResponseDto> login(@Validated @RequestBody UserLoginRequestDto requestDto, BindingResult bindingResult) {
-        if(bindingResult.hasErrors()) throw new ValidationException(bindingResult);
 
-        UserLoginResponseDto response = userService.login(requestDto);
-
-        return new BaseResponse<>(response);
-    }
 
 }
