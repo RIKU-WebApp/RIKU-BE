@@ -3,8 +3,12 @@ package RIKU.server.Service.Post;
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Entity.Board.FlashPost;
+import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.PostRepository;
+import RIKU.server.Repository.UserRepository;
 import RIKU.server.Service.S3Uploader;
+import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ import java.util.stream.Collectors;
 public class FlashPostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
     private final S3Uploader s3Uploader;
 
     public List<ReadPostsResponseDto> getAllFlashPosts() {
@@ -35,6 +40,7 @@ public class FlashPostService {
     public Long save(CreatePostRequestDto requestDto) {
         String postImageUrl = null;
         log.info("Received CreatePostRequestDto with postImage: {}", requestDto.getPostImage());
+
         if (requestDto.getPostImage() != null && !requestDto.getPostImage().isEmpty()) {
             try {
                 log.info("Received file: {}", requestDto.getPostImage().getOriginalFilename());
@@ -48,7 +54,10 @@ public class FlashPostService {
             log.warn("postImage is null or empty");
         }
 
-        FlashPost post = requestDto.flashToEntity(postImageUrl);
+        User user = userRepository.findById(requestDto.getUserId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        FlashPost post = requestDto.flashToEntity(user, postImageUrl);
         log.info("Creating FlashPost entity with image URL: {}", post.getPostImageUrl());
 
         FlashPost savedPost = postRepository.save(post);

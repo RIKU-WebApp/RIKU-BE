@@ -50,11 +50,10 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/users/**").permitAll()
-                        .requestMatchers("run/flash/post").hasRole("MEMBER")
-                        .requestMatchers("/**").hasRole("ADMIN")
+                        .requestMatchers("run/**").hasRole("MEMBER")
                         // H2 콘솔 경로를 허용
                         .requestMatchers(PathRequest.toH2Console()).permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasRole("ADMIN")
                 )
                 .headers(headers -> headers
                         .frameOptions(frameOptions -> frameOptions.disable())
