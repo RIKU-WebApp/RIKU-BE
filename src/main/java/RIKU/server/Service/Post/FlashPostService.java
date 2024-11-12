@@ -4,7 +4,10 @@ import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Entity.Board.FlashPost;
+import RIKU.server.Entity.Participant.Participant;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Service.S3Uploader;
@@ -28,6 +31,7 @@ public class FlashPostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final ParticipantRepository participantRepository;
     private final S3Uploader s3Uploader;
 
     // 번개런 게시글 조회
@@ -59,8 +63,16 @@ public class FlashPostService {
         FlashPost post = requestDto.flashToEntity(user, postImageUrl);
 
         try {
+            // 게시글 저장
             FlashPost savedPost = postRepository.save(post);
+
+            // 생성자 참여자로 추가 및 출석으로 변경
+            Participant participant = new Participant(savedPost, user);
+            participant.attend();
+            participantRepository.save(participant);
+
             return savedPost.getId();
+
         } catch (Exception e) {
             log.error("Failed to create FlashPost", e);
             throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);

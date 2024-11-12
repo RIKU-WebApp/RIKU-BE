@@ -1,9 +1,9 @@
 package RIKU.server.Dto.Post.Response;
 
+import RIKU.server.Dto.Participant.Response.ParticipantListResponseDto;
+import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.PostStatus;
-import RIKU.server.Entity.Participant.Participant;
-import RIKU.server.Entity.User.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Builder
 @Getter
@@ -21,7 +22,7 @@ public class ReadPostDetailResponseDto {
     private String title;
     private String location;
     private LocalDateTime date;
-    private List<Participant> participants;
+    private List<ParticipantListResponseDto> participants;
     private int participantsNum; // 참가자 수
     private String content;
     private PostStatus postStatus;
@@ -36,7 +37,9 @@ public class ReadPostDetailResponseDto {
                 .title(post.getTitle())
                 .location(post.getLocation())
                 .date(post.getDate())
-                .participants(post.getParticipants())
+                .participants(post.getParticipants().stream()
+                        .map(ParticipantListResponseDto::of)
+                        .collect(Collectors.toList()))
                 .participantsNum(post.getParticipants().size())
                 .content(post.getContent())
                 .postStatus(post.getPostStatus())
