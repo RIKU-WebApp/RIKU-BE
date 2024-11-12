@@ -64,7 +64,7 @@ public abstract class Post extends BaseEntity {
 
     // 출석 코드를 생성하는 메서드
     public String createdAttendanceCode() {
-        this.attendanceCode = String.valueOf((int) (Math.random() * 9000) + 1000);
+        this.attendanceCode = String.valueOf((int) (Math.random() * 900) + 100);
         return attendanceCode;
     }
 
