@@ -1,7 +1,6 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
-import RIKU.server.Entity.Board.FlashPost;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
@@ -36,10 +35,17 @@ public class ParticipantService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
+        // 생성자가 맞는 지 확인
         if (!post.getCreatedBy().getId().equals(userId)) {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
+        // 이미 출석 코드가 존재하는 지 확인
+        if (post.getAttendanceCode() != null) {
+            return post.getAttendanceCode();
+        }
+
+        // 출석 코드 생성 및 저장
         String code = post.createdAttendanceCode();
         postRepository.save(post);
 
