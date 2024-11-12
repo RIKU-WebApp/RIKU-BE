@@ -40,6 +40,7 @@ public enum BaseResponseStatus {
     INVALID_PASSWORD(false, 2014, "비밀번호가 일치하지 않습니다."),
     INVALID_USER_LOGIN(false, 2015, "로그인 요청에서 잘못된 값이 존재합니다."),
     INVALID_USER_ROLE(false, 2016, "존재하지 않는 역할입니다."),
+    UNAUTHORIZED_USER(false, 2017, "권한이 없는 회원입니다."),
 
     // PostException
     POST_NOT_FOUND(false, 3001, "존재하지 않는 게시글입니다."),

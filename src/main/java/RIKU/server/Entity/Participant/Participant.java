@@ -5,12 +5,14 @@ import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
 @Table(name = "Participants")
 @Getter
+@NoArgsConstructor
 public class Participant extends BaseEntity {
 
     @Id
