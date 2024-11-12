@@ -1,15 +1,13 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.Participant.Request.ParticipantRequestDto;
 import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.ParticipantService;
 import RIKU.server.Util.BaseResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +36,18 @@ public class ParticipantController {
     public BaseResponse<ParticipantResponseDto> joinRun(@PathVariable Long postId, @AuthenticationPrincipal AuthMember authMember) {
         Long userId = authMember.getId();
         ParticipantResponseDto responseDto = participantService.joinRun(postId, userId);
+        return new BaseResponse<>(responseDto);
+    }
+
+    // 출석하기
+    @PostMapping("/attend")
+    public BaseResponse<ParticipantResponseDto> attendRun(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember,
+            @RequestBody ParticipantRequestDto requestDto) {
+        Long userId = authMember.getId();
+        String code = requestDto.getCode();
+        ParticipantResponseDto responseDto = participantService.attendRun(postId, userId, code);
         return new BaseResponse<>(responseDto);
     }
 

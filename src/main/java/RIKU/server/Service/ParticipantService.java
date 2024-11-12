@@ -3,6 +3,7 @@ package RIKU.server.Service;
 import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Participant.Participant;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.PostRepository;
@@ -71,5 +72,30 @@ public class ParticipantService {
         return ParticipantResponseDto.of(participant);
     }
 
+    // 러닝 출석하기
+    @Transactional
+    public ParticipantResponseDto attendRun(Long postId, Long userId, String inputCode) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
+        if (!post.getAttendanceCode().equals(inputCode)) {
+            throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        Participant participant = participantRepository.findByPostAndUser(post, user)
+                .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+
+        // 이미 출석한 경우 예외 발생
+        if (participant.getStatus() == ParticipantStatus.ATTENDED) {
+            throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
+        }
+
+        participant.attend();
+        participantRepository.save(participant);
+
+        return ParticipantResponseDto.of(participant);
+    }
 }
