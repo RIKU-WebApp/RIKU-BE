@@ -52,14 +52,9 @@ public class FlashPostController {
 
     // 번개런 게시글 상세 조회
     @GetMapping("/post/{postId}")
-    public BaseResponse<ReadPostDetailResponseDto> getPost(
-            @PathVariable Long postId,
-            @AuthenticationPrincipal AuthMember authMember) {
-        long userId = authMember.getId();
-        ReadPostDetailResponseDto responseDto = flashPostService.getFlashPostDetail(userId, postId);
+    public BaseResponse<ReadPostDetailResponseDto> getPost(@PathVariable Long postId) {
+        ReadPostDetailResponseDto responseDto = flashPostService.getFlashPostDetail(postId);
         return new BaseResponse<>(responseDto);
 
     }
-
-
 }

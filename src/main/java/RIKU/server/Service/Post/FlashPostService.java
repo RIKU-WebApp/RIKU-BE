@@ -4,7 +4,6 @@ import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Entity.Board.FlashPost;
-import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
@@ -44,39 +43,35 @@ public class FlashPostService {
     @Transactional
     public Long save(CreatePostRequestDto requestDto) {
         String postImageUrl = null;
-        log.info("Received CreatePostRequestDto with postImage: {}", requestDto.getPostImage());
 
         if (requestDto.getPostImage() != null && !requestDto.getPostImage().isEmpty()) {
             try {
-                log.info("Received file: {}", requestDto.getPostImage().getOriginalFilename());
                 postImageUrl = s3Uploader.upload(requestDto.getPostImage(), "postImg"); // S3에 이미지 업로드
-                log.info("Post Image URL after upload: {}", postImageUrl);
             } catch (IOException e) {
                 log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
-                throw new RuntimeException("Failed to upload file", e);
+                throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
             }
-        } else {
-            log.warn("postImage is null or empty");
         }
 
         User user = userRepository.findById(requestDto.getUserId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         FlashPost post = requestDto.flashToEntity(user, postImageUrl);
-        log.info("Creating FlashPost entity with image URL: {}", post.getPostImageUrl());
 
-        FlashPost savedPost = postRepository.save(post);
-        log.info("FlashPost saved with ID: {} and Image URL: {}", savedPost.getId(), savedPost.getPostImageUrl());
-
-        return savedPost.getId();
+        try {
+            FlashPost savedPost = postRepository.save(post);
+            return savedPost.getId();
+        } catch (Exception e) {
+            log.error("Failed to create FlashPost", e);
+            throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
+        }
     }
 
     // 번개런 게시글 상세 조회
-    public ReadPostDetailResponseDto getFlashPostDetail(long userId, long postId) {
-        Post post = postRepository.findById(postId)
+    public ReadPostDetailResponseDto getFlashPostDetail(long postId) {
+        FlashPost post = (FlashPost) postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         return ReadPostDetailResponseDto.of(post);
     }
-
 }
