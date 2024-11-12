@@ -66,12 +66,4 @@ public class FlashPostService {
             throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
         }
     }
-
-    // 번개런 게시글 상세 조회
-    public ReadPostDetailResponseDto getFlashPostDetail(long postId) {
-        FlashPost post = (FlashPost) postRepository.findById(postId)
-                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
-
-        return ReadPostDetailResponseDto.of(post);
-    }
 }
