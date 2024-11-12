@@ -32,6 +32,11 @@ public class Participant extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ParticipantStatus status = ParticipantStatus.PENDING; // 기본값 출석 대기
 
+    public Participant(Post post, User user) {
+        this.post = post;
+        this.user = user;
+    }
+
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
     public void attend() {

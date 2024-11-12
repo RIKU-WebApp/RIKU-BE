@@ -48,6 +48,9 @@ public enum BaseResponseStatus {
     POST_CREATION_FAILED(false, 3003, "게시글 생성에 실패하였습니다."),
     POST_IMAGE_UPLOAD_FAILED(false, 3004, "게시글 이미지 업로드에 실패하였습니다."),
 
+    // ParticipantException
+    ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),
+
     /**
      * 9000 : MultipartFile 오류
      */
