@@ -49,6 +49,11 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
+        // 중복 변경 방지
+        if (user.getUserRole().equals(newRole)) {
+            throw new UserException(BaseResponseStatus.ROLE_ALREADY_ASSIGNED);
+        }
+
         user.setUserRole(newRole);
         userRepository.save(user);
 

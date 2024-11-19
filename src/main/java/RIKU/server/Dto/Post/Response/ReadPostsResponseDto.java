@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ReadPostsResponseDto {
 
+    private Long id;
     private String title;
     private LocalDateTime date;
     private int participants; // 참가자 수
@@ -24,6 +25,7 @@ public class ReadPostsResponseDto {
 
     public static ReadPostsResponseDto of (Post post) {
         return ReadPostsResponseDto.builder()
+                .id(post.getId())
                 .title(post.getTitle())
                 .date(post.getDate())
                 .participants(post.getParticipants().size())
