@@ -41,7 +41,7 @@ public class User extends BaseEntity {
     @Setter
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
-    private UserRole userRole = UserRole.INACTIVE;
+    private UserRole userRole = UserRole.MEMBER;
 
     @Builder
     public User(String studentId, String password, String name, String college, String major, String phone) {
