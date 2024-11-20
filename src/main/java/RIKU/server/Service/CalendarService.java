@@ -30,7 +30,10 @@ public class CalendarService {
         LocalDateTime endOfDay = date.atTime(23, 59, 59);
 
         // 해당 날짜의 게시글 조회
-        List<Post> posts = postRepository.findByDateBetween(startOfDay, endOfDay);
+        List<Post> posts = postRepository.findByDateBetween(startOfDay, endOfDay)
+                .stream()
+                .sorted((post1, post2) -> post1.getDate().compareTo(post2.getDate()))
+                .toList();
 
         // 게시글 정보를 DTO로 변환
         return posts.stream()
@@ -52,6 +55,7 @@ public class CalendarService {
                 .collect(Collectors.groupingBy(post -> post.getDate().toLocalDate(), Collectors.counting()));
 
         return eventCounts.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
                 .map(entry -> MonthlyScheduleResponseDto.builder()
                         .date(entry.getKey())
                         .eventCount(entry.getValue())
