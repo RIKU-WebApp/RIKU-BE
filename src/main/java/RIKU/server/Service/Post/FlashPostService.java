@@ -45,7 +45,7 @@ public class FlashPostService {
 
     // 번개런 게시글 생성
     @Transactional
-    public Long save(CreatePostRequestDto requestDto) {
+    public Long save(Long userId, CreatePostRequestDto requestDto) {
         String postImageUrl = null;
 
         if (requestDto.getPostImage() != null && !requestDto.getPostImage().isEmpty()) {
@@ -57,7 +57,7 @@ public class FlashPostService {
             }
         }
 
-        User user = userRepository.findById(requestDto.getUserId())
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         FlashPost post = requestDto.flashToEntity(user, postImageUrl);

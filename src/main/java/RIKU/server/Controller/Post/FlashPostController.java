@@ -36,12 +36,13 @@ public class FlashPostController {
     public BaseResponse<Map<String, Long>> createFlashPost(
             @ModelAttribute @Validated
             CreatePostRequestDto requestDto,
-            BindingResult bindingResult) {
+            BindingResult bindingResult,
+            @AuthenticationPrincipal AuthMember authMember) {
 
         // 유효성 검증 실패 시 처리
         if (bindingResult.hasErrors()) throw new ValidationException(bindingResult);
 
-        Long postId = flashPostService.save(requestDto);
+        Long postId = flashPostService.save(authMember.getId(), requestDto);
 
         Map<String, Long> response = new HashMap<>();
         response.put("postId", postId);
