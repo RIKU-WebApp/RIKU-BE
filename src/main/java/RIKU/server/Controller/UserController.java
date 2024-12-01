@@ -1,11 +1,9 @@
 package RIKU.server.Controller;
 
-import RIKU.server.Dto.User.Request.UserLoginRequestDto;
 import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
-import RIKU.server.Dto.User.Response.UserLoginResponseDto;
 import RIKU.server.Service.UserService;
 import RIKU.server.Util.BaseResponse;
-import RIKU.server.Util.Exception.Validation.ValidationException;
+import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindingResult;
@@ -31,7 +29,7 @@ public class UserController {
      */
     @PostMapping("/signup")
     public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody UserSignUpRequestDto requestDto, BindingResult bindingResult) {
-        if (bindingResult.hasFieldErrors()) throw new ValidationException(bindingResult);
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
         Long userId = userService.signUp(requestDto);
 
         Map<String, Long> response = new HashMap<>();

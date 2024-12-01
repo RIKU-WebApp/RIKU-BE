@@ -43,6 +43,10 @@ public enum BaseResponseStatus {
     UNAUTHORIZED_USER(false, 2017, "권한이 없는 회원입니다."),
     ROLE_ALREADY_ASSIGNED(false, 2018, "이미 해당 역할이 할당되어 있습니다."),
 
+    INVALID_FIELD(false, 2020, "요청 값이 잘못되었습니다."),
+    EMPTY_REQUEST_PARAMETER(false, 2021, "Request Parameter가 존재하지 않습니다."),
+    METHOD_ARGUMENT_TYPE_MISMATCH(false, 2022, "Request Parameter나 Path Variable의 유형이 불일치합니다."),
+
     // PostException
     POST_NOT_FOUND(false, 3001, "존재하지 않는 게시글입니다."),
     UNAUTHORIZED_POST_ACCESS(false, 3002, "해당 게시글에 접근할 권한이 없습니다."),

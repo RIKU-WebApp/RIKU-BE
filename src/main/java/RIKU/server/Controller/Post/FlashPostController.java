@@ -1,12 +1,11 @@
 package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
-import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.FlashPostService;
 import RIKU.server.Util.BaseResponse;
-import RIKU.server.Util.Exception.Validation.ValidationException;
+import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -40,7 +39,7 @@ public class FlashPostController {
             @AuthenticationPrincipal AuthMember authMember) {
 
         // 유효성 검증 실패 시 처리
-        if (bindingResult.hasErrors()) throw new ValidationException(bindingResult);
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
         Long postId = flashPostService.save(authMember.getId(), requestDto);
 

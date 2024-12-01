@@ -20,10 +20,13 @@ public class CreatePostRequestDto {
     @Size(min = 1, message = "내용은 최소 1자 이상이어야 합니다.")
     private String title;
 
+    @NotNull(message = "집합 장소는 필수 항목입니다.")
     private String location; // 집합 장소
 
+    @NotNull(message = "집합 날짜 및 시간은 필수 항목입니다.")
     private LocalDateTime date; // 집합 날짜 및 시간
 
+    @NotNull(message = "내용은 필수 항목입니다.")
     private String content; // 게시글 내용
 
     private MultipartFile postImage;
