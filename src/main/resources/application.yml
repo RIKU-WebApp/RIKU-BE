@@ -23,7 +23,7 @@ spring:
     url: ${DATASOURCE_URL_DEV}
     username: ${DATASOURCE_USERNAME}
     password: ${DATASOURCE_PASSWORD}
-    driver-class-name: jdbc:mysql://com.mysql.cj.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
 logging:
   level:
     org.hibernate.sql: debug
