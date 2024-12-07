@@ -26,6 +26,7 @@ public class ReadPostDetailResponseDto {
     private int participantsNum; // 참가자 수
     private String content;
     private PostStatus postStatus;
+    private String postImageUrl;
 
     // 유저 관련
     private Long userId;
@@ -43,6 +44,7 @@ public class ReadPostDetailResponseDto {
                 .participantsNum(post.getParticipants().size())
                 .content(post.getContent())
                 .postStatus(post.getPostStatus())
+                .postImageUrl(post.getPostImageUrl())
                 .userId(post.getCreatedBy().getId())
                 .userProfileImg(post.getCreatedBy().getImageUrl())
                 .userName(post.getCreatedBy().getName())
