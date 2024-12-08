@@ -1,6 +1,7 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
+import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Util.BaseResponseStatus;
@@ -20,9 +21,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * 회원 가입
-     */
+    // 회원가입
     @Transactional
     public Long signUp(UserSignUpRequestDto requestDto) {
         // TODO 1. 로그인 아이디 중복 체크
@@ -35,5 +34,12 @@ public class UserService {
         return userRepository.save(user).getId();
     }
 
+    // 마이페이지 조회
+    public ReadUserProfileResponseDto getProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        return ReadUserProfileResponseDto.of(user);
+    }
 
 }

@@ -24,10 +24,10 @@ import java.util.List;
 public class JwtTokenProvider {
 
     @Value("${secret.jwt-access-expired-in}")
-    private long JWT_ACCESS_EXPIRED_IN;
+    private Long JWT_ACCESS_EXPIRED_IN;
 
     @Value("${secret.jwt-refresh-expired-in}")
-    private long JWT_REFRESH_EXPIRED_IN;
+    private Long JWT_REFRESH_EXPIRED_IN;
 
     private final Key key;
 

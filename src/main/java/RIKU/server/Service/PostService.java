@@ -19,7 +19,7 @@ public class PostService {
     private final PostRepository postRepository;
 
     // 게시글 상세 조회
-    public ReadPostDetailResponseDto getPostDetail(long postId) {
+    public ReadPostDetailResponseDto getPostDetail(Long postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
