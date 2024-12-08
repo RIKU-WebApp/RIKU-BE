@@ -1,7 +1,6 @@
 package RIKU.server.Dto.Post.Response;
 
 import RIKU.server.Dto.Participant.Response.ParticipantListResponseDto;
-import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.PostStatus;
 import lombok.AllArgsConstructor;
@@ -46,7 +45,7 @@ public class ReadPostDetailResponseDto {
                 .postStatus(post.getPostStatus())
                 .postImageUrl(post.getPostImageUrl())
                 .userId(post.getCreatedBy().getId())
-                .userProfileImg(post.getCreatedBy().getImageUrl())
+                .userProfileImg(post.getCreatedBy().getProfileImageUrl())
                 .userName(post.getCreatedBy().getName())
                 .build();
     }
