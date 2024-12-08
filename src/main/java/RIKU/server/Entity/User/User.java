@@ -35,8 +35,8 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String major; // 학과
 
-    @Column(name = "image_url")
-    private String imageUrl;
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
 
     @Setter
     @Column(name = "user_role")

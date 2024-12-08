@@ -14,14 +14,14 @@ import lombok.NoArgsConstructor;
 public class ParticipantListResponseDto {
     private Long userId;
     private String userName;
-    private String imageUrl;
+    private String userProfileImg;
     private ParticipantStatus status;
 
     public static ParticipantListResponseDto of(Participant participant) {
         return ParticipantListResponseDto.builder()
                 .userId(participant.getUser().getId())
                 .userName(participant.getUser().getName())
-                .imageUrl(participant.getUser().getImageUrl())
+                .userProfileImg(participant.getUser().getProfileImageUrl())
                 .status(participant.getStatus())
                 .build();
 
