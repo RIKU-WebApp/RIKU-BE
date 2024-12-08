@@ -52,6 +52,7 @@ public enum BaseResponseStatus {
     UNAUTHORIZED_POST_ACCESS(false, 3002, "해당 게시글에 접근할 권한이 없습니다."),
     POST_CREATION_FAILED(false, 3003, "게시글 생성에 실패하였습니다."),
     POST_IMAGE_UPLOAD_FAILED(false, 3004, "게시글 이미지 업로드에 실패하였습니다."),
+    INVALID_RUN_TYPE(false, 3005, "존재하지 않는 게시글 타입입니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),

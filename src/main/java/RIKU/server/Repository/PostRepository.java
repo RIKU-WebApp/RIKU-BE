@@ -14,11 +14,11 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 번개런 게시글 조회
-    @Query("SELECT p FROM FlashPost p")
+    @Query("SELECT p FROM FlashPost p WHERE p.baseStatus = 'ACTIVE'")
     List<FlashPost> findAllFlashPosts();
 
     // 정규런 게시글 조회
-    @Query("SELECT p FROM RegularPost p")
+    @Query("SELECT p FROM RegularPost p WHERE p.baseStatus = 'ACTIVE'")
     List<RegularPost> findAllRegularPosts();
 
     // 해당 날짜 게시글 조회
