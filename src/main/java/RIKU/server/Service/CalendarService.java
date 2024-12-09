@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class CalendarService {
 
         // 게시글 정보를 DTO로 변환
         return posts.stream()
-                .map(post -> new DailyScheduleResponseDto(post.getTitle(), post.getDate(), post.getLocation()))
+                .map(DailyScheduleResponseDto::of)
                 .collect(Collectors.toList());
     }
 
