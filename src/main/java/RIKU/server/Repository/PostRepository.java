@@ -1,5 +1,6 @@
 package RIKU.server.Repository;
 
+import RIKU.server.Entity.BaseStatus;
 import RIKU.server.Entity.Board.FlashPost;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.RegularPost;
@@ -23,5 +24,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 해당 날짜 게시글 조회
     List<Post> findByDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+
+
+    // 게시글 오름차순 정렬 조회
+    List<Post> findByBaseStatusAndDateAfterOrderByDateAsc(BaseStatus baseStatus, LocalDateTime date);
 
 }
