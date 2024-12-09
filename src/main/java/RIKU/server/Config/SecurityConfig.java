@@ -55,7 +55,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/users/**", "/calendar/**", "/error", "/").permitAll()
+                        .requestMatchers("/users/**", "/calendar/**", "/home/**", "/error", "/").permitAll()
                         .requestMatchers("run/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         // H2 콘솔 경로를 허용
                         .requestMatchers(PathRequest.toH2Console()).permitAll()
