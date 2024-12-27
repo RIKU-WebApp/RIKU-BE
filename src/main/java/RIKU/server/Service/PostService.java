@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -44,6 +46,11 @@ public class PostService {
                 log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
                 throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
             }
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if(requestDto.getDate().isBefore(now)) {
+            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
         }
 
         User user = userRepository.findById(userId)
