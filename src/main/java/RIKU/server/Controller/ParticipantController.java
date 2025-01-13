@@ -52,7 +52,7 @@ public class ParticipantController {
     }
 
     // 출석 종료하기
-    @PostMapping("/close")
+    @PutMapping("/close")
     public BaseResponse<Map<String, Object>> closeRun(
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthMember authMember) {
