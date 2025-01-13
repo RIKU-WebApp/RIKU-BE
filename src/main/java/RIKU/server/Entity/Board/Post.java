@@ -68,11 +68,21 @@ public abstract class Post extends BaseEntity {
         this.postImageUrl = postImageUrl;
     }
 
+    public void updatePost(String title, String location, LocalDateTime date, String content, String postImageUrl) {
+        this.title = title;
+        this.location = location;
+        this.date = date;
+        this.content = content;
+        this.postImageUrl = postImageUrl;
+    }
+
 
     // 출석 코드를 생성하는 메서드
     public String createdAttendanceCode() {
         this.attendanceCode = String.valueOf((int) (Math.random() * 900) + 100);
         return attendanceCode;
     }
+
+    public void updateStatus(PostStatus status) { this.postStatus = status; }
 
 }
