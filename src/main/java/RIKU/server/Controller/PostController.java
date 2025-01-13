@@ -27,8 +27,7 @@ public class PostController {
     // 게시글 생성
     @PostMapping("/{runType}/post")
     public BaseResponse<Map<String, Long>> createPost(
-            @ModelAttribute @Validated
-            CreatePostRequestDto requestDto,
+            @ModelAttribute @Validated CreatePostRequestDto requestDto,
             BindingResult bindingResult,
             @PathVariable String runType,
             @AuthenticationPrincipal AuthMember authMember) {
@@ -63,7 +62,7 @@ public class PostController {
     @PutMapping("/post/{postId}")
     public BaseResponse<Map<String, Long>> updatePost(
             @PathVariable Long postId,
-            @Validated @RequestBody CreatePostRequestDto requestDto,
+            @ModelAttribute @Validated CreatePostRequestDto requestDto,
             BindingResult bindingResult,
             @AuthenticationPrincipal AuthMember authMember) {
 
