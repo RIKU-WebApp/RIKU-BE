@@ -1,6 +1,5 @@
 package RIKU.server.Repository;
 
-import RIKU.server.Entity.BaseStatus;
 import RIKU.server.Entity.Board.FlashPost;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.RegularPost;
@@ -15,11 +14,9 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
 
     // 번개런 게시글 조회
-    @Query("SELECT p FROM FlashPost p WHERE p.baseStatus = 'ACTIVE'")
     List<FlashPost> findAllFlashPosts();
 
     // 정규런 게시글 조회
-    @Query("SELECT p FROM RegularPost p WHERE p.baseStatus = 'ACTIVE'")
     List<RegularPost> findAllRegularPosts();
 
     // 해당 날짜 게시글 조회
@@ -27,6 +24,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
 
     // 게시글 오름차순 정렬 조회
-    List<Post> findByBaseStatusAndDateAfterOrderByDateAsc(BaseStatus baseStatus, LocalDateTime date);
+    List<Post> findByDateAfterOrderByDateAsc(LocalDateTime date);
 
 }

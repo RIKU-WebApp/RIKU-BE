@@ -1,7 +1,6 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.Post.Response.ReadHomeResponseDto;
-import RIKU.server.Entity.BaseStatus;
 import RIKU.server.Entity.Board.FlashPost;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.RegularPost;
@@ -29,7 +28,7 @@ public class HomeService {
         LocalDateTime today = LocalDateTime.now();
 
         // 모든 게시글 오름차순 정렬 조회
-        List<Post> posts = postRepository.findByBaseStatusAndDateAfterOrderByDateAsc(BaseStatus.ACTIVE, today);
+        List<Post> posts = postRepository.findByDateAfterOrderByDateAsc(today);
 
         // 타입별 예정일이 가장 가까운 게시글 선택
         FlashPost flashPost = posts.stream()
