@@ -134,10 +134,11 @@ public class PostService {
                     log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
                     throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
                 }
-            } else {
-                // 이미지를 없애는 경우
-                postImageUrl = null;
             }
+        } else {
+            // 이미지를 없애는 경우
+            postImageUrl = null;
+
         }
 
         post.updatePost(requestDto.getTitle(), requestDto.getLocation(), requestDto.getDate(), requestDto.getContent(), postImageUrl);
