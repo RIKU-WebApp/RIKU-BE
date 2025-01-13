@@ -60,8 +60,8 @@ public class ParticipantController {
         String postStatus = participantService.closeRun(postId, userId);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("postId", postId);
         response.put("postStatus", postStatus);
+        response.put("postId", postId);
 
         return new BaseResponse<>(response);
     }
