@@ -51,4 +51,19 @@ public class ParticipantController {
         return new BaseResponse<>(responseDto);
     }
 
+    // 출석 종료하기
+    @PostMapping("/close")
+    public BaseResponse<Map<String, Object>> closeRun(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        Long userId = authMember.getId();
+        String postStatus = participantService.closeRun(postId, userId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("postId", postId);
+        response.put("postStatus", postStatus);
+
+        return new BaseResponse<>(response);
+    }
+
 }

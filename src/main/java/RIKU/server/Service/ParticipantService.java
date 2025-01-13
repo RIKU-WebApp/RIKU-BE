@@ -2,6 +2,7 @@ package RIKU.server.Service;
 
 import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
@@ -97,5 +98,33 @@ public class ParticipantService {
         participantRepository.save(participant);
 
         return ParticipantResponseDto.of(participant);
+    }
+
+    // 출석 종료하기
+    @Transactional
+    public String closeRun(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 생성자가 맞는 지 확인
+        if (!post.getCreatedBy().getId().equals(userId)) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // PostStatus를 CLOSED로 변경
+        post.setPostStatus(PostStatus.CLOSED);
+
+
+        // 출석하지 않은 참여자 상태를 ABSENT로 변경
+        participantRepository.findByPost(post).forEach(participant -> {
+            if(participant.getStatus() != ParticipantStatus.ATTENDED) {
+                participant.absent();
+            }
+        });
+
+        // 변경된 Post와 Participant 저장
+        postRepository.save(post);
+
+        return post.getPostStatus().name();
     }
 }

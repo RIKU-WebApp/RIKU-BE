@@ -7,6 +7,7 @@ import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ public abstract class Post extends BaseEntity {
     @Column(name = "post_image_url")
     private String postImageUrl;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "post_status")
     private PostStatus postStatus = PostStatus.NOW; // 모집 상태(모집중)
