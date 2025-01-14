@@ -1,5 +1,6 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.User.Request.UpdateProfileRequestDto;
 import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
 import RIKU.server.Security.AuthMember;
@@ -43,5 +44,19 @@ public class UserController {
         return new BaseResponse<>(responseDto);
     }
 
+    // 마이페이지 수정
+    @PutMapping("/profile")
+    public BaseResponse<Map<String, Long>> updateProfile(
+            @AuthenticationPrincipal AuthMember authMember,
+            @Validated @RequestBody UpdateProfileRequestDto requestDto,
+            BindingResult bindingResult) {
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
+        Long userId = userService.updateProfile(authMember.getId(), requestDto);
+
+        Map<String, Long> response = new HashMap<>();
+        response.put("userId", userId);
+
+        return new BaseResponse<>(response);
+    }
 }

@@ -46,6 +46,7 @@ public enum BaseResponseStatus {
     INVALID_FIELD(false, 2020, "요청 값이 잘못되었습니다."),
     EMPTY_REQUEST_PARAMETER(false, 2021, "Request Parameter가 존재하지 않습니다."),
     METHOD_ARGUMENT_TYPE_MISMATCH(false, 2022, "Request Parameter나 Path Variable의 유형이 불일치합니다."),
+    PROFILE_IMAGE_UPLOAD_FAILED(false, 2023, "프로필 이미지 업로드에 실패하였습니다."),
 
     // PostException
     POST_NOT_FOUND(false, 3001, "존재하지 않는 게시글입니다."),

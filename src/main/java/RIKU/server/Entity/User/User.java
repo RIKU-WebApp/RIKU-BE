@@ -24,17 +24,21 @@ public class User extends BaseEntity {
     @Column(name = "student_id", nullable = false, unique = true)
     private String studentId; // 학번
 
+    @Setter
     @Column(nullable = false)
     private String password;
 
+    @Setter
     @Column(unique = true)
     private String phone;
 
+    @Column(nullable = false)
     private String college; // 단과대학
 
     @Column(nullable = false)
     private String major; // 학과
 
+    @Setter
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
