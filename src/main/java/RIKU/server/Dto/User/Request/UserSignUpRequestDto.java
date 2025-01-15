@@ -1,6 +1,7 @@
 package RIKU.server.Dto.User.Request;
 
 import RIKU.server.Entity.User.User;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,16 +16,21 @@ import org.hibernate.validator.constraints.Length;
 public class UserSignUpRequestDto {
 
     @Pattern(regexp = "^([0-9]){9}$", message = "숫자 9자리")
+    @NotNull
     private String studentId;
 
     @Pattern(regexp = "^(?=.*[a-zA-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]).*$", message = "영문, 숫자, 특수문자 혼합")
     @Length(min = 8, max = 20, message = "8 ~ 20자리 이내")
+    @NotNull
     private String password;
 
+    @NotNull
     private String name;
 
+    @NotNull
     private String college;
 
+    @NotNull
     private String major;
 
     @Pattern(regexp = "^(01[016789]{1})-?[0-9]{3,4}-?[0-9]{4}$", message = "전화번호 형태")

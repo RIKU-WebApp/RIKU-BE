@@ -48,14 +48,16 @@ public class UserController {
     @PutMapping("/profile")
     public BaseResponse<Map<String, Long>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
-            @Validated @RequestBody UpdateProfileRequestDto requestDto,
+            @ModelAttribute @Validated UpdateProfileRequestDto requestDto,
             BindingResult bindingResult) {
+
+        // 유효성 검증 실패 시 처리
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        Long userId = userService.updateProfile(authMember.getId(), requestDto);
+        Long updatedUserId = userService.updateProfile(authMember.getId(), requestDto);
 
         Map<String, Long> response = new HashMap<>();
-        response.put("userId", userId);
+        response.put("userId", updatedUserId);
 
         return new BaseResponse<>(response);
     }

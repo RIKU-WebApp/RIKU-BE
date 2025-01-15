@@ -52,32 +52,36 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 전화번호 업데이트
-        if(requestDto.getPhone() != null && !requestDto.getPhone().isEmpty()) {
-            user.setPhone(requestDto.getPhone());
-        }
-
-        // 비밀번호 업데이트
-        if(requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
-            String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
-            user.setPassword(encodedPassword);
-        }
-
         // 프로필 이미지 업데이트
         String profileImageUrl = user.getProfileImageUrl();
-        if (requestDto.getUserProfileImg() != null && !requestDto.getUserProfileImg().isEmpty()) {
-            try {
-                profileImageUrl = s3Uploader.upload(requestDto.getUserProfileImg(), "profileImg");
-            } catch (IOException e) {
-                log.error("File upload failed: {}", requestDto.getUserProfileImg().getOriginalFilename(), e);
-                throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);
-            }
+
+        if (requestDto.getUserProfileImg() != null) {
+             if (!requestDto.getUserProfileImg().isEmpty()) {
+                 try {
+                     profileImageUrl = s3Uploader.upload(requestDto.getUserProfileImg(), "profileImg");
+                 } catch (IOException e) {
+                     log.error("File upload failed: {}", requestDto.getUserProfileImg().getOriginalFilename(), e);
+                     throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);
+                 }
+             }
         } else {
             // 이미지를 없애는 경우
             profileImageUrl = null;
         }
-        user.setProfileImageUrl(profileImageUrl);
 
-        return userRepository.save(user).getId();
+        // 비밀번호 업데이트
+        String password = user.getPassword();
+
+        if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
+            password = passwordEncoder.encode(requestDto.getPassword());
+        }
+
+        // 프로필 업데이트
+        user.updateProfile(requestDto.getPhone(), password, profileImageUrl);
+
+        // DB에 반영되는지 확인
+        userRepository.saveAndFlush(user);
+
+        return user.getId();
     }
 }

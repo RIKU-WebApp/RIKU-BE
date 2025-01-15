@@ -6,11 +6,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 @Entity
 @Table(name = "Users")
 @Getter
 @NoArgsConstructor
+@Slf4j
 public class User extends BaseEntity {
 
     @Id
@@ -18,27 +20,20 @@ public class User extends BaseEntity {
     @Column(name = "user_id")
     private Long id;
 
-    @Column(nullable = false)
     private String name;
 
-    @Column(name = "student_id", nullable = false, unique = true)
+    @Column(name = "student_id", unique = true)
     private String studentId; // 학번
 
-    @Setter
-    @Column(nullable = false)
     private String password;
 
-    @Setter
     @Column(unique = true)
     private String phone;
 
-    @Column(nullable = false)
     private String college; // 단과대학
 
-    @Column(nullable = false)
     private String major; // 학과
 
-    @Setter
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
@@ -55,6 +50,13 @@ public class User extends BaseEntity {
         this.college = college;
         this.major = major;
         this.phone = phone;
+    }
+
+    public void updateProfile(String phone, String password, String profileImageUrl) {
+        log.debug("Updating user profile: phone = {}, password = {}, profileImageUrl = {}", phone, password, profileImageUrl);
+        this.phone = phone;
+        this.password = password;
+        this.profileImageUrl = profileImageUrl;
     }
 
 }
