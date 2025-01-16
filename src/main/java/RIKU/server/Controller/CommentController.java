@@ -33,5 +33,18 @@ public class CommentController {
         return new BaseResponse<>(response);
     }
 
+    // 댓글 삭제
+    @DeleteMapping("/{commentId}")
+    public BaseResponse<Map<String, Long>> deleteComment(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal AuthMember authMember) {
 
+        Long deletedId = commentService.deleteComment(authMember.getId(), commentId);
+
+        Map<String, Long> response = new HashMap<>();
+        response.put("commentId", deletedId);
+
+        return new BaseResponse<>(response);
+    }
 }

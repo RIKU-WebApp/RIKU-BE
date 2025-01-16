@@ -44,4 +44,18 @@ public class CommentService {
         return commentRepository.save(comment).getId();
     }
 
+    // 댓글 삭제
+    @Transactional
+    public Long deleteComment(Long userId, Long commentId) {
+
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.COMMENT_NOT_FOUND));
+
+        if (!comment.getUser().getId().equals(userId)) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        comment.updateInactive();
+        return comment.getId();
+    }
 }
