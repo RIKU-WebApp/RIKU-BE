@@ -4,6 +4,7 @@ import RIKU.server.Entity.BaseEntity;
 import RIKU.server.Entity.BaseStatus;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -37,6 +38,7 @@ public class Comment extends BaseEntity {
     @Column(name = "base_status")
     private BaseStatus baseStatus = BaseStatus.ACTIVE;
 
+    @Builder
     public Comment(User user, Post post, String content, Comment targetComment) {
         this.user = user;
         this.post = post;
