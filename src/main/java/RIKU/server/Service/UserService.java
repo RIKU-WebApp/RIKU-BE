@@ -54,12 +54,10 @@ public class UserService {
 
         // 프로필 이미지 업데이트
         String profileImageUrl = user.getProfileImageUrl();
-
-        log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
         if (requestDto.getUserProfileImg() != null) {
              if (!requestDto.getUserProfileImg().isEmpty()) {
                  try {
-//                     log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
+                     log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
                      profileImageUrl = s3Uploader.upload(requestDto.getUserProfileImg(), "profileImg");
                      log.debug("Profile image uploaded: {}", profileImageUrl);
                  } catch (IOException e) {
@@ -73,14 +71,25 @@ public class UserService {
         }
 
         // 비밀번호 업데이트
-        String password = user.getPassword();
-
+        String password;
         if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
+            log.debug("Received password : {}", requestDto.getPassword());
             password = passwordEncoder.encode(requestDto.getPassword());
+            log.debug("Encoded password : {}", password);
+        } else {
+            password = null;
+        }
+
+        // 전화번호 업데이트
+        String phone;
+        if (requestDto.getPhone() != null && !requestDto.getPhone().isEmpty()) {
+            phone = requestDto.getPhone();
+        } else {
+            phone = null;
         }
 
         // 프로필 업데이트
-        user.updateProfile(requestDto.getPhone(), password, profileImageUrl);
+        user.updateProfile(phone, password, profileImageUrl);
 
         // DB에 반영되는지 확인
         userRepository.saveAndFlush(user);

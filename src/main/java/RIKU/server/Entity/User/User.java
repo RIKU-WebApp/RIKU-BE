@@ -1,6 +1,7 @@
 package RIKU.server.Entity.User;
 
 import RIKU.server.Entity.BaseEntity;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,6 +29,7 @@ public class User extends BaseEntity {
     private String password;
 
     @Column(unique = true)
+    @Nullable
     private String phone;
 
     private String college; // 단과대학
@@ -35,6 +37,7 @@ public class User extends BaseEntity {
     private String major; // 학과
 
     @Column(name = "profile_image_url")
+    @Nullable
     private String profileImageUrl;
 
     @Setter
