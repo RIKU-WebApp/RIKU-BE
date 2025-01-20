@@ -55,10 +55,13 @@ public class UserService {
         // 프로필 이미지 업데이트
         String profileImageUrl = user.getProfileImageUrl();
 
+        log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
         if (requestDto.getUserProfileImg() != null) {
              if (!requestDto.getUserProfileImg().isEmpty()) {
                  try {
+//                     log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
                      profileImageUrl = s3Uploader.upload(requestDto.getUserProfileImg(), "profileImg");
+                     log.debug("Profile image uploaded: {}", profileImageUrl);
                  } catch (IOException e) {
                      log.error("File upload failed: {}", requestDto.getUserProfileImg().getOriginalFilename(), e);
                      throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);

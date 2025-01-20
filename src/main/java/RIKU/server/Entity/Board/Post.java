@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import static jakarta.persistence.FetchType.LAZY;
 @DiscriminatorColumn(name = "post_type")
 @Getter
 @NoArgsConstructor
+@Slf4j
 public abstract class Post extends BaseEntity {
 
     @Id
@@ -64,6 +66,7 @@ public abstract class Post extends BaseEntity {
     }
 
     public void updatePost(String title, String location, LocalDateTime date, String content, String postImageUrl) {
+        log.debug("Updating post: title = {}, location = {}, date = {}, content = {}, postImageUrl = {}", title, location, date, content, postImageUrl);
         this.title = title;
         this.location = location;
         this.date = date;

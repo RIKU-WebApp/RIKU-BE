@@ -129,7 +129,10 @@ public class PostService {
             if (!requestDto.getPostImage().isEmpty()) {
                 // 새로운 이미지 업로드
                 try {
+                    log.debug("Received post image: {}", requestDto.getPostImage().getOriginalFilename());
                     postImageUrl = s3Uploader.upload(requestDto.getPostImage(), "postImg");
+                    log.debug("post image uploaded: {}", postImageUrl);
+
                 } catch (IOException e) {
                     log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
                     throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
