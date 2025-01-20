@@ -2,6 +2,7 @@ package RIKU.server.Dto.Post.Request;
 
 import RIKU.server.Entity.Board.FlashPost;
 import RIKU.server.Entity.User.User;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.*;
@@ -29,8 +30,8 @@ public class CreatePostRequestDto {
     @NotNull(message = "내용은 필수 항목입니다.")
     private String content; // 게시글 내용
 
+    @Nullable
     private MultipartFile postImage;
-
 
     public FlashPost flashToEntity(User user, String postImageUrl) {
         return FlashPost.builder()

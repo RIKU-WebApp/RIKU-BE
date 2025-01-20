@@ -3,6 +3,7 @@ package RIKU.server.Entity.Board;
 import RIKU.server.Entity.BaseEntity;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +44,7 @@ public abstract class Post extends BaseEntity {
     private String content; // 게시글 내용
 
     @Column(name = "post_image_url")
+    @Nullable
     private String postImageUrl;
 
     @Setter
