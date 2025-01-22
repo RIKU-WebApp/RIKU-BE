@@ -1,8 +1,9 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
+import RIKU.server.Dto.Post.Response.ReadAllPostsResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
-import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
+import RIKU.server.Dto.Post.Response.ReadPostResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.PostService;
 import RIKU.server.Util.BaseResponse;
@@ -45,8 +46,8 @@ public class PostController {
 
     // 게시판별 전체 게시글 조회
     @GetMapping("/{runType}")
-    public BaseResponse<List<ReadPostsResponseDto>> getPosts(@PathVariable String runType) {
-        List<ReadPostsResponseDto> posts = postService.getPostsByRunType(runType);
+    public BaseResponse<ReadAllPostsResponseDto> getPosts(@PathVariable String runType) {
+        ReadAllPostsResponseDto posts = postService.getPostsByRunType(runType);
         return new BaseResponse<>(posts);
     }
 

@@ -1,10 +1,10 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
+import RIKU.server.Dto.Post.Response.ReadAllPostsResponseDto;
 import RIKU.server.Dto.Post.Response.ReadCommentsResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
-import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
-import RIKU.server.Entity.BaseStatus;
+import RIKU.server.Dto.Post.Response.ReadPostResponseDto;
 import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.PostStatus;
@@ -86,20 +86,41 @@ public class PostService {
     }
 
     // 게시판별 전체 게시글 조회
-    public List<ReadPostsResponseDto> getPostsByRunType(String runType) {
-        List<? extends Post> posts;
+    public ReadAllPostsResponseDto getPostsByRunType(String runType) {
+        // 현재 날짜 기준
+        LocalDateTime now = LocalDateTime.now();
+
+        List<? extends Post> allPosts;
 
         switch (runType.toLowerCase()) {
             case "flash":
-                posts = postRepository.findAllFlashPosts();
+                allPosts = postRepository.findAllFlashPosts();
+                break;
+            case "regular":
+                allPosts = postRepository.findAllRegularPosts();
                 break;
             default:
                 throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
 
-        return posts.stream()
-                .map(ReadPostsResponseDto::of)
+        // 각 카테고리로 게시글 분류
+        List<ReadPostResponseDto> todayRuns = allPosts.stream()
+                .filter(post -> post.getDate().toLocalDate().isEqual(now.toLocalDate()))
+                .map(ReadPostResponseDto::of)
                 .collect(Collectors.toList());
+
+        List<ReadPostResponseDto> upcomingRuns = allPosts.stream()
+                .map(ReadPostResponseDto::of)
+                .filter(post -> post.getDate().toLocalDate().isAfter(now.toLocalDate()))
+                .collect(Collectors.toList());
+
+        List<ReadPostResponseDto> pastRuns = allPosts.stream()
+                .filter(post -> post.getDate().toLocalDate().isBefore(now.toLocalDate()) &&
+                                post.getPostStatus() != PostStatus.CANCELED)
+                .map(ReadPostResponseDto::of)
+                .collect(Collectors.toList());
+
+        return ReadAllPostsResponseDto.of(todayRuns, upcomingRuns, pastRuns);
     }
 
     // 게시글 상세 조회

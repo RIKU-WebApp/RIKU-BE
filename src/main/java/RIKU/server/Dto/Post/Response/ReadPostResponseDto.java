@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReadPostsResponseDto {
+public class ReadPostResponseDto {
 
     private Long id;
     private String title;
@@ -23,8 +23,8 @@ public class ReadPostsResponseDto {
     private PostStatus postStatus;
     private String postImageUrl;
 
-    public static ReadPostsResponseDto of (Post post) {
-        return ReadPostsResponseDto.builder()
+    public static ReadPostResponseDto of (Post post) {
+        return ReadPostResponseDto.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .date(post.getDate())
