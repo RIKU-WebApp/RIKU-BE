@@ -46,11 +46,17 @@ public class CommentService {
 
     // 댓글 삭제
     @Transactional
-    public Long deleteComment(Long userId, Long commentId) {
+    public Long deleteComment(Long userId, Long postId, Long commentId) {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.COMMENT_NOT_FOUND));
 
+        // 해당 댓글이 해당 게시글에 속하는 지 검증
+        if (!comment.getPost().getId().equals(postId)) {
+            throw new PostException(BaseResponseStatus.INVALID_COMMENT_FOR_POST);
+        }
+
+        // 해당 댓글을 쓴 당사자가 맞는 지 검증
         if (!comment.getUser().getId().equals(userId)) {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }

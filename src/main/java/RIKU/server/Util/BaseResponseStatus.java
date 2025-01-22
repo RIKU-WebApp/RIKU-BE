@@ -55,7 +55,8 @@ public enum BaseResponseStatus {
     POST_IMAGE_UPLOAD_FAILED(false, 3004, "게시글 이미지 업로드에 실패하였습니다."),
     INVALID_RUN_TYPE(false, 3005, "존재하지 않는 게시글 타입입니다."),
     INVALID_DATE_AND_TIME(false, 3006, "유효하지 않은 집합 날짜 및 시간입니다."),
-    COMMENT_NOT_FOUND(false, 3002, "존재하지 않는 댓글입니다."),
+    COMMENT_NOT_FOUND(false, 3007, "존재하지 않는 댓글입니다."),
+    INVALID_COMMENT_FOR_POST(false, 3008, "게시글에 속한 댓글이 아닙니다."),
 
 
     // ParticipantException

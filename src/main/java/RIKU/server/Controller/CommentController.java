@@ -40,7 +40,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @AuthenticationPrincipal AuthMember authMember) {
 
-        Long deletedId = commentService.deleteComment(authMember.getId(), commentId);
+        Long deletedId = commentService.deleteComment(authMember.getId(), postId, commentId);
 
         Map<String, Long> response = new HashMap<>();
         response.put("commentId", deletedId);
