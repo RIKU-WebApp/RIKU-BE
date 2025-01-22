@@ -1,12 +1,16 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
+import RIKU.server.Dto.Post.Response.ReadCommentsResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostsResponseDto;
+import RIKU.server.Entity.BaseStatus;
+import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Repository.CommentRepository;
 import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
@@ -31,6 +35,7 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
+    private final CommentRepository commentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
@@ -99,10 +104,26 @@ public class PostService {
 
     // 게시글 상세 조회
     public ReadPostDetailResponseDto getPostDetail(Long postId) {
+        // 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        return ReadPostDetailResponseDto.of(post);
+        // 댓글 조회
+        List<ReadCommentsResponseDto> comments = commentRepository.findByPost(post).stream()
+                .filter(comment -> comment.getTargetId() == null) // 최상위 댓글만 조회
+                .map(this::mapCommentToDto) // 댓글 -> DTO 변환
+                .toList();
+        return ReadPostDetailResponseDto.of(post, comments);
+    }
+
+    // 댓글 -> DTO 변환
+    private ReadCommentsResponseDto mapCommentToDto(Comment comment) {
+        // 대댓글 리스트 변환
+        List<ReadCommentsResponseDto> replies = commentRepository.findByTargetId(comment.getId()).stream()
+                .map(this::mapCommentToDto)
+                .collect(Collectors.toList());
+
+        return ReadCommentsResponseDto.of(comment, replies);
     }
 
     // 게시글 수정하기

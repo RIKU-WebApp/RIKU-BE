@@ -32,7 +32,10 @@ public class ReadPostDetailResponseDto {
     private String userProfileImg;
     private String userName;
 
-    public static ReadPostDetailResponseDto of (Post post) {
+    // 댓글 관련
+    private List<ReadCommentsResponseDto> comments;
+
+    public static ReadPostDetailResponseDto of (Post post, List<ReadCommentsResponseDto> comments) {
         return ReadPostDetailResponseDto.builder()
                 .title(post.getTitle())
                 .location(post.getLocation())
@@ -47,6 +50,7 @@ public class ReadPostDetailResponseDto {
                 .userId(post.getCreatedBy().getId())
                 .userProfileImg(post.getCreatedBy().getProfileImageUrl())
                 .userName(post.getCreatedBy().getName())
+                .comments(comments)
                 .build();
     }
 }

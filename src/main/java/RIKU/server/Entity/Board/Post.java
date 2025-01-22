@@ -58,6 +58,9 @@ public abstract class Post extends BaseEntity {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Participant> Participants = new ArrayList<>();
 
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
+
     public Post (User createdBy, String title, String location, LocalDateTime date, String content, String postImageUrl) {
         this.createdBy = createdBy;
         this.title = title;
