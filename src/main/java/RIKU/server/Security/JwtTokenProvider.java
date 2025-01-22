@@ -67,7 +67,7 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jws<Claims> claims = Jwts.parserBuilder()
+            Jws<Claims> claims = Jwts.parser()
                     .setSigningKey(key).build()
                     .parseClaimsJws(token);
             return claims.getBody().getExpiration().after(new Date());
