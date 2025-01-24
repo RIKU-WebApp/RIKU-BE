@@ -34,7 +34,7 @@ public class JwtParser {
      */
     private Claims parseUnsignedClaims(String token) {
         try {
-            return Jwts.parser()
+            return Jwts.parserBuilder()
                     .build()
                     .parseClaimsJwt(getUnsignedToken(token)).getBody();
         } catch (ExpiredJwtException e) {
