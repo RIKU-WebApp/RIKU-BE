@@ -1,7 +1,6 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UserLoginRequestDto;
-import RIKU.server.Dto.User.Request.UserRoleRequestDto;
 import RIKU.server.Dto.User.Response.UserLoginResponseDto;
 import RIKU.server.Dto.User.Response.UserRoleResponseDto;
 import RIKU.server.Entity.User.UserRole;
@@ -30,8 +29,8 @@ public class AuthController {
     }
 
     @PutMapping("/{userId}/role")
-    public BaseResponse<UserRoleResponseDto> updateUserRole(@PathVariable Long userId, @RequestBody UserRoleRequestDto requestDto) {
-        UserRole newRole = requestDto.getUserRole();
+    public BaseResponse<UserRoleResponseDto> updateUserRole(@PathVariable Long userId, @RequestBody String userRole) {
+        UserRole newRole = UserRole.valueOf(userRole);
         UserRoleResponseDto response = authService.updateUserRole(userId, newRole);
 
         return new BaseResponse<>(response);
