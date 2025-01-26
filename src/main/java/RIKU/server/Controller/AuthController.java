@@ -6,6 +6,8 @@ import RIKU.server.Dto.User.Response.UserRoleResponseDto;
 import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Service.AuthService;
 import RIKU.server.Util.BaseResponse;
+import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.Exception.Domain.UserException;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.BindingResult;
@@ -29,11 +31,16 @@ public class AuthController {
     }
 
     @PutMapping("/{userId}/role")
-    public BaseResponse<UserRoleResponseDto> updateUserRole(@PathVariable Long userId, @RequestBody String userRole) {
-        UserRole newRole = UserRole.valueOf(userRole);
-        UserRoleResponseDto response = authService.updateUserRole(userId, newRole);
+    public BaseResponse<UserRoleResponseDto> updateUserRole(
+            @PathVariable Long userId,
+            @RequestBody String userRole) {
+        try {
+            UserRole newRole = UserRole.valueOf(userRole.trim());
+            UserRoleResponseDto response = authService.updateUserRole(userId, newRole);
 
-        return new BaseResponse<>(response);
-
+            return new BaseResponse<>(response);
+        } catch (IllegalArgumentException e) {
+            throw new UserException(BaseResponseStatus.INVALID_USER_ROLE);
+        }
     }
 }
