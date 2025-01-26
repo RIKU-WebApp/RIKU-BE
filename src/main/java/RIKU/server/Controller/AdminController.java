@@ -1,15 +1,17 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.User.UserRoleDto;
 import RIKU.server.Dto.User.Response.ReadUsersResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.AdminService;
 import RIKU.server.Util.BaseResponse;
+import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,4 +30,16 @@ public class AdminController {
         return new BaseResponse<>(response);
     }
 
+    // 회원 등급 변경
+    @PutMapping("")
+    public BaseResponse<List<UserRoleDto>> updateUsers(
+            @AuthenticationPrincipal AuthMember authMember,
+            @Validated @RequestBody List<UserRoleDto> requestDto,
+            BindingResult bindingResult) {
+
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
+        List<UserRoleDto> response = adminService.updateUsers(authMember, requestDto);
+        return new BaseResponse<>(response);
+    }
 }

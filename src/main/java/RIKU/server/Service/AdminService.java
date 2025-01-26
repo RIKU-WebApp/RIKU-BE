@@ -1,6 +1,9 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.User.Response.ReadUsersResponseDto;
+import RIKU.server.Dto.User.UserRoleDto;
+import RIKU.server.Entity.User.User;
+import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
@@ -31,5 +34,22 @@ public class AdminService {
                 .stream()
                 .map(ReadUsersResponseDto::of)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<UserRoleDto> updateUsers(AuthMember authMember, List<UserRoleDto> requests) {
+        // 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        return requests.stream()
+                .map(request -> {
+                    User user = userRepository.findByStudentId(request.getStudentId())
+                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+                    user.setUserRole(request.getUserRole());
+                    userRepository.save(user);
+                    return UserRoleDto.of(user);
+                }).collect(Collectors.toList());
     }
 }
