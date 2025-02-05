@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @Entity
 @Table(name = "Users")
 @Getter
@@ -44,6 +46,13 @@ public class User extends BaseEntity {
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
     private UserRole userRole = UserRole.MEMBER;
+
+    @Setter
+    @Column(name = "total_points", nullable = false)
+    private int totalPoints = 0;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserPoint> points; // 포인트 내역 리스트
 
     @Builder
     public User(String studentId, String password, String name, String college, String major, String phone) {
