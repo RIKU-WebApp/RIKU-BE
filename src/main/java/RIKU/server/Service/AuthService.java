@@ -70,4 +70,8 @@ public class AuthService {
         // 변경된 역할과 새로운 토큰 정보를 반환
         return new UserRoleResponseDto(user.getId(), user.getUserRole(), newJwtInfo);
     }
+
+    public boolean checkStudentIdDuplicate(String studentId) {
+        return userRepository.existsByStudentId(studentId);
+    }
 }

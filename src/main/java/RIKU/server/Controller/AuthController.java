@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthService authService;
 
+    // 로그인
     @PostMapping("/login")
     public BaseResponse<UserLoginResponseDto> login(@Validated @RequestBody UserLoginRequestDto requestDto, BindingResult bindingResult) {
         if(bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
@@ -30,6 +31,7 @@ public class AuthController {
         return new BaseResponse<>(response);
     }
 
+    // 멤버 등급 업데이트
     @PutMapping("/{userId}/role")
     public BaseResponse<UserRoleResponseDto> updateUserRole(
             @PathVariable Long userId,
@@ -42,5 +44,12 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             throw new UserException(BaseResponseStatus.INVALID_USER_ROLE);
         }
+    }
+
+    // 학번 중복 확인
+    @GetMapping("/check-id")
+    public BaseResponse<Boolean> checkStudentIdDuplicate(@RequestParam String studentId) {
+        boolean isDuplicate = authService.checkStudentIdDuplicate(studentId);
+        return new BaseResponse<>(isDuplicate);
     }
 }
