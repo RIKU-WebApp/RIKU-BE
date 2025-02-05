@@ -15,8 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByStudentId(String studentId);
 
     // 포인트 기준 Top 10 유저 조회
-    List<User> findTop10ByOrderByTotalPointsDesc();
+    List<User> findTop10ByOrderByTotalPointsDescNameAsc();
 
     // 전체 유저를 포인트 내림차순 정렬하여 조회
-    List<User> findAllByOrderByTotalPointsDesc();
+    List<User> findAllByOrderByTotalPointsDescNameAsc();
 }
