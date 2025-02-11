@@ -5,6 +5,7 @@ import RIKU.server.Security.JwtTokenProvider;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -25,9 +26,11 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final Environment environment;
 
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider) {
+    public SecurityConfig(JwtTokenProvider jwtTokenProvider, Environment environment) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.environment = environment;
     }
 
     @Bean
@@ -37,8 +40,8 @@ public class SecurityConfig {
 
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
-        return (web) -> web.ignoring().
-                requestMatchers(new AntPathRequestMatcher("/h2-console/**"))
+        return (web) -> web.ignoring()
+                .requestMatchers(new AntPathRequestMatcher("/h2-console/**"))
                 .requestMatchers(new AntPathRequestMatcher( "/favicon.ico"))
                 .requestMatchers(new AntPathRequestMatcher( "/css/**"))
                 .requestMatchers(new AntPathRequestMatcher( "/js/**"))
@@ -48,25 +51,42 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        boolean isLocal = isLocalProfile();
+
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                .authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(authorize -> {
+                    authorize
                         .requestMatchers("/users/**", "/calendar/**", "/home/**", "/ranking/**", "/error", "/").permitAll()
                         .requestMatchers("run/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        // H2 콘솔 경로를 허용
-                        .requestMatchers(PathRequest.toH2Console()).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .headers(headers -> headers
-                        .frameOptions(frameOptions -> frameOptions.disable())
-                )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+                        .requestMatchers("/admin/**").hasRole("ADMIN");
+
+                    // 로컬 환경에서만 H2 콘솔 경로를 허용
+                    if (isLocal) {
+                        authorize.requestMatchers(PathRequest.toH2Console()).permitAll();
+                    }
+
+                    authorize.anyRequest().authenticated();
+                })
+                .headers(headers -> {
+                    headers.frameOptions(frameOptions -> frameOptions.disable());
+                })
+            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
+    }
+
+    private boolean isLocalProfile() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        for (String profile : activeProfiles) {
+            if (profile.equals("local")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Bean
