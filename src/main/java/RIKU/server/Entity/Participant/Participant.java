@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
-@Table(name = "Participants")
+@Table(name = "participant")
 @Getter
 @NoArgsConstructor
 public class Participant extends BaseEntity {

@@ -17,7 +17,7 @@ import java.util.List;
 import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
-@Table(name = "Posts")
+@Table(name = "post")
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "post_type")
 @Getter

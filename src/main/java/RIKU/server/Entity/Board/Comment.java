@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
-@Table(name = "Comments")
+@Table(name = "comment")
 @Getter
 @NoArgsConstructor
 public class Comment extends BaseEntity {

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@DiscriminatorValue("Flash")
+@DiscriminatorValue("flash_post")
 @NoArgsConstructor
 public class FlashPost extends Post {
     @Builder

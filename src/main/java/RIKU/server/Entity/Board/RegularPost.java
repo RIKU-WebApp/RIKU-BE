@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@DiscriminatorValue("Regular")
+@DiscriminatorValue("regular_post")
 @NoArgsConstructor
 public class RegularPost extends Post {
 
