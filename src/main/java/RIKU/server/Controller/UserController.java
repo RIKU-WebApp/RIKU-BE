@@ -1,14 +1,15 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequestDto;
-import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
+import RIKU.server.Dto.User.Request.SignUpUserRequest;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -18,17 +19,23 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@Slf4j
 @RequiredArgsConstructor
-@RequestMapping("/users")
+@RequestMapping("/user")
+@Tag(name = "User", description = "유저 관련 API")
 public class UserController {
 
     private final UserService userService;
 
-    // 회원가입
+    @Operation(summary = "회원가입", description = """
+            
+            유저가 회원가입을 합니다.
+            
+            """)
     @PostMapping("/signup")
-    public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody UserSignUpRequestDto requestDto, BindingResult bindingResult) {
+    public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody SignUpUserRequest requestDto, BindingResult bindingResult) {
+
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
         Long userId = userService.signUp(requestDto);
 
         Map<String, Long> response = new HashMap<>();

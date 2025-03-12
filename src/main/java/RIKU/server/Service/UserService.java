@@ -1,7 +1,7 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequestDto;
-import RIKU.server.Dto.User.Request.UserSignUpRequestDto;
+import RIKU.server.Dto.User.Request.SignUpUserRequest;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.UserRepository;
@@ -27,11 +27,11 @@ public class UserService {
 
     // 회원가입
     @Transactional
-    public Long signUp(UserSignUpRequestDto requestDto) {
-        // TODO 1. 로그인 아이디 중복 체크
+    public Long signUp(SignUpUserRequest requestDto) {
+        // 1. 로그인 아이디 중복 체크
         if(userRepository.existsByStudentId(requestDto.getStudentId())) throw new UserException(BaseResponseStatus.DUPLICATED_STUDENTID);
 
-        // TODO 2. DTO를 Entity로 변환
+        // 2. DTO -> Entity로 변환
         String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
         User user = requestDto.toEntity(encodedPassword);
 
