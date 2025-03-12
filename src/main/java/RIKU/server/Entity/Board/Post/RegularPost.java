@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 public class RegularPost {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "regular_post_id")
     private Long id;
 
