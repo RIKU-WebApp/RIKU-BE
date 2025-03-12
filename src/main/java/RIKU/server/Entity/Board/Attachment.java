@@ -3,13 +3,14 @@ package RIKU.server.Entity.Board;
 import RIKU.server.Entity.Base.BaseEntity;
 import RIKU.server.Entity.Board.Post.Post;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "attachment")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Attachment extends BaseEntity {
 
     @Id

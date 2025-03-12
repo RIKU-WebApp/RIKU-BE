@@ -1,6 +1,7 @@
 package RIKU.server.Entity.Board.Post;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -8,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "flash_post")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FlashPost {
 
     @Id

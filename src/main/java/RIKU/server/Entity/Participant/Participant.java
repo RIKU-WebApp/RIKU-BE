@@ -4,13 +4,14 @@ import RIKU.server.Entity.Base.BaseEntity;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "participant")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Participant extends BaseEntity {
 
     @Id

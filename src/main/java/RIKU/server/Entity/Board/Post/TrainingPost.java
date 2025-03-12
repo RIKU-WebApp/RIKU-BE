@@ -1,6 +1,5 @@
 package RIKU.server.Entity.Board.Post;
 
-import RIKU.server.Entity.Board.Post.Post;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;

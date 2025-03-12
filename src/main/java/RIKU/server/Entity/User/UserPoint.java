@@ -4,13 +4,14 @@ import RIKU.server.Entity.Base.BaseEntity;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.PostStatus;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "user_point")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserPoint extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

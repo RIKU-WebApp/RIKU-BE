@@ -4,6 +4,7 @@ import RIKU.server.Entity.Base.BaseEntity;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -12,7 +13,7 @@ import static jakarta.persistence.FetchType.LAZY;
 @Entity
 @Table(name = "comment")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends BaseEntity {
 
     @Id
