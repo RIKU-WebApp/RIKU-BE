@@ -1,13 +1,11 @@
 package RIKU.server.Entity.Participant;
 
-import RIKU.server.Entity.BaseEntity;
-import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Base.BaseEntity;
+import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import static jakarta.persistence.FetchType.LAZY;
 
 @Entity
 @Table(name = "participant")
@@ -20,11 +18,11 @@ public class Participant extends BaseEntity {
     @Column(name = "participant_id")
     private Long id;
 
-    @ManyToOne(fetch = LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user; // 참여한 사용자
+    private User user;  // 참여한 사용자
 
-    @ManyToOne(fetch = LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
 
@@ -36,7 +34,6 @@ public class Participant extends BaseEntity {
         this.post = post;
         this.user = user;
     }
-
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
     public void attend() {
