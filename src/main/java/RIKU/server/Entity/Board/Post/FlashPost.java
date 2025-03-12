@@ -1,0 +1,31 @@
+package RIKU.server.Entity.Board.Post;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+
+@Entity
+@Table(name = "flash_post")
+@Getter
+@NoArgsConstructor
+public class FlashPost {
+
+    @Id
+    @Column(name = "flash_post_id")
+    private Long id;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId         // PostJpaEntity의 PK를 공유
+    @JoinColumn(name = "post_id")
+    private Post post;
+
+    @Column(name = "attendance_code")
+    private String attendanceCode;
+
+    // 출석 코드를 생성하는 메서드
+    public String createdAttendanceCode() {
+        this.attendanceCode = String.valueOf((int) (Math.random() * 900) + 100);
+        return attendanceCode;
+    }
+}

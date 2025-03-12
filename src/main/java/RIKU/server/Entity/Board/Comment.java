@@ -1,10 +1,9 @@
 package RIKU.server.Entity.Board;
 
-import RIKU.server.Entity.BaseEntity;
-import RIKU.server.Entity.BaseStatus;
+import RIKU.server.Entity.Base.BaseEntity;
+import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -15,6 +14,7 @@ import static jakarta.persistence.FetchType.LAZY;
 @Getter
 @NoArgsConstructor
 public class Comment extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "comment_id")
@@ -28,25 +28,20 @@ public class Comment extends BaseEntity {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(columnDefinition = "Text")
+    @Lob
     private String content;
 
     @Column(name = "target_id")
     private Long targetId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "base_status")
-    private BaseStatus baseStatus = BaseStatus.ACTIVE;
-
-    @Builder
-    public Comment(User user, Post post, String content, Comment targetComment) {
+    private Comment(User user, Post post, String content, Long targetId) {
         this.user = user;
         this.post = post;
         this.content = content;
-        this.targetId = targetComment != null ? targetComment.getId() : null;
+        this.targetId = targetId;
     }
 
-    public void updateInactive() {
-        this.baseStatus = BaseStatus.INACTIVE;
+    public static Comment create(User user, Post post, String content, Long targetId) {
+        return new Comment(user, post, content, targetId);
     }
 }

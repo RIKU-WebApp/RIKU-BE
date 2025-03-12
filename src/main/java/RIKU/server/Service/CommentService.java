@@ -2,7 +2,7 @@ package RIKU.server.Service;
 
 import RIKU.server.Dto.Post.Request.CreateCommentRequestDto;
 import RIKU.server.Entity.Board.Comment;
-import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.CommentRepository;
 import RIKU.server.Repository.PostRepository;

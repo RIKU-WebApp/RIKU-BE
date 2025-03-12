@@ -1,21 +1,14 @@
 package RIKU.server.Entity.User;
 
-import RIKU.server.Entity.BaseEntity;
+import RIKU.server.Entity.Base.BaseEntity;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
+import lombok.*;
 
 @Entity
 @Table(name = "user")
 @Getter
-@NoArgsConstructor
-@Slf4j
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
     @Id
@@ -45,30 +38,25 @@ public class User extends BaseEntity {
     @Setter
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
-    private UserRole userRole = UserRole.MEMBER;
+    private UserRole userRole;
 
-    @Setter
-    @Column(name = "total_points", nullable = false)
-    private int totalPoints = 0;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<UserPoint> points; // 포인트 내역 리스트
-
-    @Builder
-    public User(String studentId, String password, String name, String college, String major, String phone) {
+    private User(String studentId, String password, String name, String college, String major, String phone, UserRole userRole) {
         this.studentId = studentId;
         this.password = password;
         this.name = name;
         this.college = college;
         this.major = major;
         this.phone = phone;
+        this.userRole = userRole;
+    }
+
+    public static User create(String studentId, String password, String name, String college, String major, String phone) {
+        return new User(studentId, password, name, college, major, phone, UserRole.MEMBER);
     }
 
     public void updateProfile(String phone, String password, String profileImageUrl) {
-        log.debug("Updating user profile: phone = {}, password = {}, profileImageUrl = {}", phone, password, profileImageUrl);
         this.phone = phone;
         this.password = password;
         this.profileImageUrl = profileImageUrl;
     }
-
 }
