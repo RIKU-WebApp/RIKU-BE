@@ -1,8 +1,8 @@
 package RIKU.server.Controller;
 
-import RIKU.server.Dto.User.Request.UpdateProfileRequestDto;
+import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
-import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
+import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserService;
 import RIKU.server.Util.BaseResponse;
@@ -32,11 +32,10 @@ public class UserController {
             
             """)
     @PostMapping("/signup")
-    public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody SignUpUserRequest requestDto, BindingResult bindingResult) {
-
+    public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody SignUpUserRequest request, BindingResult bindingResult) {
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        Long userId = userService.signUp(requestDto);
+        Long userId = userService.signUp(request);
 
         Map<String, Long> response = new HashMap<>();
         response.put("userId", userId);
@@ -50,22 +49,24 @@ public class UserController {
             
             """)
     @GetMapping("/profile")
-    public BaseResponse<ReadUserProfileResponseDto> getProfile(@AuthenticationPrincipal AuthMember authMember) {
-        ReadUserProfileResponseDto responseDto = userService.getProfile(authMember.getId());
-        return new BaseResponse<>(responseDto);
+    public BaseResponse<ReadUserProfileResponse> getProfile(@AuthenticationPrincipal AuthMember authMember) {
+        ReadUserProfileResponse response = userService.getProfile(authMember.getId());
+        return new BaseResponse<>(response);
     }
 
-    // 마이페이지 수정
+    @Operation(summary = "마이페이지 수정", description = """
+            
+            유저가 마이페이지를 수정합니다.
+            
+            """)
     @PutMapping("/profile")
     public BaseResponse<Map<String, Long>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
-            @ModelAttribute @Validated UpdateProfileRequestDto requestDto,
+            @ModelAttribute @Validated UpdateProfileRequest request,
             BindingResult bindingResult) {
-
-        // 유효성 검증 실패 시 처리
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        Long updatedUserId = userService.updateProfile(authMember.getId(), requestDto);
+        Long updatedUserId = userService.updateProfile(authMember.getId(), request);
 
         Map<String, Long> response = new HashMap<>();
         response.put("userId", updatedUserId);

@@ -1,8 +1,8 @@
 package RIKU.server.Service;
 
-import RIKU.server.Dto.User.Request.UpdateProfileRequestDto;
+import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
-import RIKU.server.Dto.User.Response.ReadUserProfileResponseDto;
+import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Util.BaseResponseStatus;
@@ -27,72 +27,60 @@ public class UserService {
 
     // 회원가입
     @Transactional
-    public Long signUp(SignUpUserRequest requestDto) {
+    public Long signUp(SignUpUserRequest request) {
         // 1. 로그인 아이디 중복 체크
-        if(userRepository.existsByStudentId(requestDto.getStudentId())) throw new UserException(BaseResponseStatus.DUPLICATED_STUDENTID);
+        if(userRepository.existsByStudentId(request.getStudentId())) throw new UserException(BaseResponseStatus.DUPLICATED_STUDENTID);
 
         // 2. DTO -> Entity로 변환
-        String encodedPassword = passwordEncoder.encode(requestDto.getPassword());
-        User user = requestDto.toEntity(encodedPassword);
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User user = request.toEntity(encodedPassword);
 
         return userRepository.save(user).getId();
     }
 
     // 마이페이지 조회
-    public ReadUserProfileResponseDto getProfile(Long userId) {
+    public ReadUserProfileResponse getProfile(Long userId) {
+        // 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        return ReadUserProfileResponseDto.of(user);
+        return ReadUserProfileResponse.of(user);
     }
 
     // 마이페이지 수정
     @Transactional
-    public Long updateProfile(Long userId, UpdateProfileRequestDto requestDto) {
+    public Long updateProfile(Long userId, UpdateProfileRequest request) {
+        // 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 프로필 이미지 업데이트
-        String profileImageUrl = user.getProfileImageUrl();
-        if (requestDto.getUserProfileImg() != null) {
-             if (!requestDto.getUserProfileImg().isEmpty()) {
-                 try {
-                     log.debug("Received profile image: {}", requestDto.getUserProfileImg().getOriginalFilename());
-                     profileImageUrl = s3Uploader.upload(requestDto.getUserProfileImg(), "profileImg");
-                     log.debug("Profile image uploaded: {}", profileImageUrl);
-                 } catch (IOException e) {
-                     log.error("File upload failed: {}", requestDto.getUserProfileImg().getOriginalFilename(), e);
-                     throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);
-                 }
-             }
-        } else {
-            // 이미지를 없애는 경우
-            profileImageUrl = null;
-        }
+        // 전화번호 업데이트 (입력값이 있는 경우만 변경)
+        String phone = (request.getPhone() != null && !request.getPhone().isEmpty()) ? request.getPhone() : user.getPhone();
 
         // 비밀번호 업데이트
-        String password;
-        if (requestDto.getPassword() != null && !requestDto.getPassword().isEmpty()) {
-            log.debug("Received password : {}", requestDto.getPassword());
-            password = passwordEncoder.encode(requestDto.getPassword());
-            log.debug("Encoded password : {}", password);
-        } else {
-            password = null;
-        }
+        String password = (request.getPassword() != null && !request.getPassword().isEmpty())
+                ? passwordEncoder.encode(request.getPassword())
+                : user.getPassword();
 
-        // 전화번호 업데이트
-        String phone;
-        if (requestDto.getPhone() != null && !requestDto.getPhone().isEmpty()) {
-            phone = requestDto.getPhone();
-        } else {
-            phone = null;
+        // 프로필 이미지 업데이트
+        String profileImageUrl = user.getProfileImageUrl();
+        if (request.getUserProfileImg() != null && !request.getUserProfileImg().isEmpty()) {
+            try {
+                log.debug("Received profile image: {}", request.getUserProfileImg().getOriginalFilename());
+                profileImageUrl = s3Uploader.upload(request.getUserProfileImg(), "profileImg");
+                log.debug("Profile image uploaded: {}", profileImageUrl);
+            } catch (IOException e) {
+                log.error("File upload failed: {}", request.getUserProfileImg().getOriginalFilename(), e);
+                throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);
+            }
+        } else if (request.getUserProfileImg() == null) {
+            // 사용자가 기존 프로필 이미지를 삭제하려는 경우
+            profileImageUrl = null;
+            // TODO: S3 이미지 삭제 로직 추가
         }
 
         // 프로필 업데이트
         user.updateProfile(phone, password, profileImageUrl);
-
-        // DB에 반영되는지 확인
-        userRepository.saveAndFlush(user);
 
         return user.getId();
     }
