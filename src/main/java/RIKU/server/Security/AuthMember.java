@@ -1,29 +1,30 @@
 package RIKU.server.Security;
 
 import RIKU.server.Entity.User.UserRole;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Getter
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 public class AuthMember implements UserDetails {
+
     private final Long id;
+
     private final String username;
+
     private final String password;
+
     private final List<GrantedAuthority> authorities;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return Collections.unmodifiableList(authorities);
     }
 
     @Override
@@ -57,8 +58,18 @@ public class AuthMember implements UserDetails {
     }
 
     public boolean isAdmin() {
-        return authorities.contains(new SimpleGrantedAuthority(UserRole.ADMIN.getRole()));
+        return authorities.stream()
+                .anyMatch(auth -> auth.getAuthority().equals(UserRole.ADMIN.getRole()));
     }
 
+    private AuthMember(Long id, String username, String password, List<GrantedAuthority> authorities) {
+        this.id = id;
+        this.username = username;
+        this.password = password;
+        this.authorities = authorities;
+    }
 
+    public static AuthMember of(Long id, String username, String password, List<GrantedAuthority> authorities) {
+        return new AuthMember(id, username, password, authorities);
+    }
 }

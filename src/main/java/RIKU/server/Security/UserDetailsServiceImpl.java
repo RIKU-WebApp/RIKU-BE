@@ -22,18 +22,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String studentId) throws UsernameNotFoundException {
         log.info("UserDetailsServiceImpl 진입");
-        User user = userRepository.findByStudentId(username).orElseThrow(() ->
+        User user = userRepository.findByStudentId(studentId).orElseThrow(() ->
                 new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(user.getUserRole().getRole());
 
-        return AuthMember.builder()
-                .id(user.getId())
-                .username(user.getStudentId())
-                .password(user.getPassword())
-                .authorities(authorities)
-                .build();
+        return AuthMember.of(user.getId(), user.getStudentId(), user.getPassword(), authorities);
     }
 }

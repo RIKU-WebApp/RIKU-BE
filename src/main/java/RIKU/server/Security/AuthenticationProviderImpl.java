@@ -25,10 +25,10 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         log.info("AuthenticationProviderImpl 진입");
 
-        String username = authentication.getName();
+        String studentId = authentication.getName(); // 학번
         String password = (String) authentication.getCredentials();
 
-        UserDetails loginMember = service.loadUserByUsername(username);
+        UserDetails loginMember = service.loadUserByUsername(studentId);
 
         if (!bCryptPasswordEncoder.matches(password, loginMember.getPassword())) {
             throw new UserException(BaseResponseStatus.INVALID_PASSWORD);

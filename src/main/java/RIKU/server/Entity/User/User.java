@@ -35,7 +35,6 @@ public class User extends BaseEntity {
     @Nullable
     private String profileImageUrl;
 
-    @Setter
     @Column(name = "user_role")
     @Enumerated(EnumType.STRING)
     private UserRole userRole;
@@ -58,5 +57,9 @@ public class User extends BaseEntity {
         this.phone = phone;
         this.password = password;
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateUserRole(UserRole userRole) {
+        this.userRole = userRole;
     }
 }

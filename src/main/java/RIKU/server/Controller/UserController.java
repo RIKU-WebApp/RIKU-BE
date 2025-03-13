@@ -28,7 +28,7 @@ public class UserController {
 
     @Operation(summary = "회원가입", description = """
             
-            유저가 회원가입을 합니다.
+            유저 회원가입을 진행합니다.
             
             """)
     @PostMapping("/signup")
@@ -44,7 +44,11 @@ public class UserController {
         return new BaseResponse<>(response);
     }
 
-    // 마이페이지 조회
+    @Operation(summary = "마이페이지 조회", description = """
+            
+            유저의 마이페이지를 조회합니다.
+            
+            """)
     @GetMapping("/profile")
     public BaseResponse<ReadUserProfileResponseDto> getProfile(@AuthenticationPrincipal AuthMember authMember) {
         ReadUserProfileResponseDto responseDto = userService.getProfile(authMember.getId());

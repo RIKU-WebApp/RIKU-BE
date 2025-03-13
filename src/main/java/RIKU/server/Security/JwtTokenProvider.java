@@ -88,14 +88,15 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        Long userId = Long.parseLong(jwtParser.parseSub(token));
+        String username = jwtParser.parseSub(token);
+        Long userId = Long.parseLong(username);
         String role = jwtParser.parseRole(token);
 
         List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(role);
 
         UserDetails authMember = AuthMember.builder()
                 .id(userId)
-                .username(jwtParser.parseSub(token))
+                .username(username)
                 .authorities(authorities)
                 .build();
 
