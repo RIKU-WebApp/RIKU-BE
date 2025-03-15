@@ -29,20 +29,31 @@ public class Participant extends BaseEntity {
 
     @Column(name = "participant_status")
     @Enumerated(EnumType.STRING)
-    private ParticipantStatus status = ParticipantStatus.PENDING; // 기본값 출석 대기
+    private ParticipantStatus status;
 
-    public Participant(Post post, User user) {
+    private Participant(Post post, User user, ParticipantStatus status) {
         this.post = post;
         this.user = user;
+        this.status = status;
+    }
+
+    public static Participant create(Post post, User user) {
+        return new Participant(post, user, ParticipantStatus.PENDING);
     }
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
     public void attend() {
+        if (this.status == ParticipantStatus.ATTENDED) {
+            throw new IllegalStateException("이미 출석 처리된 유저입니다.");
+        }
         this.status = ParticipantStatus.ATTENDED;
     }
 
     // 참여 의사 후 출석 코드 미 입력 시 상태 ABSENT로 변경
     public void absent() {
+        if (this.status == ParticipantStatus.ABSENT) {
+            throw new IllegalStateException("이미 결석 처리된 유저입니다.");
+        }
         this.status = ParticipantStatus.ABSENT;
     }
 }
