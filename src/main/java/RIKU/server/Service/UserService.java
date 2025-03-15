@@ -33,7 +33,7 @@ public class UserService {
 
         // 2. DTO -> Entity로 변환
         String encodedPassword = passwordEncoder.encode(request.getPassword());
-        User user = request.toEntity(encodedPassword);
+        User user = request.toEntity(request, encodedPassword);
 
         return userRepository.save(user).getId();
     }

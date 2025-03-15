@@ -39,7 +39,10 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private UserRole userRole;
 
-    private User(String studentId, String password, String name, String college, String major, String phone, UserRole userRole) {
+    @Column(name = "is_pacer")
+    private Boolean isPacer;
+
+    private User(String studentId, String password, String name, String college, String major, String phone, UserRole userRole, Boolean isPacer) {
         this.studentId = studentId;
         this.password = password;
         this.name = name;
@@ -47,10 +50,11 @@ public class User extends BaseEntity {
         this.major = major;
         this.phone = phone;
         this.userRole = userRole;
+        this.isPacer = isPacer;
     }
 
     public static User create(String studentId, String password, String name, String college, String major, String phone) {
-        return new User(studentId, password, name, college, major, phone, UserRole.MEMBER);
+        return new User(studentId, password, name, college, major, phone, UserRole.MEMBER, Boolean.FALSE);
     }
 
     public void updateProfile(String phone, String password, String profileImageUrl) {
@@ -61,5 +65,9 @@ public class User extends BaseEntity {
 
     public void updateUserRole(UserRole userRole) {
         this.userRole = userRole;
+    }
+
+    public boolean isAdmin() {
+        return this.userRole == UserRole.ADMIN;
     }
 }
