@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
@@ -17,7 +18,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     // 해당 날짜 게시글 조회
     List<Post> findByDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
-    // 게시글 오름차순 정렬 조회
-    List<Post> findByDateAfterOrderByDateAsc(LocalDateTime date);
+    // 러닝 유형별 가장 가까운 날짜의 게시글 1개 조회
+    Optional<Post> findTopByStatusAndPostTypeAndDateAfterOrderByDateAsc(BaseStatus status, PostType postType, LocalDateTime now);
 
 }
