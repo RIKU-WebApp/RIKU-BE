@@ -44,7 +44,12 @@ public class Post extends BaseEntity {
     @Column(name = "post_status")
     private PostStatus postStatus;
 
-    private Post (User postCreator, String title, String location, LocalDateTime date, String content, String postImageUrl, PostStatus postStatus) {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "post_type")
+    private PostType postType;
+
+
+    private Post (User postCreator, String title, String location, LocalDateTime date, String content, String postImageUrl, PostStatus postStatus, PostType postType) {
         this.postCreator = postCreator;
         this.title = title;
         this.location = location;
@@ -52,10 +57,11 @@ public class Post extends BaseEntity {
         this.content = content;
         this.postImageUrl = postImageUrl;
         this.postStatus = postStatus;
+        this.postType = postType;
     }
 
-    public static Post create(User postCreator, String title, String location, LocalDateTime date, String content, String postImageUrl) {
-        return new Post(postCreator, title, location, date, content, postImageUrl, PostStatus.NOW);
+    public static Post create(User postCreator, String title, String location, LocalDateTime date, String content, String postImageUrl, PostType postType) {
+        return new Post(postCreator, title, location, date, content, postImageUrl, PostStatus.NOW, postType);
     }
 
     public void updatePost(String title, String location, LocalDateTime date, String content, String postImageUrl) {
