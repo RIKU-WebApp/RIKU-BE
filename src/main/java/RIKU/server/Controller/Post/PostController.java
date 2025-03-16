@@ -1,13 +1,13 @@
-package RIKU.server.Controller;
+package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
-import RIKU.server.Dto.Post.Response.ReadAllPostsResponseDto;
+import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
-import RIKU.server.Dto.Post.Response.ReadPostResponseDto;
 import RIKU.server.Security.AuthMember;
-import RIKU.server.Service.PostService;
+import RIKU.server.Service.Post.PostService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -15,39 +15,24 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/run")
+@RequestMapping("/run/{runType}")
 public class PostController {
 
     private final PostService postService;
 
-    // 게시글 생성
-    @PostMapping("/{runType}/post")
-    public BaseResponse<Map<String, Long>> createPost(
-            @ModelAttribute @Validated CreatePostRequestDto requestDto,
-            BindingResult bindingResult,
-            @PathVariable String runType,
-            @AuthenticationPrincipal AuthMember authMember) {
 
-        // 유효성 검증 실패 시 처리
-        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
-
-        Long postId = postService.save(authMember.getId(), runType, requestDto);
-
-        Map<String, Long> response = new HashMap<>();
-        response.put("postId", postId);
-
-        return new BaseResponse<>(response);
-    }
-
-    // 게시판별 전체 게시글 조회
-    @GetMapping("/{runType}")
-    public BaseResponse<ReadAllPostsResponseDto> getPosts(@PathVariable String runType) {
-        ReadAllPostsResponseDto posts = postService.getPostsByRunType(runType);
+    @Operation(summary = "러닝 유형별 게시글 리스트 조회", description = """
+            
+            러닝 유형별 게시글 리스트를 조회합니다.(오늘의 러닝, 예정된 러닝, 지난 러닝)
+            
+            """)
+    @GetMapping("")
+    public BaseResponse<ReadPostListResponse> getPostList(@PathVariable String runType) {
+        ReadPostListResponse posts = postService.getPostsByRunType(runType);
         return new BaseResponse<>(posts);
     }
 

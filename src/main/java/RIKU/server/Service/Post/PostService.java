@@ -1,19 +1,20 @@
-package RIKU.server.Service;
+package RIKU.server.Service.Post;
 
 import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
-import RIKU.server.Dto.Post.Response.ReadAllPostsResponseDto;
+import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Dto.Post.Response.ReadCommentsResponseDto;
 import RIKU.server.Dto.Post.Response.ReadPostDetailResponseDto;
-import RIKU.server.Dto.Post.Response.ReadPostResponseDto;
+import RIKU.server.Dto.Post.Response.ReadPostPreviewResponse;
+import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Comment;
-import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Board.Post.Post;
+import RIKU.server.Entity.Board.Post.PostType;
 import RIKU.server.Entity.Board.PostStatus;
-import RIKU.server.Entity.Participant.Participant;
-import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.CommentRepository;
 import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
+import RIKU.server.Service.S3Uploader;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.PostException;
 import RIKU.server.Util.Exception.Domain.UserException;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,95 +34,53 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
+
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
     private final CommentRepository commentRepository;
     private final S3Uploader s3Uploader;
 
-    // 게시글 생성
-    @Transactional
-    public Long save(Long userId, String runType, CreatePostRequestDto requestDto) {
-        String postImageUrl = null;
 
-        if (requestDto.getPostImage() != null && !requestDto.getPostImage().isEmpty()) {
-            try {
-                postImageUrl = s3Uploader.upload(requestDto.getPostImage(), "postImg"); // S3에 이미지 업로드
-            } catch (IOException e) {
-                log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
-                throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
-            }
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        if(requestDto.getDate().isBefore(now)) {
-            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
-        }
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-        Post post;
-        switch (runType.toLowerCase()) {
-            case "flash":
-                post = requestDto.flashToEntity(user, postImageUrl);
-                break;
-            default:
-                throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
-        }
-
+    // 러닝 타입별 게시글 리스트 조회
+    public ReadPostListResponse getPostsByRunType(String runType) {
+        // 1. runType에 해당하는 PostType 정의
+        PostType postType;
         try {
-            // 게시글 저장
-            Post savedPost = postRepository.save(post);
-
-            // 생성자 참여자로 추가 및 출석으로 변경
-            Participant participant = new Participant(savedPost, user);
-            participant.attend();
-            participantRepository.save(participant);
-
-            return savedPost.getId();
-
-        } catch (Exception e) {
-            throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
+            postType = PostType.valueOf(runType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("잘못된 runType입니다: " + runType);
         }
-    }
 
-    // 게시판별 전체 게시글 조회
-    public ReadAllPostsResponseDto getPostsByRunType(String runType) {
-        // 현재 날짜 기준
+        // 2. DB에서 ACTIVE인 해당 postType의 모든 게시글 조회
+        List<Post> posts = postRepository.findByStatusAndPostType(BaseStatus.ACTIVE, postType);
+
+        // 3. 현재 날짜 기준
         LocalDateTime now = LocalDateTime.now();
 
-        List<? extends Post> allPosts;
-
-        switch (runType.toLowerCase()) {
-            case "flash":
-                allPosts = postRepository.findAllFlashPosts();
-                break;
-            case "regular":
-                allPosts = postRepository.findAllRegularPosts();
-                break;
-            default:
-                throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
-        }
-
-        // 각 카테고리로 게시글 분류
-        List<ReadPostResponseDto> todayRuns = allPosts.stream()
-                .filter(post -> post.getDate().toLocalDate().isEqual(now.toLocalDate()))
-                .map(ReadPostResponseDto::of)
+        // 4. 게시글 분류
+        // 오늘의 러닝 (오늘 날짜, 모집 중 or 마감 임박, 취소됨 제외)
+        List<ReadPostPreviewResponse> todayRuns = posts.stream()
+                .filter(post -> isToday(post.getDate(), now))
+                .filter(post -> post.getPostStatus() != PostStatus.CANCELED)
+                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
-        List<ReadPostResponseDto> upcomingRuns = allPosts.stream()
-                .map(ReadPostResponseDto::of)
-                .filter(post -> post.getDate().toLocalDate().isAfter(now.toLocalDate()))
+        // 예정된 러닝 (오늘 이후, 가장 빠른 날짜순 정렬, 취소됨 포함)
+        List<ReadPostPreviewResponse> upcomingRuns = posts.stream()
+                .filter(post -> post.getDate().isAfter(now))
+                .sorted(Comparator.comparing(Post::getDate))
+                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
-        List<ReadPostResponseDto> pastRuns = allPosts.stream()
-                .filter(post -> post.getDate().toLocalDate().isBefore(now.toLocalDate()) &&
-                                post.getPostStatus() != PostStatus.CANCELED)
-                .map(ReadPostResponseDto::of)
+        // 지난 러닝 (오늘 이전, 마감된 러닝만)
+        List<ReadPostPreviewResponse> pastRuns = posts.stream()
+                .filter(post -> post.getDate().isBefore(now))
+                        .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
+                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
-        return ReadAllPostsResponseDto.of(todayRuns, upcomingRuns, pastRuns);
+        return ReadPostListResponse.of(todayRuns, upcomingRuns, pastRuns);
     }
 
     // 게시글 상세 조회
@@ -205,5 +165,13 @@ public class PostService {
         }
 
         post.updateStatus(PostStatus.CANCELED);
+    }
+
+    private boolean isToday(LocalDateTime postDate, LocalDateTime now) {
+        return postDate.toLocalDate().isEqual(now.toLocalDate());
+    }
+
+    private int countParticipants(Long postId) {
+        return participantRepository.countByPostId(postId);
     }
 }
