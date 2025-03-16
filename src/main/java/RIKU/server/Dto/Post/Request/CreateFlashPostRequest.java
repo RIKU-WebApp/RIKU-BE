@@ -2,6 +2,7 @@ package RIKU.server.Dto.Post.Request;
 
 import RIKU.server.Entity.Board.Post.FlashPost;
 import RIKU.server.Entity.Board.Post.Post;
+import RIKU.server.Entity.Board.Post.PostType;
 import RIKU.server.Entity.User.User;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Future;
@@ -48,7 +49,8 @@ public class CreateFlashPostRequest {
                 request.getLocation(),
                 request.getDate(),
                 request.getContent(),
-                postImageUrl);
+                postImageUrl,
+                PostType.FLASH);
     }
 
     public FlashPost toFlashPostEntity(Post post) {

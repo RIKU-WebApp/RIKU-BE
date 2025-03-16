@@ -1,6 +1,7 @@
 package RIKU.server.Dto.Post.Request;
 
 import RIKU.server.Entity.Board.Post.Post;
+import RIKU.server.Entity.Board.Post.PostType;
 import RIKU.server.Entity.Board.Post.RegularPost;
 import RIKU.server.Entity.User.User;
 import jakarta.annotation.Nullable;
@@ -48,7 +49,8 @@ public class CreateRegularPostRequest {
                 request.getLocation(),
                 request.getDate(),
                 request.getContent(),
-                postImageUrl);
+                postImageUrl,
+                PostType.REGULAR);
     }
 
     public RegularPost toRegularPostEntity(Post post) {
