@@ -63,7 +63,7 @@ public class PostController {
             유저가 게시글을 취소합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
             
             """)
-    @PatchMapping("/post/{postId}")
+    @PatchMapping("/post/{postId}/cancel")
     public BaseResponse<Map<String, Long>> cancelPost(
             @PathVariable String runType,
             @PathVariable Long postId,
