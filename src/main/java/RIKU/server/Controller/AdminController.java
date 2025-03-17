@@ -6,6 +6,7 @@ import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.AdminService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,15 +26,23 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    // 운영진 페이지 (부원 조회)
+    @Operation(summary = "운영진 페이지 부원 조회", description = """
+            
+            운영진 페이지에 부원들을 전체 조회합니다. (운영진 권한)
+            
+            """)
     @GetMapping("")
     public BaseResponse<List<ReadUsersResponse>> getUsers(@AuthenticationPrincipal AuthMember authMember) {
         List<ReadUsersResponse> response = adminService.getUsers(authMember);
         return new BaseResponse<>(response);
     }
 
-    // 회원 등급 변경
-    @PutMapping("")
+    @Operation(summary = "부원 등급 변경", description = """
+            
+            운영진 페이지에서 부원들의 등급을 변경합니다. (운영진 권한)
+            
+            """)
+    @PatchMapping("")
     public BaseResponse<Map<String, Object>> updateUsers(
             @AuthenticationPrincipal AuthMember authMember,
             @Validated @RequestBody List<UpdateUserRoleRequest> requestDto,
