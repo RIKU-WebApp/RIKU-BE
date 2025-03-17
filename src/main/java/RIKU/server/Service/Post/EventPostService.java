@@ -1,8 +1,8 @@
 package RIKU.server.Service.Post;
 
-import RIKU.server.Dto.Post.Request.CreateFlashPostRequest;
+import RIKU.server.Dto.Post.Request.CreateEventPostRequest;
 import RIKU.server.Entity.Board.Attachment;
-import RIKU.server.Entity.Board.Post.FlashPost;
+import RIKU.server.Entity.Board.Post.EventPost;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
@@ -27,20 +27,20 @@ import java.util.List;
 @Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
-public class FlashPostService {
+public class EventPostService {
 
     private final PostRepository postRepository;
-    private final FlashPostRepository flashPostRepository;
+    private final EventPostRepository eventPostRepository;
     private final UserRepository userRepository;
-    private ParticipantRepository participantRepository;
+    private final ParticipantRepository participantRepository;
     private AttachmentRepository attachmentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
     @Transactional
-    public Long createPost (AuthMember authMember, CreateFlashPostRequest request) {
-        // 1. validate(날짜 확인)
-        validate(request);
+    public Long createPost(AuthMember authMember, CreateEventPostRequest request) {
+        // 1. validate(권한 및 날짜 확인)
+        validate(authMember, request);
 
         // 2. 게시글 작성자 조회
         User user = userRepository.findById(authMember.getId())
@@ -57,9 +57,9 @@ public class FlashPostService {
         List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
         attachmentRepository.saveAll(attachments);
 
-        // 6. RegularPost 엔티티 생성 및 저장
-        FlashPost flashPost = request.toFlashPostEntity(savedPost);
-        flashPostRepository.save(flashPost);
+        // 6. EventPost 엔티티 생성 및 저장
+        EventPost eventPost = request.toEventPostEntity(savedPost, request.getEventType());
+        eventPostRepository.save(eventPost);
 
         try {
             // 게시글 작성자를 참여자로 추가 및 출석으로 변경
@@ -67,15 +67,20 @@ public class FlashPostService {
             participant.attend();
             participantRepository.save(participant);
 
-            return flashPost.getId();
+            return eventPost.getId();
 
         } catch (Exception e) {
             throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
         }
     }
 
-    private void validate(CreateFlashPostRequest request) {
-        // 1. date가 미래인지
+    private void validate(AuthMember authMember, CreateEventPostRequest request) {
+        // 1. 작성자가 운영진인지
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // 2. date가 미래인지
         LocalDateTime now = LocalDateTime.now();
         if (request.getDate().isBefore(now)) {
             throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
@@ -109,5 +114,4 @@ public class FlashPostService {
         }
         return attachments;
     }
-
 }

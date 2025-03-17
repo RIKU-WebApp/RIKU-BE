@@ -28,7 +28,7 @@ public class EventPost {
         this.eventType = eventType;
     }
 
-    public static EventPost of(Post post, String eventType) {
+    public static EventPost create (Post post, String eventType) {
         return new EventPost(post, eventType);
     }
 }
