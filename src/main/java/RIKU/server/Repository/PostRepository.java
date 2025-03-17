@@ -16,7 +16,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByStatusAndPostType(BaseStatus baseStatus, PostType postType);
 
     // 해당 날짜 게시글 조회
-    List<Post> findByDateBetween(LocalDateTime startDate, LocalDateTime endDate);
+    List<Post> findByStatusAndDateBetween(BaseStatus status, LocalDateTime startDate, LocalDateTime endDate);
 
     // 러닝 유형별 가장 가까운 날짜의 게시글 1개 조회
     Optional<Post> findTopByStatusAndPostTypeAndDateAfterOrderByDateAsc(BaseStatus status, PostType postType, LocalDateTime now);

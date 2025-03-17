@@ -2,27 +2,31 @@ package RIKU.server.Dto.User.Response;
 
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserRole;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Builder
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
-public class ReadUsersResponseDto {
+public class ReadUsersResponse {
+
     private String studentId;
+
     private String userName;
+
     private String college;
+
     private String major;
+
     private String phone;
+
     private int point;
+
     private int attendanceCount;
+
     private UserRole userRole;
 
-    public static ReadUsersResponseDto of(User user) {
-        return ReadUsersResponseDto.builder()
+    public static ReadUsersResponse of(User user) {
+        return ReadUsersResponse.builder()
                 .studentId(user.getStudentId())
                 .userName(user.getName())
                 .college(user.getCollege())
