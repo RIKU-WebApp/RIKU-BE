@@ -1,8 +1,8 @@
 package RIKU.server.Dto.Post.Request;
 
-import RIKU.server.Entity.Board.Post.EventPost;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.PostType;
+import RIKU.server.Entity.Board.Post.TrainingPost;
 import RIKU.server.Entity.User.User;
 import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.Future;
@@ -20,10 +20,10 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CreateEventPostRequest {
+public class CreateTrainingPostRequest {
 
-    @NotBlank(message = "행사 유형은 필수 항목입니다.")
-    private String eventType;
+    @NotBlank(message = "훈련 유형은 필수 항목입니다.")
+    private String trainingType;
 
     @NotBlank(message = "제목은 필수 항목입니다.")
     @Size(min = 1, message = "내용은 최소 1자 이상이어야 합니다.")
@@ -36,6 +36,9 @@ public class CreateEventPostRequest {
     @Future(message = "미래 날짜만 입력가능합니다.")
     private LocalDateTime date;     // 집합 날짜 및 시간
 
+    @NotNull(message = "페이서 정보는 필수 항목입니다.")
+    private List<CreatePacerRequest> pacers;
+
     @NotBlank(message = "내용은 필수 항목입니다.")
     private String content;     // 게시글 내용
 
@@ -45,7 +48,7 @@ public class CreateEventPostRequest {
     @Nullable
     private List<MultipartFile> attachments;    // 게시글 첨부파일
 
-    public Post toPostEntity(CreateEventPostRequest request, User user, String postImageUrl) {
+    public Post toPostEntity(CreateTrainingPostRequest request, User user, String postImageUrl) {
         return Post.create(
                 user,
                 request.getTitle(),
@@ -53,10 +56,10 @@ public class CreateEventPostRequest {
                 request.getDate(),
                 request.getContent(),
                 postImageUrl,
-                PostType.EVENT);
+                PostType.TRAINING);
     }
 
-    public EventPost toEventPostEntity(Post post, String eventType) {
-        return EventPost.create(post, eventType);
+    public TrainingPost toTrainingPostEntity(Post post, String trainingType) {
+        return TrainingPost.create(post, trainingType);
     }
 }

@@ -23,12 +23,16 @@ public class TrainingPost {
     @Column(name = "attendance_code")
     private String attendanceCode;
 
-    private TrainingPost (Post post, String attendanceCode) {
+    @Column(name = "training_type")
+    private String trainingType;
+
+    private TrainingPost (Post post, String attendanceCode, String trainingType) {
         this.post = post;
         this.attendanceCode = attendanceCode;
+        this.trainingType = trainingType;
     }
 
-    public static TrainingPost create (Post post) {
-        return new TrainingPost(post, null);
+    public static TrainingPost create (Post post, String trainingType) {
+        return new TrainingPost(post, null, trainingType);
     }
 }
