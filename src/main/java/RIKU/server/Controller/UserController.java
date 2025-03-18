@@ -2,6 +2,7 @@ package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
+import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserService;
@@ -16,11 +17,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/user")
+@RequestMapping("")
 @Tag(name = "User", description = "유저 관련 API")
 public class UserController {
 
@@ -31,7 +33,7 @@ public class UserController {
             유저 회원가입을 진행합니다.
             
             """)
-    @PostMapping("/signup")
+    @PostMapping("/user/signup")
     public BaseResponse<Map<String, Long>> signUp(@Validated @RequestBody SignUpUserRequest request, BindingResult bindingResult) {
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
@@ -48,7 +50,7 @@ public class UserController {
             유저의 마이페이지를 조회합니다.
             
             """)
-    @GetMapping("/profile")
+    @GetMapping("/user/profile")
     public BaseResponse<ReadUserProfileResponse> getProfile(@AuthenticationPrincipal AuthMember authMember) {
         ReadUserProfileResponse response = userService.getProfile(authMember.getId());
         return new BaseResponse<>(response);
@@ -59,7 +61,7 @@ public class UserController {
             유저가 마이페이지를 수정합니다.
             
             """)
-    @PutMapping("/profile")
+    @PutMapping("/user/profile")
     public BaseResponse<Map<String, Long>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
             @ModelAttribute @Validated UpdateProfileRequest request,
@@ -71,6 +73,17 @@ public class UserController {
         Map<String, Long> response = new HashMap<>();
         response.put("userId", updatedUserId);
 
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "페이서 조회", description = """
+            
+            정규런 생성 시에 페이서 조회를 합니다.(운영진 권한)
+            
+            """)
+    @GetMapping("/pacers")
+    public BaseResponse<List<ReadPacersResponse>> getPacers(@AuthenticationPrincipal AuthMember authMember) {
+        List<ReadPacersResponse> response = userService.getPacers(authMember);
         return new BaseResponse<>(response);
     }
 }
