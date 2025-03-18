@@ -1,5 +1,6 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.User.Request.UpdatePacerRequest;
 import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
@@ -48,12 +49,12 @@ public class AdminController {
     @PatchMapping("/admin")
     public BaseResponse<Map<String, Object>> updateUsers(
             @AuthenticationPrincipal AuthMember authMember,
-            @Validated @RequestBody List<UpdateUserRoleRequest> requestDto,
+            @Validated @RequestBody List<UpdateUserRoleRequest> request,
             BindingResult bindingResult) {
 
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        adminService.updateUsers(authMember, requestDto);
+        adminService.updateUsers(authMember, request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "회원 등급 변경이 완료되었습니다.");
@@ -68,6 +69,26 @@ public class AdminController {
     @GetMapping("/pacers")
     public BaseResponse<List<ReadPacersResponse>> getPacers(@AuthenticationPrincipal AuthMember authMember) {
         List<ReadPacersResponse> response = adminService.getPacers(authMember);
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "페이서 업데이트", description = """
+            
+            운영진이 유저의 페이서 여부를 업데이트 합니다.(운영진 권한)
+            
+            """)
+    @PatchMapping("/pacer")
+    public BaseResponse<Map<String, Object>> updatePacer(
+            @AuthenticationPrincipal AuthMember authMember,
+            @RequestBody @Validated List<UpdatePacerRequest> request,
+            BindingResult bindingResult) {
+
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
+        adminService.updatePacer(authMember, request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "페이서 변경이 완료되었습니다.");
         return new BaseResponse<>(response);
     }
 }

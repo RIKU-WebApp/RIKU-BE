@@ -63,6 +63,8 @@ public class User extends BaseEntity {
         this.profileImageUrl = profileImageUrl;
     }
 
+    public void updatePacer(Boolean isPacer) { this.isPacer = isPacer; }
+
     public void updateUserRole(UserRole userRole) {
         this.userRole = userRole;
     }

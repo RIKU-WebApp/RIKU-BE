@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Dto.User.Request.UpdatePacerRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
 import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
@@ -61,5 +62,21 @@ public class AdminService {
                 .stream()
                 .map(ReadPacersResponse::of)
                 .collect(Collectors.toList());
+    }
+
+    // 페이서 업데이트
+    @Transactional
+    public void updatePacer(AuthMember authMember, List<UpdatePacerRequest> requests) {
+        // 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        requests.forEach(request -> {
+            User user = userRepository.findByStudentId(request.getStudentId())
+                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+            user.updatePacer(request.getIsPacer());
+        });
     }
 }
