@@ -1,5 +1,8 @@
 package RIKU.server.Dto.Post.Request;
 
+import RIKU.server.Entity.Board.Pacer;
+import RIKU.server.Entity.Board.Post.Post;
+import RIKU.server.Entity.User.User;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -20,4 +23,14 @@ public class CreatePacerRequest {
 
     @NotBlank(message = "페이스는 필수 항목입니다.")
     private String pace;
+
+    public Pacer toEntity(User user, Post post){
+        return Pacer.create(
+                user,
+                post,
+                this.getGroup(),
+                this.getPace(),
+                this.getDistance()
+        );
+    }
 }

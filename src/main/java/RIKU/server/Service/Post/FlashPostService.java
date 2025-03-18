@@ -50,7 +50,7 @@ public class FlashPostService {
         String postImageUrl = uploadSingleImage(request.getPostImage(), "postImg");
 
         // 4. Post 엔티티 생성 및 저장
-        Post post = request.toPostEntity(request, user, postImageUrl);
+        Post post = request.toPostEntity(user, postImageUrl);
         Post savedPost = postRepository.save(post);
 
         // 5. S3에 첨부파일 이미지 업로드 및 저장

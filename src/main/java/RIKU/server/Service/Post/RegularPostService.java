@@ -53,7 +53,7 @@ public class RegularPostService {
         String postImageUrl = uploadSingleImage(request.getPostImage(), "postImg");
 
         // 4. Post 엔티티 생성 및 저장
-        Post post = request.toPostEntity(request, user, postImageUrl);
+        Post post = request.toPostEntity(user, postImageUrl);
         Post savedPost = postRepository.save(post);
 
         // 5. Pacer 엔티티 생성 및 저장
@@ -71,7 +71,7 @@ public class RegularPostService {
                         throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
                     }
 
-                    return Pacer.create(pacerUser, savedPost, pacer.getGroup(), pacer.getPace(), pacer.getDistance());
+                    return pacer.toEntity(pacerUser, savedPost);
                 })
                 .collect(Collectors.toList());
         pacerRepository.saveAll(pacers);

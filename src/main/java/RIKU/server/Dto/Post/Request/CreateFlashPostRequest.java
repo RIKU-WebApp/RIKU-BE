@@ -42,13 +42,13 @@ public class CreateFlashPostRequest {
     @Nullable
     private List<MultipartFile> attachments;    // 게시글 첨부파일
 
-    public Post toPostEntity(CreateFlashPostRequest request, User user, String postImageUrl) {
+    public Post toPostEntity(User user, String postImageUrl) {
         return Post.create(
                 user,
-                request.getTitle(),
-                request.getLocation(),
-                request.getDate(),
-                request.getContent(),
+                this.getTitle(),
+                this.getLocation(),
+                this.getDate(),
+                this.getContent(),
                 postImageUrl,
                 PostType.FLASH);
     }
