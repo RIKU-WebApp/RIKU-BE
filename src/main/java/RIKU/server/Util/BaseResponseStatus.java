@@ -60,6 +60,8 @@ public enum BaseResponseStatus {
     COMMENT_NOT_FOUND(false, 3007, "존재하지 않는 댓글입니다."),
     INVALID_COMMENT_FOR_POST(false, 3008, "게시글에 속한 댓글이 아닙니다."),
     DUPLICATED_PACER(false, 3009, "이미 등록된 페이서입니다."),
+    INVALID_POST_TYPE(false, 3010, "해당 게시글 유형과 일치하지 않습니다."),
+    INVALID_RUN_TYPE(false, 3010, "유효하지 않은 runType입니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),
