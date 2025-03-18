@@ -47,7 +47,7 @@ public class CommentController {
             유저가 게시글에 댓글을 삭제합니다.
             
             """)
-    @DeleteMapping("/{commentId}")
+    @PatchMapping("/{commentId}")
     public BaseResponse<Map<String, Object>> deleteComment(
             @PathVariable String runType,
             @PathVariable Long postId,
