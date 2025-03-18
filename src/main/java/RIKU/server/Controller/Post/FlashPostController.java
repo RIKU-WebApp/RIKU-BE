@@ -6,6 +6,7 @@ import RIKU.server.Service.Post.FlashPostService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -21,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run")
+@Tag(name = "FlashPost", description = "번개런 게시글 관련 API")
 public class FlashPostController {
 
     private final FlashPostService flashPostService;

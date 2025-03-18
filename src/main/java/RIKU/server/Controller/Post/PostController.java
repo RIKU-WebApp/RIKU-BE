@@ -5,6 +5,7 @@ import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.PostService;
 import RIKU.server.Util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run/{runType}")
+@Tag(name = "Post", description = "게시글 통합 관련 API")
 public class PostController {
 
     private final PostService postService;

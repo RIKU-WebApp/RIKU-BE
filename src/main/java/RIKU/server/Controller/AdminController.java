@@ -7,6 +7,7 @@ import RIKU.server.Service.AdminService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +23,7 @@ import java.util.Map;
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/admin")
+@Tag(name = "Admin", description = "운영진 관련 API")
 public class AdminController {
 
     private final AdminService adminService;

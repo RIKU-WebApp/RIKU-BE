@@ -5,6 +5,7 @@ import RIKU.server.Dto.Calendar.Response.ReadMonthlyScheduleResponse;
 import RIKU.server.Service.CalendarService;
 import RIKU.server.Util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/calendar")
+@Tag(name = "Calendar", description = "캘린더(일정) 관련 API")
 public class CalendarController {
 
     private final CalendarService calendarService;

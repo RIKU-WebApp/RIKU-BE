@@ -4,6 +4,7 @@ import RIKU.server.Dto.Post.Request.CreateCommentRequestDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.CommentService;
 import RIKU.server.Util.BaseResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run/post/{postId}/comment")
+@Tag(name = "Comment", description = "(대)댓글 관련 API")
 public class CommentController {
     private final CommentService commentService;
 

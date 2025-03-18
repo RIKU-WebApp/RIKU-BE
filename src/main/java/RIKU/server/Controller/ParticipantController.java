@@ -5,6 +5,7 @@ import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.ParticipantService;
 import RIKU.server.Util.BaseResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run/post/{postId}")
+@Tag(name = "Participant", description = "참여/출석 관련 API")
 public class ParticipantController {
 
     private final ParticipantService participantService;

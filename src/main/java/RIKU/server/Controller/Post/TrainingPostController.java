@@ -6,6 +6,7 @@ import RIKU.server.Service.Post.TrainingPostService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -21,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run")
+@Tag(name = "TrainingPost", description = "훈련 게시글 관련 API")
 public class TrainingPostController {
 
     private final TrainingPostService trainingPostService;

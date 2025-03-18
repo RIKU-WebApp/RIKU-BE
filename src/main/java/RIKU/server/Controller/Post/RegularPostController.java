@@ -1,12 +1,12 @@
 package RIKU.server.Controller.Post;
 
-import RIKU.server.Dto.Post.Request.CreatePostRequestDto;
 import RIKU.server.Dto.Post.Request.CreateRegularPostRequest;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.RegularPostService;
 import RIKU.server.Util.BaseResponse;
 import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -19,6 +19,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/run")
+@Tag(name = "RegularPost", description = "정규런 게시글 관련 API")
 public class RegularPostController {
 
     private final RegularPostService regularPostService;
