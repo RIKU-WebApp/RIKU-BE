@@ -2,7 +2,6 @@ package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
-import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserService;
@@ -73,17 +72,6 @@ public class UserController {
         Map<String, Long> response = new HashMap<>();
         response.put("userId", updatedUserId);
 
-        return new BaseResponse<>(response);
-    }
-
-    @Operation(summary = "페이서 조회", description = """
-            
-            정규런 생성 시에 페이서 조회를 합니다.(운영진 권한)
-            
-            """)
-    @GetMapping("/pacers")
-    public BaseResponse<List<ReadPacersResponse>> getPacers(@AuthenticationPrincipal AuthMember authMember) {
-        List<ReadPacersResponse> response = userService.getPacers(authMember);
         return new BaseResponse<>(response);
     }
 }

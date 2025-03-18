@@ -1,6 +1,7 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
+import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.AdminService;
@@ -22,7 +23,7 @@ import java.util.Map;
 @RestController
 @Slf4j
 @RequiredArgsConstructor
-@RequestMapping("/admin")
+@RequestMapping("")
 @Tag(name = "Admin", description = "운영진 관련 API")
 public class AdminController {
 
@@ -33,7 +34,7 @@ public class AdminController {
             운영진 페이지에 부원들을 전체 조회합니다. (운영진 권한)
             
             """)
-    @GetMapping("")
+    @GetMapping("/admin")
     public BaseResponse<List<ReadUsersResponse>> getUsers(@AuthenticationPrincipal AuthMember authMember) {
         List<ReadUsersResponse> response = adminService.getUsers(authMember);
         return new BaseResponse<>(response);
@@ -44,7 +45,7 @@ public class AdminController {
             운영진 페이지에서 부원들의 등급을 변경합니다. (운영진 권한)
             
             """)
-    @PatchMapping("")
+    @PatchMapping("/admin")
     public BaseResponse<Map<String, Object>> updateUsers(
             @AuthenticationPrincipal AuthMember authMember,
             @Validated @RequestBody List<UpdateUserRoleRequest> requestDto,
@@ -56,6 +57,17 @@ public class AdminController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "회원 등급 변경이 완료되었습니다.");
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "페이서 조회", description = """
+            
+            정규런 생성 시에 페이서 조회를 합니다.(운영진 권한)
+            
+            """)
+    @GetMapping("/pacers")
+    public BaseResponse<List<ReadPacersResponse>> getPacers(@AuthenticationPrincipal AuthMember authMember) {
+        List<ReadPacersResponse> response = adminService.getPacers(authMember);
         return new BaseResponse<>(response);
     }
 }
