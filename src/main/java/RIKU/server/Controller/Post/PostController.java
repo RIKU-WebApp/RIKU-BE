@@ -66,15 +66,15 @@ public class PostController {
             
             """)
     @PatchMapping("/post/{postId}/cancel")
-    public BaseResponse<Map<String, Long>> cancelPost(
+    public BaseResponse<Map<String, Object>> cancelPost(
             @PathVariable String runType,
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthMember authMember) {
 
-        Long canceledPostId = postService.cancelPost(authMember, runType, postId);
+        postService.cancelPost(authMember, runType, postId);
 
-        Map<String, Long> response = new HashMap<>();
-        response.put("canceledPostId", canceledPostId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "게시글이 취소되었습니다.");
 
         return new BaseResponse<>(response);
     }

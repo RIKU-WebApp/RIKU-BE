@@ -151,7 +151,7 @@ public class PostService {
 
     // 게시글 삭제하기
     @Transactional
-    public Long cancelPost(AuthMember authMember, String runType, Long postId) {
+    public void cancelPost(AuthMember authMember, String runType, Long postId) {
         // 1. PostType 검증
         PostType postType = validatePostType(runType);
 
@@ -172,8 +172,8 @@ public class PostService {
             }
         }
 
+        // 4. 게시글 취소 처리
         post.updateStatus(PostStatus.CANCELED);
-        return post.getId();
     }
 
     private PostType validatePostType(String runType) {
