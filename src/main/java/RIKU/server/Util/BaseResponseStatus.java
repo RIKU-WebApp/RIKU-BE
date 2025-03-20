@@ -42,6 +42,8 @@ public enum BaseResponseStatus {
     INVALID_USER_ROLE(false, 2016, "존재하지 않는 역할입니다."),
     UNAUTHORIZED_USER(false, 2017, "권한이 없는 회원입니다."),
     ROLE_ALREADY_ASSIGNED(false, 2018, "이미 해당 역할이 할당되어 있습니다."),
+    USER_NOT_A_PACER(false, 2019, "해당 유저는 페이서가 아닙니다."),
+
 
     INVALID_FIELD(false, 2020, "요청 값이 잘못되었습니다."),
     EMPTY_REQUEST_PARAMETER(false, 2021, "Request Parameter가 존재하지 않습니다."),
@@ -53,17 +55,21 @@ public enum BaseResponseStatus {
     UNAUTHORIZED_POST_ACCESS(false, 3002, "해당 게시글에 접근할 권한이 없습니다."),
     POST_CREATION_FAILED(false, 3003, "게시글 생성에 실패하였습니다."),
     POST_IMAGE_UPLOAD_FAILED(false, 3004, "게시글 이미지 업로드에 실패하였습니다."),
-    INVALID_RUN_TYPE(false, 3005, "존재하지 않는 게시글 타입입니다."),
+    ATTACHMENT_UPLOAD_FAILED(false, 3005, "게시글 첨부파일 업로드에 실패하였습니다."),
     INVALID_DATE_AND_TIME(false, 3006, "유효하지 않은 집합 날짜 및 시간입니다."),
     COMMENT_NOT_FOUND(false, 3007, "존재하지 않는 댓글입니다."),
     INVALID_COMMENT_FOR_POST(false, 3008, "게시글에 속한 댓글이 아닙니다."),
-
+    DUPLICATED_PACER(false, 3009, "이미 등록된 페이서입니다."),
+    INVALID_POST_TYPE(false, 3010, "해당 게시글 유형과 일치하지 않습니다."),
+    INVALID_RUN_TYPE(false, 3010, "유효하지 않은 runType입니다."),
+    UNAUTHORIZED_POST_TYPE(false, 3011, "해당 게시글 유형은 권한이 없습니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),
     INVALID_ATTENDANCE_CODE(false, 4002, "출석 코드가 일치하지 않습니다."),
     NOT_PARTICIPATED(false, 4003, "참여자가 아닙니다."),
     ALREADY_ATTENDED(false, 4004, "이미 출석했습니다."),
+    ATTENDANCE_CODE_NOT_FOUND(false, 4005, "출석 코드가 존재하지 않습니다."),
 
     /**
      * 9000 : MultipartFile 오류

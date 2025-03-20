@@ -1,18 +1,17 @@
 package RIKU.server.Entity.Participant;
 
-import RIKU.server.Entity.BaseEntity;
-import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Base.BaseEntity;
+import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.User;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import static jakarta.persistence.FetchType.LAZY;
-
 @Entity
-@Table(name = "Participants")
+@Table(name = "participant")
 @Getter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Participant extends BaseEntity {
 
     @Id
@@ -20,31 +19,41 @@ public class Participant extends BaseEntity {
     @Column(name = "participant_id")
     private Long id;
 
-    @ManyToOne(fetch = LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user; // 참여한 사용자
+    private User user;  // 참여한 사용자
 
-    @ManyToOne(fetch = LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id")
     private Post post;
 
     @Column(name = "participant_status")
     @Enumerated(EnumType.STRING)
-    private ParticipantStatus status = ParticipantStatus.PENDING; // 기본값 출석 대기
+    private ParticipantStatus participantStatus;
 
-    public Participant(Post post, User user) {
+    private Participant(Post post, User user, ParticipantStatus status) {
         this.post = post;
         this.user = user;
+        this.participantStatus = status;
     }
 
+    public static Participant create(Post post, User user) {
+        return new Participant(post, user, ParticipantStatus.PENDING);
+    }
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
     public void attend() {
-        this.status = ParticipantStatus.ATTENDED;
+        if (this.participantStatus == ParticipantStatus.ATTENDED) {
+            throw new IllegalStateException("이미 출석 처리된 유저입니다.");
+        }
+        this.participantStatus = ParticipantStatus.ATTENDED;
     }
 
     // 참여 의사 후 출석 코드 미 입력 시 상태 ABSENT로 변경
     public void absent() {
-        this.status = ParticipantStatus.ABSENT;
+        if (this.participantStatus == ParticipantStatus.ABSENT) {
+            throw new IllegalStateException("이미 결석 처리된 유저입니다.");
+        }
+        this.participantStatus = ParticipantStatus.ABSENT;
     }
 }

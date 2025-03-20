@@ -1,8 +1,8 @@
 package RIKU.server.Service;
 
-import RIKU.server.Dto.User.Request.UserLoginRequestDto;
-import RIKU.server.Dto.User.Response.UserLoginResponseDto;
-import RIKU.server.Dto.User.Response.UserRoleResponseDto;
+import RIKU.server.Dto.User.Request.LoginUserRequest;
+import RIKU.server.Dto.User.Response.LoginUserResponse;
+import RIKU.server.Dto.User.Response.UpdateUserRoleResponse;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Repository.UserRepository;
@@ -23,29 +23,31 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class AuthService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
     private final UserRepository userRepository;
 
-
     @Transactional
-    public UserLoginResponseDto login(UserLoginRequestDto requestDto) {
-
-        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(requestDto.getStudentId(), requestDto.getPassword());
-
+    public LoginUserResponse login(LoginUserRequest request) {
+        //Spring Security 사용자 인증
+        Authentication authenticationToken = new UsernamePasswordAuthenticationToken(request.getStudentId(), request.getPassword());
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 
+        // 새로운 JWT 토큰 발급
         JwtInfo jwtInfo = jwtTokenProvider.createToken(authentication);
-        AuthMember principal = (AuthMember) authentication.getPrincipal();
 
-        return UserLoginResponseDto.of(principal.getId(), principal.getUsername(), jwtInfo);
+        // 사용자 정보 반환
+        AuthMember principal = (AuthMember) authentication.getPrincipal();
+        return LoginUserResponse.of(principal.getId(), principal.getUsername(), jwtInfo);
 
     }
 
     @Transactional
-    public UserRoleResponseDto updateUserRole(Long userId, UserRole newRole) {
+    public UpdateUserRoleResponse updateUserRole(Long userId, UserRole newRole) {
+        // 유저 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
@@ -54,21 +56,15 @@ public class AuthService {
             throw new UserException(BaseResponseStatus.ROLE_ALREADY_ASSIGNED);
         }
 
-        user.setUserRole(newRole);
-        userRepository.save(user);
-
-        AuthMember authMember = AuthMember.builder()
-                .id(user.getId())
-                .username(user.getStudentId())
-                .authorities(AuthorityUtils.createAuthorityList(newRole.getRole()))
-                .build();
+        // db 역할 변경
+        user.updateUserRole(newRole);
 
         // 변경된 역할로 새로운 JWT 토큰 발급
-        Authentication authentication = new UsernamePasswordAuthenticationToken(authMember, null, authMember.getAuthorities());
+        Authentication authentication = new UsernamePasswordAuthenticationToken(user.getStudentId(), null, AuthorityUtils.createAuthorityList(newRole.getRole()));
         JwtInfo newJwtInfo = jwtTokenProvider.createToken(authentication);
 
         // 변경된 역할과 새로운 토큰 정보를 반환
-        return new UserRoleResponseDto(user.getId(), user.getUserRole(), newJwtInfo);
+        return UpdateUserRoleResponse.of(user.getId(), user.getUserRole(), newJwtInfo);
     }
 
     public boolean checkStudentIdDuplicate(String studentId) {

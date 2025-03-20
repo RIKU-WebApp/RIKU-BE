@@ -21,7 +21,7 @@ public class UserPointResponseDto {
                 .userId(user.getId())
                 .userProfileImg(user.getProfileImageUrl())
                 .userName(user.getName())
-                .totalPoints(user.getTotalPoints())
+                .totalPoints(0)
                 .build();
 
     }

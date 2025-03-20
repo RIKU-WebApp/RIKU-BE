@@ -1,7 +1,6 @@
 package RIKU.server.Dto.Post.Response;
 
 import RIKU.server.Dto.Participant.Response.ParticipantListResponseDto;
-import RIKU.server.Entity.Board.Post;
 import RIKU.server.Entity.Board.PostStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,7 +9,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Builder
 @Getter
@@ -35,22 +33,4 @@ public class ReadPostDetailResponseDto {
     // 댓글 관련
     private List<ReadCommentsResponseDto> comments;
 
-    public static ReadPostDetailResponseDto of (Post post, List<ReadCommentsResponseDto> comments) {
-        return ReadPostDetailResponseDto.builder()
-                .title(post.getTitle())
-                .location(post.getLocation())
-                .date(post.getDate())
-                .participants(post.getParticipants().stream()
-                        .map(ParticipantListResponseDto::of)
-                        .collect(Collectors.toList()))
-                .participantsNum(post.getParticipants().size())
-                .content(post.getContent())
-                .postStatus(post.getPostStatus())
-                .postImageUrl(post.getPostImageUrl())
-                .userId(post.getCreatedBy().getId())
-                .userProfileImg(post.getCreatedBy().getProfileImageUrl())
-                .userName(post.getCreatedBy().getName())
-                .comments(comments)
-                .build();
-    }
 }
