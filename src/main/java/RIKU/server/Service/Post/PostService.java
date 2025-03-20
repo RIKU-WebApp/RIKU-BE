@@ -150,12 +150,12 @@ public class PostService {
     // 게시글 삭제하기
     @Transactional
     public void cancelPost(AuthMember authMember, String runType, Long postId) {
-        // 1. PostType 검증
-        PostType postType = validatePostType(runType);
-
-        // 2. 게시글 조회
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2.   PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
 
         // 3. 게시글 작성자 검증
         if (postType == PostType.FLASH) {
@@ -174,9 +174,13 @@ public class PostService {
         post.updateStatus(PostStatus.CANCELED);
     }
 
-    private PostType validatePostType(String runType) {
+    private PostType validatePostType(String runType, PostType postType) {
         try {
-            return PostType.valueOf(runType.toUpperCase());
+            PostType requestType = PostType.valueOf(runType.toUpperCase());
+            if (!postType.equals(requestType)) {
+                throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
+            }
+            return requestType;
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("잘못된 runType 입니다: " + runType);
         }
