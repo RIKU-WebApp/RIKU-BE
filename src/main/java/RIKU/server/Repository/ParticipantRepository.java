@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
-    Optional<Participant> findByPostAndUser(Post post, User user);
+    Boolean existsByPostAndUser(Post post, User user);
 
     List<Participant> findByPost(Post post);
 

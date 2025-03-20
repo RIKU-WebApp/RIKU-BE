@@ -1,6 +1,6 @@
 package RIKU.server.Service;
 
-import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
+import RIKU.server.Dto.Participant.Response.UpdateParticipantResponse;
 import RIKU.server.Entity.Board.Post.*;
 import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
@@ -60,26 +60,37 @@ public class ParticipantService {
 
     // 러닝 참여하기
     @Transactional
-    public ParticipantResponseDto joinRun(Long postId, Long userId) {
+    public UpdateParticipantResponse joinRun(String runType, Long postId, AuthMember authMember) {
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        User user = userRepository.findById(userId)
+        // 2. 유저 조회
+        User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        Optional<Participant> existParticipant = participantRepository.findByPostAndUser(post, user);
-        if (existParticipant.isPresent()) {
+        // 3. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
+        // 4. 이미 참여한 경우 예외 처리
+        if (participantRepository.existsByPostAndUser(post, user)) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_PARTICIPATED);
         }
-        Participant participant = new Participant(post, user);
-        participantRepository.save(participant); // 참여자 목록에 추가
 
-        return ParticipantResponseDto.of(participant);
+        // 5. 새로운 참여자 생성 후 저장
+        Participant participant = Participant.create(post, user);
+        participantRepository.save(participant);
+
+        return UpdateParticipantResponse.of(participant);
     }
 
     // 러닝 출석하기
     @Transactional
-    public ParticipantResponseDto attendRun(Long postId, Long userId, String inputCode) {
+    public UpdateParticipantResponse attendRun(Long postId, Long userId, String inputCode) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
@@ -101,7 +112,7 @@ public class ParticipantService {
         participant.attend();
         participantRepository.save(participant);
 
-        return ParticipantResponseDto.of(participant);
+        return UpdateParticipantResponse.of(participant);
     }
 
     // 출석 종료하기

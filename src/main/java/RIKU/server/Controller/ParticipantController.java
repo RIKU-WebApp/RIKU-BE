@@ -1,7 +1,7 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.Participant.Request.ParticipantRequestDto;
-import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
+import RIKU.server.Dto.Participant.Response.UpdateParticipantResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.ParticipantService;
 import RIKU.server.Util.BaseResponse;
@@ -40,23 +40,29 @@ public class ParticipantController {
         return new BaseResponse<>(response);
     }
 
-    // 참여하기
+    @Operation(summary = "참여하기", description = """
+            
+            유저가 러닝에 참여합니다.
+            
+            """)
     @PostMapping("/join")
-    public BaseResponse<ParticipantResponseDto> joinRun(@PathVariable Long postId, @AuthenticationPrincipal AuthMember authMember) {
-        Long userId = authMember.getId();
-        ParticipantResponseDto responseDto = participantService.joinRun(postId, userId);
+    public BaseResponse<UpdateParticipantResponse> joinRun(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        UpdateParticipantResponse responseDto = participantService.joinRun(runType, postId, authMember);
         return new BaseResponse<>(responseDto);
     }
 
     // 출석하기
     @PostMapping("/attend")
-    public BaseResponse<ParticipantResponseDto> attendRun(
+    public BaseResponse<UpdateParticipantResponse> attendRun(
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthMember authMember,
             @RequestBody ParticipantRequestDto requestDto) {
         Long userId = authMember.getId();
         String code = requestDto.getCode();
-        ParticipantResponseDto responseDto = participantService.attendRun(postId, userId, code);
+        UpdateParticipantResponse responseDto = participantService.attendRun(postId, userId, code);
         return new BaseResponse<>(responseDto);
     }
 
