@@ -1,5 +1,6 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Post.Request.UpdatePostRequest;
 import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Dto.Post.Response.ReadPostPreviewResponse;
 import RIKU.server.Entity.Base.BaseStatus;
@@ -105,34 +106,35 @@ public class PostService {
 
 //    // 게시글 수정하기
 //    @Transactional
-//    public Long updatePost(Long userId, Long postId, CreatePostRequestDto requestDto) {
+//    public void updatePost(AuthMember authMember, String runType, Long postId, UpdatePostRequest request) {
+//        // 게시글 조회
 //        Post post = postRepository.findById(postId)
 //                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 //
 //        // 게시글 작성자 검증
-//        if (!post.getCreatedBy().getId().equals(userId)) {
+//        if (!post.getPostCreator().getId().equals(authMember.getId())) {
 //            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
 //        }
 //
 //        // 유효한 집합 날짜인지 확인
 //        LocalDateTime now = LocalDateTime.now();
-//        if (requestDto.getDate().isBefore(now)) {
+//        if (request.getDate().isBefore(now)) {
 //            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
 //        }
 //
 //        String postImageUrl = post.getPostImageUrl();
 //
 //        // 이미지 처리
-//        if (requestDto.getPostImage() != null) {
-//            if (!requestDto.getPostImage().isEmpty()) {
+//        if (request.getPostImage() != null) {
+//            if (!request.getPostImage().isEmpty()) {
 //                // 새로운 이미지 업로드
 //                try {
-//                    log.debug("Received post image: {}", requestDto.getPostImage().getOriginalFilename());
-//                    postImageUrl = s3Uploader.upload(requestDto.getPostImage(), "postImg");
+//                    log.debug("Received post image: {}", request.getPostImage().getOriginalFilename());
+//                    postImageUrl = s3Uploader.upload(request.getPostImage(), "postImg");
 //                    log.debug("post image uploaded: {}", postImageUrl);
 //
 //                } catch (IOException e) {
-//                    log.error("File upload failed: {}", requestDto.getPostImage().getOriginalFilename(), e);
+//                    log.error("File upload failed: {}", request.getPostImage().getOriginalFilename(), e);
 //                    throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
 //                }
 //            }
@@ -141,12 +143,8 @@ public class PostService {
 //            postImageUrl = null;
 //
 //        }
-//
-//        post.updatePost(requestDto.getTitle(), requestDto.getLocation(), requestDto.getDate(), requestDto.getContent(), postImageUrl);
-//
-//        return post.getId();
+//        post.updatePost(request.getTitle(), request.getLocation(), request.getDate(), request.getContent(), postImageUrl);
 //    }
-
 
 
     // 게시글 삭제하기

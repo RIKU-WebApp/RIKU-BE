@@ -1,13 +1,17 @@
 package RIKU.server.Controller.Post;
 
+import RIKU.server.Dto.Post.Request.UpdatePostRequest;
 import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.PostService;
 import RIKU.server.Util.BaseResponse;
+import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -41,24 +45,29 @@ public class PostController {
 //
 //    }
 
-//    // 게시글 수정하기
-//    @PutMapping("/post/{postId}")
-//    public BaseResponse<Map<String, Long>> updatePost(
-//            @PathVariable Long postId,
-//            @ModelAttribute @Validated CreatePostRequestDto requestDto,
-//            BindingResult bindingResult,
-//            @AuthenticationPrincipal AuthMember authMember) {
-//
-//        // 유효성 검증 실패 시 처리
-//        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
-//
-//        Long updatedPostId = postService.updatePost(authMember.getId(), postId, requestDto);
-//
-//        Map<String, Long> response = new HashMap<>();
-//        response.put("postId", updatedPostId);
-//
-//        return new BaseResponse<>(response);
-//    }
+    @Operation(summary = "게시글 수정", description = """
+            
+            유저가 게시글을 수정합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            
+            """)
+    @PatchMapping(value = "/post/{postId}", consumes = "multipart/form-data")
+    public BaseResponse<Map<String, Object>> updatePost(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @ModelAttribute @Validated UpdatePostRequest request,
+            BindingResult bindingResult,
+            @AuthenticationPrincipal AuthMember authMember) {
+
+        // 유효성 검증 실패 시 처리
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
+//        postService.updatePost(authMember, runType, postId, request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "게시글이 수정되었습니다.");
+
+        return new BaseResponse<>(response);
+    }
 
     @Operation(summary = "게시글 러닝 취소", description = """
             
