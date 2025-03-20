@@ -22,7 +22,7 @@ public class UpdateParticipantResponse {
         return new UpdateParticipantResponse(
                 participant.getUser().getId(),
                 participant.getPost().getId(),
-                participant.getStatus()
+                participant.getParticipantStatus()
         );
     }
 }

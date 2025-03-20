@@ -29,12 +29,12 @@ public class Participant extends BaseEntity {
 
     @Column(name = "participant_status")
     @Enumerated(EnumType.STRING)
-    private ParticipantStatus status;
+    private ParticipantStatus participantStatus;
 
     private Participant(Post post, User user, ParticipantStatus status) {
         this.post = post;
         this.user = user;
-        this.status = status;
+        this.participantStatus = status;
     }
 
     public static Participant create(Post post, User user) {
@@ -43,17 +43,17 @@ public class Participant extends BaseEntity {
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
     public void attend() {
-        if (this.status == ParticipantStatus.ATTENDED) {
+        if (this.participantStatus == ParticipantStatus.ATTENDED) {
             throw new IllegalStateException("이미 출석 처리된 유저입니다.");
         }
-        this.status = ParticipantStatus.ATTENDED;
+        this.participantStatus = ParticipantStatus.ATTENDED;
     }
 
     // 참여 의사 후 출석 코드 미 입력 시 상태 ABSENT로 변경
     public void absent() {
-        if (this.status == ParticipantStatus.ABSENT) {
+        if (this.participantStatus == ParticipantStatus.ABSENT) {
             throw new IllegalStateException("이미 결석 처리된 유저입니다.");
         }
-        this.status = ParticipantStatus.ABSENT;
+        this.participantStatus = ParticipantStatus.ABSENT;
     }
 }

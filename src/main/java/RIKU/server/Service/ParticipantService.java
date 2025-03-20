@@ -105,7 +105,7 @@ public class ParticipantService {
                 .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
 
         // 6. 이미 출석한 경우 예외 발생
-        if (participant.getStatus() == ParticipantStatus.ATTENDED) {
+        if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
         }
 
@@ -133,7 +133,7 @@ public class ParticipantService {
 
         // 5. 출석하지 않은 참여자 상태를 ABSENT로 변경
         participantRepository.findByPost(post).forEach(participant -> {
-            if(participant.getStatus() != ParticipantStatus.ATTENDED) {
+            if(participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
                 participant.absent();
             }
         });

@@ -22,7 +22,7 @@ public class ParticipantListResponseDto {
                 .userId(participant.getUser().getId())
                 .userName(participant.getUser().getName())
                 .userProfileImg(participant.getUser().getProfileImageUrl())
-                .status(participant.getStatus())
+                .status(participant.getParticipantStatus())
                 .build();
 
     }

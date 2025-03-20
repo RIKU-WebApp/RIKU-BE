@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserPointController {
     private final UserPointService userPointService;
 
-    @GetMapping("/ranking")
-    public BaseResponse<UserRankingResponseDto> getUserPointRanking(@AuthenticationPrincipal AuthMember authMember) {
-        UserRankingResponseDto response = userPointService.getUserPointRanking(authMember.getId());
-        return new BaseResponse<>(response);
-    }
+//    @GetMapping("/ranking")
+//    public BaseResponse<UserRankingResponseDto> getUserPointRanking(@AuthenticationPrincipal AuthMember authMember) {
+//        UserRankingResponseDto response = userPointService.getUserPointRanking(authMember.getId());
+//        return new BaseResponse<>(response);
+//    }
 }
