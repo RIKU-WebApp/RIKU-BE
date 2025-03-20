@@ -70,17 +70,20 @@ public class ParticipantController {
         return new BaseResponse<>(response);
     }
 
-    // 출석 종료하기
+    @Operation(summary = "출석 종료", description = """
+            
+            생성자가 러닝에 출석을 종료합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            
+            """)
     @PutMapping("/close")
     public BaseResponse<Map<String, Object>> closeRun(
+            @PathVariable String runType,
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthMember authMember) {
-        Long userId = authMember.getId();
-        String postStatus = participantService.closeRun(postId, userId);
+        participantService.closeRun(runType, postId, authMember);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("postStatus", postStatus);
-        response.put("postId", postId);
+        response.put("message", "출석을 종료합니다.");
 
         return new BaseResponse<>(response);
     }

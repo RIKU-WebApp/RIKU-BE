@@ -72,5 +72,5 @@ public class Post extends BaseEntity {
         this.postImageUrl = postImageUrl;
     }
 
-    public void updateStatus(PostStatus status) { this.postStatus = status; }
+    public void updatePostStatus(PostStatus status) { this.postStatus = status; }
 }

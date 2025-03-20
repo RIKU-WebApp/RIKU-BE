@@ -95,10 +95,8 @@ public class ParticipantService {
         PostType postType = validatePostType(runType, post.getPostType());
 
         // 4. 출석 코드 조회 및 검증
-        String storedCode = getExistingAttendanceCode(post, postType).orElseThrow(
-                () -> new ParticipantException(BaseResponseStatus.ATTENDANCE_CODE_NOT_FOUND)
-        );
-        if (!storedCode.equals(inputCode)) {
+        Optional<String> storedCode = getExistingAttendanceCode(post, postType);
+        if (storedCode.isPresent() && !storedCode.get().equals(inputCode)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
         }
 
@@ -119,30 +117,26 @@ public class ParticipantService {
 
     // 출석 종료하기
     @Transactional
-    public String closeRun(Long postId, Long userId) {
+    public void closeRun(String runType, Long postId, AuthMember authMember) {
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        // 생성자가 맞는 지 확인
-        if (!post.getCreatedBy().getId().equals(userId)) {
-            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-        }
+        // 2. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
 
-        // PostStatus를 CLOSED로 변경
-        post.setPostStatus(PostStatus.CLOSED);
+        // 3. 출석 종료 권한 검증
+        validatePermission(post, postType, authMember);
 
+        // 4. 출석 종료 처리
+        post.updatePostStatus(PostStatus.CLOSED);
 
-        // 출석하지 않은 참여자 상태를 ABSENT로 변경
+        // 5. 출석하지 않은 참여자 상태를 ABSENT로 변경
         participantRepository.findByPost(post).forEach(participant -> {
             if(participant.getStatus() != ParticipantStatus.ATTENDED) {
                 participant.absent();
             }
         });
-
-        // 변경된 Post와 Participant 저장
-        postRepository.save(post);
-
-        return post.getPostStatus().name();
     }
 
     private PostType validatePostType(String runType, PostType postType) {
@@ -161,13 +155,13 @@ public class ParticipantService {
     }
     private void validatePermission(Post post, PostType postType, AuthMember authMember) {
         if (postType == PostType.FLASH) {
-            // 번개런이면 생성자 권한으로 출석 코드 생성
+            // 번개런이면 생성자 권한
             if (!post.getPostCreator().getId().equals(authMember.getId())){
                 throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
 
             }
         } else {
-            // 번개런이 아닌 경우 운영진 권한으로 출석 코드 생성
+            // 번개런이 아닌 경우 운영진 권한
             if (!authMember.isAdmin()) {
                 throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
             }
@@ -199,22 +193,19 @@ public class ParticipantService {
             case FLASH:
                 flashPostRepository.findByPost(post)
                         .ifPresentOrElse(flashPost -> {
-                            flashPost.updateAttendanceCode(code); // 기존 메서드 활용
-                            flashPostRepository.save(flashPost);
+                            flashPost.updateAttendanceCode(code);
                         }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
                 break;
             case REGULAR:
                 regularPostRepository.findByPost(post)
                         .ifPresentOrElse(regularPost -> {
                             regularPost.updateAttendanceCode(code);
-                            regularPostRepository.save(regularPost);
                         }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
                 break;
             case TRAINING:
                 trainingPostRepository.findByPost(post)
                         .ifPresentOrElse(trainingPost -> {
                             trainingPost.updateAttendanceCode(code);
-                            trainingPostRepository.save(trainingPost);
                         }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
                 break;
         }

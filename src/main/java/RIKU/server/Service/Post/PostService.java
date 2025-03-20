@@ -171,7 +171,7 @@ public class PostService {
         }
 
         // 4. 게시글 취소 처리
-        post.updateStatus(PostStatus.CANCELED);
+        post.updatePostStatus(PostStatus.CANCELED);
     }
 
     private PostType validatePostType(String runType, PostType postType) {

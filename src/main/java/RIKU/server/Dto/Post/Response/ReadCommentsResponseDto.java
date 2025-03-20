@@ -1,6 +1,6 @@
 package RIKU.server.Dto.Post.Response;
 
-import RIKU.server.Entity.BaseStatus;
+import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Comment;
 import lombok.*;
 

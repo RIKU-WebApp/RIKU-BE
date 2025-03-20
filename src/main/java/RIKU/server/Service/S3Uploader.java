@@ -44,8 +44,6 @@ public class S3Uploader {
         String fileExtension = getFileExtension(originFileName);
         String uniqueFilename = generateUniqueFileName(dirName,fileExtension);
 
-        log.info("Original file name: {}, unique name: {}", originFileName, uniqueFilename);
-
         //String fileName = dirName + "/" + file.getOriginalFilename();
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(file.getContentType());
