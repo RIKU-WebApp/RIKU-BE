@@ -61,9 +61,9 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> {
                     authorize
-                        .requestMatchers("/users/**", "/calendar/**", "/home/**", "/ranking/**", "/error", "/").permitAll()
+                        .requestMatchers("/user/**", "/calendar/**", "/run/**", "/ranking/**", "/error", "/").permitAll()
                         .requestMatchers("run/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
-                        .requestMatchers("/admin/**").hasRole("ADMIN");
+                        .requestMatchers("/admin/**", "pacer/**", "pacers/**").hasRole("ADMIN");
 
                     // 로컬 환경에서만 H2 콘솔 경로를 허용
                     if (isLocal) {
