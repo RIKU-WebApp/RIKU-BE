@@ -1,57 +1,61 @@
 package RIKU.server.Service;
 
 import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
-import RIKU.server.Entity.Board.Post;
+import RIKU.server.Entity.Board.Post.*;
 import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
-import RIKU.server.Repository.ParticipantRepository;
-import RIKU.server.Repository.PostRepository;
-import RIKU.server.Repository.UserRepository;
+import RIKU.server.Repository.*;
+import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.ParticipantException;
 import RIKU.server.Util.Exception.Domain.PostException;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ParticipantService {
 
     private final PostRepository postRepository;
+    private final FlashPostRepository flashPostRepository;
+    private final RegularPostRepository regularPostRepository;
+    private final TrainingPostRepository trainingPostRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
 
 
     // 출석 코드 생성
     @Transactional
-    public String createAttendanceCode(Long postId, Long userId) {
+    public String createAttendanceCode(String runType, Long postId, AuthMember authMember) {
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        // 생성자가 맞는 지 확인
-        if (!post.getCreatedBy().getId().equals(userId)) {
-            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        // 2. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
         }
 
-        // 이미 출석 코드가 존재하는 지 확인
-        if (post.getAttendanceCode() != null) {
-            return post.getAttendanceCode();
-        }
+        // 3. 출석 코드 생성자 검증
+        validatePermission(post, postType, authMember);
 
-        // 출석 코드 생성 및 저장
-        String code = post.createdAttendanceCode();
-        postRepository.save(post);
-
-        return code;
+        // 4. 기존 출석 코드가 존재하면 반환
+        return getExistingAttendanceCode(post, postType)
+                .orElseGet(() -> {
+                    // 5. 출석 코드 생성 및 저장
+                    String code = generateAttendanceCode();
+                    saveAttendanceCode(post, postType, code);
+                    return code;
+                });
     }
 
     // 러닝 참여하기
@@ -126,5 +130,77 @@ public class ParticipantService {
         postRepository.save(post);
 
         return post.getPostStatus().name();
+    }
+
+    private PostType validatePostType(String runType, PostType postType) {
+        try {
+            PostType requestType = PostType.valueOf(runType.toUpperCase());
+            if (!postType.equals(requestType)) {
+                throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
+            }
+            return postType;
+        } catch (IllegalArgumentException e) {
+            throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
+        }
+    }
+    private void validatePermission(Post post, PostType postType, AuthMember authMember) {
+        if (postType == PostType.FLASH) {
+            // 번개런이면 생성자 권한으로 출석 코드 생성
+            if (!post.getPostCreator().getId().equals(authMember.getId())){
+                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+
+            }
+        } else {
+            // 번개런이 아닌 경우 운영진 권한으로 출석 코드 생성
+            if (!authMember.isAdmin()) {
+                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+            }
+        }
+    }
+
+    private Optional<String> getExistingAttendanceCode(Post post, PostType postType) {
+        switch (postType) {
+            case FLASH:
+                return flashPostRepository.findByPost(post)
+                        .map(FlashPost::getAttendanceCode);
+            case REGULAR:
+                return regularPostRepository.findByPost(post)
+                        .map(RegularPost::getAttendanceCode);
+            case TRAINING:
+                return trainingPostRepository.findByPost(post)
+                        .map(TrainingPost::getAttendanceCode);
+            default:
+                return Optional.empty();
+        }
+    }
+
+    private String generateAttendanceCode() {
+        return String.valueOf((int) (Math.random() * 900) + 100);
+    }
+
+    private void saveAttendanceCode(Post post, PostType postType, String code) {
+        switch (postType) {
+            case FLASH:
+                flashPostRepository.findByPost(post)
+                        .ifPresentOrElse(flashPost -> {
+                            flashPost.updateAttendanceCode(code); // 기존 메서드 활용
+                            flashPostRepository.save(flashPost);
+                        }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
+                break;
+            case REGULAR:
+                regularPostRepository.findByPost(post)
+                        .ifPresentOrElse(regularPost -> {
+                            regularPost.updateAttendanceCode(code);
+                            regularPostRepository.save(regularPost);
+                        }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
+                break;
+            case TRAINING:
+                trainingPostRepository.findByPost(post)
+                        .ifPresentOrElse(trainingPost -> {
+                            trainingPost.updateAttendanceCode(code);
+                            trainingPostRepository.save(trainingPost);
+                        }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
+                break;
+        }
     }
 }

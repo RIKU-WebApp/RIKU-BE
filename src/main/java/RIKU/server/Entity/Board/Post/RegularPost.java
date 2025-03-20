@@ -31,4 +31,8 @@ public class RegularPost {
     public static RegularPost create (Post post) {
         return new RegularPost(post, null);
     }
+
+    public void updateAttendanceCode(String code) {
+        this.attendanceCode = attendanceCode;
+    }
 }

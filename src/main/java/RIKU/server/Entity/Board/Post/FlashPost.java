@@ -33,11 +33,7 @@ public class FlashPost {
         return new FlashPost(post, null);
     }
 
-    // 출석 코드를 생성하는 메서드
-    public String createdAttendanceCode() {
-        this.attendanceCode = String.valueOf((int) (Math.random() * 900) + 100);
-        return attendanceCode;
+    public void updateAttendanceCode(String code) {
+        this.attendanceCode = attendanceCode;
     }
-
-
 }

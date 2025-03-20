@@ -5,6 +5,7 @@ import RIKU.server.Dto.Participant.Response.ParticipantResponseDto;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.ParticipantService;
 import RIKU.server.Util.BaseResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,17 +16,23 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/run/post/{postId}")
+@RequestMapping("/run/{runType}/post/{postId}")
 @Tag(name = "Participant", description = "참여/출석 관련 API")
 public class ParticipantController {
 
     private final ParticipantService participantService;
 
-    // 출석 코드 생성
+    @Operation(summary = "출석 코드 생성", description = """
+            
+            생성자가 러닝을 시작합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            
+            """)
     @PostMapping("/code")
-    public BaseResponse<Map<String, String>> createAttendanceCode(@PathVariable Long postId, @AuthenticationPrincipal AuthMember authMemeber) {
-        Long userId = authMemeber.getId();
-        String code = participantService.createAttendanceCode(postId, userId);
+    public BaseResponse<Map<String, String>> createAttendanceCode(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        String code = participantService.createAttendanceCode(runType, postId, authMember);
 
         Map<String, String> response = new HashMap<>();
         response.put("code", code);

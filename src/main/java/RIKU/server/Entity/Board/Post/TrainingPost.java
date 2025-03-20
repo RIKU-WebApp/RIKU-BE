@@ -35,4 +35,8 @@ public class TrainingPost {
     public static TrainingPost create (Post post, String trainingType) {
         return new TrainingPost(post, null, trainingType);
     }
+
+    public void updateAttendanceCode(String code) {
+        this.attendanceCode = attendanceCode;
+    }
 }
