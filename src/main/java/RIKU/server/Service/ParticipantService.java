@@ -41,10 +41,6 @@ public class ParticipantService {
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
-        if (postType == PostType.EVENT) {
-            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
-        }
-
         // 3. 출석 코드 생성자 검증
         validatePermission(post, postType, authMember);
 
@@ -72,10 +68,6 @@ public class ParticipantService {
         // 3. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
-        if (postType == PostType.EVENT) {
-            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
-        }
-
         // 4. 이미 참여한 경우 예외 처리
         if (participantRepository.existsByPostAndUser(post, user)) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_PARTICIPATED);
@@ -90,27 +82,37 @@ public class ParticipantService {
 
     // 러닝 출석하기
     @Transactional
-    public UpdateParticipantResponse attendRun(Long postId, Long userId, String inputCode) {
+    public UpdateParticipantResponse attendRun(String runType, Long postId, AuthMember authMember, String inputCode) {
+        // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        if (!post.getAttendanceCode().equals(inputCode)) {
+        // 2. 유저 조회
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 3. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        // 4. 출석 코드 조회 및 검증
+        String storedCode = getExistingAttendanceCode(post, postType).orElseThrow(
+                () -> new ParticipantException(BaseResponseStatus.ATTENDANCE_CODE_NOT_FOUND)
+        );
+        if (!storedCode.equals(inputCode)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
+        // 5. 참여자 조회
         Participant participant = participantRepository.findByPostAndUser(post, user)
                 .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
 
-        // 이미 출석한 경우 예외 발생
+        // 6. 이미 출석한 경우 예외 발생
         if (participant.getStatus() == ParticipantStatus.ATTENDED) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
         }
 
+        // 7. 출석 상태 변경
         participant.attend();
-        participantRepository.save(participant);
 
         return UpdateParticipantResponse.of(participant);
     }
@@ -148,6 +150,9 @@ public class ParticipantService {
             PostType requestType = PostType.valueOf(runType.toUpperCase());
             if (!postType.equals(requestType)) {
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
+            }
+            if (postType == PostType.EVENT) {
+                throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
             }
             return postType;
         } catch (IllegalArgumentException e) {

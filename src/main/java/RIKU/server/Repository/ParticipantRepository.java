@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
     Boolean existsByPostAndUser(Post post, User user);
 
+    Optional<Participant> findByPostAndUser(Post post, User user);
+
     List<Participant> findByPost(Post post);
 
     // post_id에 대한 참여자 수 카운트

@@ -69,6 +69,7 @@ public enum BaseResponseStatus {
     INVALID_ATTENDANCE_CODE(false, 4002, "출석 코드가 일치하지 않습니다."),
     NOT_PARTICIPATED(false, 4003, "참여자가 아닙니다."),
     ALREADY_ATTENDED(false, 4004, "이미 출석했습니다."),
+    ATTENDANCE_CODE_NOT_FOUND(false, 4005, "출석 코드가 존재하지 않습니다."),
 
     /**
      * 9000 : MultipartFile 오류
