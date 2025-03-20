@@ -32,8 +32,8 @@ public class FlashPostService {
     private final PostRepository postRepository;
     private final FlashPostRepository flashPostRepository;
     private final UserRepository userRepository;
-    private ParticipantRepository participantRepository;
-    private AttachmentRepository attachmentRepository;
+    private final ParticipantRepository participantRepository;
+    private final AttachmentRepository attachmentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
