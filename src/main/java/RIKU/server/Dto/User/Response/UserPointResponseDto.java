@@ -14,14 +14,14 @@ public class UserPointResponseDto {
     private Long userId;
     private String userProfileImg;
     private String userName;
-    private int totalPoints;
+//    private int totalPoints;
 
     public static UserPointResponseDto of(User user) {
         return UserPointResponseDto.builder()
                 .userId(user.getId())
                 .userProfileImg(user.getProfileImageUrl())
                 .userName(user.getName())
-                .totalPoints(0)
+//                .totalPoints(0)
                 .build();
 
     }
