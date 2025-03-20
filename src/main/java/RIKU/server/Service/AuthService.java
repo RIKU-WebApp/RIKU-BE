@@ -59,8 +59,15 @@ public class AuthService {
         // db 역할 변경
         user.updateUserRole(newRole);
 
+        // AuthMember 객체 생성
+        AuthMember authMember = AuthMember.builder()
+                .id(user.getId())
+                .username(user.getStudentId())
+                .authorities(AuthorityUtils.createAuthorityList(newRole.getRole()))
+                .build();
+
         // 변경된 역할로 새로운 JWT 토큰 발급
-        Authentication authentication = new UsernamePasswordAuthenticationToken(user.getStudentId(), null, AuthorityUtils.createAuthorityList(newRole.getRole()));
+        Authentication authentication = new UsernamePasswordAuthenticationToken(authMember, null, authMember.getAuthorities());
         JwtInfo newJwtInfo = jwtTokenProvider.createToken(authentication);
 
         // 변경된 역할과 새로운 토큰 정보를 반환

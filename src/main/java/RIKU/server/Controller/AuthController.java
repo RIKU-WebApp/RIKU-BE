@@ -46,9 +46,9 @@ public class AuthController {
     @PatchMapping("/{userId}/role")
     public BaseResponse<UpdateUserRoleResponse> updateUserRole(
             @PathVariable Long userId,
-            @RequestBody String userRole) {
+            @RequestParam String userRole) {
         try {
-            UserRole newRole = UserRole.valueOf(userRole.trim());
+            UserRole newRole = UserRole.valueOf(userRole.trim().toUpperCase());
             UpdateUserRoleResponse response = authService.updateUserRole(userId, newRole);
 
             return new BaseResponse<>(response);
