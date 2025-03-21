@@ -1,7 +1,13 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreateTrainingPostRequest;
+import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
+import RIKU.server.Dto.Post.Response.ReadPacersListResponse;
+import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
+import RIKU.server.Dto.Post.Response.ReadTrainingPostDetailResponse;
 import RIKU.server.Entity.Board.Attachment;
+import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Pacer;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.TrainingPost;
@@ -37,6 +43,7 @@ public class TrainingPostService {
     private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
+    private final CommentRepository commentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
@@ -97,6 +104,51 @@ public class TrainingPostService {
         }
     }
 
+    // 게시글 상세 조회
+    public ReadTrainingPostDetailResponse getPostDetail(Long postId) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        TrainingPost trainingPost = trainingPostRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.TRAINING_POST_NOT_FOUND));
+
+        // 2. 참여자 조회
+        List<ReadParticipantListResponse> participants = participantRepository.findByPost(post)
+                .stream()
+                .map(ReadParticipantListResponse::of)
+                .toList();
+
+        // 3. 페이서 조회
+        List<ReadPacersListResponse> pacers = pacerRepository.findByPost(post)
+                .stream()
+                .map(ReadPacersListResponse::of)
+                .toList();
+
+        // 3. 첨부파일 조회
+        List<String> attachmentUrls = attachmentRepository.findByPost(post)
+                .stream()
+                .map(Attachment::getImageUrl)
+                .toList();
+
+        // 4. 댓글 조회
+        List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
+                .stream()
+                .filter(comment -> comment.getTargetId() == null)
+                .map(this::mapToDto)
+                .toList();
+
+        return ReadTrainingPostDetailResponse.of(post, trainingPost, participants, pacers, attachmentUrls, comments);
+    }
+
+    private ReadCommentsResponse mapToDto (Comment comment) {
+        List<ReadCommentsResponse> replies = commentRepository.findByTargetId(comment.getId())
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+        return ReadCommentsResponse.of(comment, replies);
+    }
+
     private void validate(AuthMember authMember, CreateTrainingPostRequest request) {
         // 1. 작성자가 운영진인지
         if(!authMember.isAdmin()) {
@@ -137,6 +189,4 @@ public class TrainingPostService {
         }
         return attachments;
     }
-
-
 }

@@ -1,6 +1,8 @@
 package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.CreateTrainingPostRequest;
+import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
+import RIKU.server.Dto.Post.Response.ReadTrainingPostDetailResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.TrainingPostService;
 import RIKU.server.Util.BaseResponse;
@@ -11,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +45,17 @@ public class TrainingPostController {
         Map<String, Long> response = new HashMap<>();
         response.put("postId", postId);
 
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "훈련 게시글 상세조회", description = """
+            
+            유저가 훈련 게시글을 조회합니다.(권한 제한 없음)
+            
+            """)
+    @GetMapping("/training/post/{postId}")
+    public BaseResponse<ReadTrainingPostDetailResponse> getPostDetail(@PathVariable Long postId) {
+        ReadTrainingPostDetailResponse response = trainingPostService.getPostDetail(postId);
         return new BaseResponse<>(response);
     }
 }
