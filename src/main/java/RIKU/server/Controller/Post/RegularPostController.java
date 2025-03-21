@@ -1,6 +1,7 @@
 package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.CreateRegularPostRequest;
+import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.RegularPostService;
 import RIKU.server.Util.BaseResponse;
@@ -43,6 +44,17 @@ public class RegularPostController {
         Map<String, Long> response = new HashMap<>();
         response.put("postId", postId);
 
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "정규런 게시글 상세조회", description = """
+            
+            유저가 정규런 게시글을 조회합니다.(권한 제한 없음)
+            
+            """)
+    @GetMapping("/regular/post/{postId}")
+    public BaseResponse<ReadRegularPostDetailResponse> getPostDetail(@PathVariable Long postId) {
+        ReadRegularPostDetailResponse response = regularPostService.getPostDetail(postId);
         return new BaseResponse<>(response);
     }
 }

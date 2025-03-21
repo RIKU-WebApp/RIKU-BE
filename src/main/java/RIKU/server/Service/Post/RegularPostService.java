@@ -1,7 +1,13 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreateRegularPostRequest;
+import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
+import RIKU.server.Dto.Post.Response.ReadFlashPostDetailResponse;
+import RIKU.server.Dto.Post.Response.ReadPacersListResponse;
+import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
 import RIKU.server.Entity.Board.Attachment;
+import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Pacer;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.RegularPost;
@@ -37,6 +43,7 @@ public class RegularPostService {
     private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
+    private final CommentRepository commentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
@@ -95,6 +102,48 @@ public class RegularPostService {
         } catch (Exception e) {
             throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
         }
+    }
+
+    // 게시글 상세 조회
+    public ReadRegularPostDetailResponse getPostDetail(Long postId) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2. 참여자 조회
+        List<ReadParticipantListResponse> participants = participantRepository.findByPost(post)
+                .stream()
+                .map(ReadParticipantListResponse::of)
+                .toList();
+
+        // 3. 페이서 조회
+        List<ReadPacersListResponse> pacers = pacerRepository.findByPost(post)
+                .stream()
+                .map(ReadPacersListResponse::of)
+                .toList();
+
+        // 3. 첨부파일 조회
+        List<String> attachmentUrls = attachmentRepository.findByPost(post)
+                .stream()
+                .map(Attachment::getImageUrl)
+                .toList();
+
+        // 4. 댓글 조회
+        List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
+                .stream()
+                .filter(comment -> comment.getTargetId() == null)
+                .map(this::mapToDto)
+                .toList();
+
+        return ReadRegularPostDetailResponse.of(post, participants, pacers, attachmentUrls, comments);
+    }
+
+    private ReadCommentsResponse mapToDto (Comment comment) {
+        List<ReadCommentsResponse> replies = commentRepository.findByTargetId(comment.getId())
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+        return ReadCommentsResponse.of(comment, replies);
     }
 
     private void validate(AuthMember authMember, CreateRegularPostRequest request) {
