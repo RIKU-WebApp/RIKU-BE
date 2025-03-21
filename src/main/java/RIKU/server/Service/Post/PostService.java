@@ -80,30 +80,6 @@ public class PostService {
         return ReadPostListResponse.of(todayRuns, upcomingRuns, pastRuns);
     }
 
-//    // 게시글 상세 조회
-//    public ReadPostDetailResponseDto getPostDetail(Long postId) {
-//        // 게시글 조회
-//        Post post = postRepository.findById(postId)
-//                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
-//
-//        // 댓글 조회
-//        List<ReadCommentsResponseDto> comments = commentRepository.findByPost(post).stream()
-//                .filter(comment -> comment.getTargetId() == null) // 최상위 댓글만 조회
-//                .map(this::mapCommentToDto) // 댓글 -> DTO 변환
-//                .toList();
-//        return ReadPostDetailResponseDto.of(post, comments);
-//    }
-//
-//    // 댓글 -> DTO 변환
-//    private ReadCommentsResponseDto mapCommentToDto(Comment comment) {
-//        // 대댓글 리스트 변환
-//        List<ReadCommentsResponseDto> replies = commentRepository.findByTargetId(comment.getId()).stream()
-//                .map(this::mapCommentToDto)
-//                .collect(Collectors.toList());
-//
-//        return ReadCommentsResponseDto.of(comment, replies);
-//    }
-
 //    // 게시글 수정하기
 //    @Transactional
 //    public void updatePost(AuthMember authMember, String runType, Long postId, UpdatePostRequest request) {
