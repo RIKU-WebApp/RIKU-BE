@@ -63,6 +63,11 @@ public enum BaseResponseStatus {
     INVALID_POST_TYPE(false, 3010, "해당 게시글 유형과 일치하지 않습니다."),
     INVALID_RUN_TYPE(false, 3010, "유효하지 않은 runType입니다."),
     UNAUTHORIZED_POST_TYPE(false, 3011, "해당 게시글 유형은 권한이 없습니다."),
+    FLASH_POST_NOT_FOUND(false, 3012, "존재하지 않는 번개런 게시글입니다."),
+    REGULAR_POST_NOT_FOUND(false, 3013, "존재하지 않는 정규런 게시글입니다."),
+    TRAINING_POST_NOT_FOUND(false, 3014, "존재하지 않는 훈련 게시글입니다."),
+    EVENT_POST_NOT_FOUND(false, 3015, "존재하지 않는 행사 게시글입니다."),
+
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),

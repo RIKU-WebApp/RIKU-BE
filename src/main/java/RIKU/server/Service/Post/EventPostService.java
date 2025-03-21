@@ -1,7 +1,11 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreateEventPostRequest;
+import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
+import RIKU.server.Dto.Post.Response.ReadEventPostDetailResponse;
 import RIKU.server.Entity.Board.Attachment;
+import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Post.EventPost;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Participant.Participant;
@@ -22,6 +26,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -33,7 +38,8 @@ public class EventPostService {
     private final EventPostRepository eventPostRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
-    private AttachmentRepository attachmentRepository;
+    private final AttachmentRepository attachmentRepository;
+    private final CommentRepository commentRepository;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
@@ -72,6 +78,45 @@ public class EventPostService {
         } catch (Exception e) {
             throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
         }
+    }
+
+    // 게시글 상세 조회
+    public ReadEventPostDetailResponse getPostDetail(Long postId) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        EventPost eventPost = eventPostRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.EVENT_POST_NOT_FOUND));
+
+        // 2. 참여자 조회
+        List<ReadParticipantListResponse> participants = participantRepository.findByPost(post)
+                .stream()
+                .map(ReadParticipantListResponse::of)
+                .toList();
+
+        // 3. 첨부파일 조회
+        List<String> attachmentUrls = attachmentRepository.findByPost(post)
+                .stream()
+                .map(Attachment::getImageUrl)
+                .toList();
+
+        // 4. 댓글 조회
+        List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
+                .stream()
+                .filter(comment -> comment.getTargetId() == null)
+                .map(this::mapToDto)
+                .toList();
+
+        return ReadEventPostDetailResponse.of(post, eventPost, participants, attachmentUrls, comments);
+    }
+
+    private ReadCommentsResponse mapToDto (Comment comment) {
+        List<ReadCommentsResponse> replies = commentRepository.findByTargetId(comment.getId())
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+        return ReadCommentsResponse.of(comment, replies);
     }
 
     private void validate(AuthMember authMember, CreateEventPostRequest request) {
