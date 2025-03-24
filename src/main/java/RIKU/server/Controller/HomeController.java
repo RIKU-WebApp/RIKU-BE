@@ -22,7 +22,7 @@ public class HomeController {
 
     @Operation(summary = "홈 조회", description = """
             
-            홈을 조회합니다.(정규런, 번개런, 훈련, 행사)
+            홈을 조회합니다.(번개런, 정규런, 훈련, 행사)
             
             """)
     @GetMapping("")
