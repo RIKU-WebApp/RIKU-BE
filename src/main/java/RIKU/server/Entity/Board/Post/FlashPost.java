@@ -34,6 +34,6 @@ public class FlashPost {
     }
 
     public void updateAttendanceCode(String code) {
-        this.attendanceCode = attendanceCode;
+        this.attendanceCode = code;
     }
 }

@@ -37,6 +37,6 @@ public class TrainingPost {
     }
 
     public void updateAttendanceCode(String code) {
-        this.attendanceCode = attendanceCode;
+        this.attendanceCode = code;
     }
 }

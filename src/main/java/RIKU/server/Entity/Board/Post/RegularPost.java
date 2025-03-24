@@ -33,6 +33,6 @@ public class RegularPost {
     }
 
     public void updateAttendanceCode(String code) {
-        this.attendanceCode = attendanceCode;
+        this.attendanceCode = code;
     }
 }
