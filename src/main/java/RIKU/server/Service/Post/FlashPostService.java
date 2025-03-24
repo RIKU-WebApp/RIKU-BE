@@ -63,7 +63,7 @@ public class FlashPostService {
         List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
         attachmentRepository.saveAll(attachments);
 
-        // 6. RegularPost 엔티티 생성 및 저장
+        // 6. FlashPost 엔티티 생성 및 저장
         FlashPost flashPost = request.toFlashPostEntity(savedPost);
         flashPostRepository.save(flashPost);
 
