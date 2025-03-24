@@ -54,6 +54,7 @@ public class PostService {
 
         // 3. 현재 날짜 기준
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay();
 
         // 4. 게시글 분류
         // 오늘의 러닝 (오늘 날짜, 모집 중 or 마감 임박, 취소됨 제외)
@@ -65,15 +66,15 @@ public class PostService {
 
         // 예정된 러닝 (오늘 이후, 가장 빠른 날짜순 정렬, 취소됨 포함)
         List<ReadPostPreviewResponse> upcomingRuns = posts.stream()
-                .filter(post -> post.getDate().isAfter(now))
+                .filter(post -> post.getDate().isAfter(tomorrow.minusNanos(1)))
                 .sorted(Comparator.comparing(Post::getDate))
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
         // 지난 러닝 (오늘 이전, 마감된 러닝만)
         List<ReadPostPreviewResponse> pastRuns = posts.stream()
-                .filter(post -> post.getDate().isBefore(now))
-                        .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
+                .filter(post -> post.getDate().toLocalDate().isBefore(now.toLocalDate()))
+                .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
