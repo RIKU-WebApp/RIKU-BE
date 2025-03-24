@@ -60,7 +60,7 @@ public class UserController {
             유저가 마이페이지를 수정합니다.
             
             """)
-    @PutMapping("/user/profile")
+    @PatchMapping("/user/profile")
     public BaseResponse<Map<String, Long>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
             @ModelAttribute @Validated UpdateProfileRequest request,
