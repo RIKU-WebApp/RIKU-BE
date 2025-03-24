@@ -27,6 +27,7 @@ public class Pacer extends BaseEntity {
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Column(name = "pacer_group")
     private String group;
 
     private String pace;
