@@ -79,9 +79,9 @@ public class UserService {
 
     // 마이페이지 수정
     @Transactional
-    public Long updateProfile(Long userId, UpdateProfileRequest request) {
+    public void updateProfile(AuthMember authMember, UpdateProfileRequest request) {
         // 유저 조회
-        User user = userRepository.findById(userId)
+        User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 전화번호 업데이트 (입력값이 있는 경우만 변경)
@@ -111,8 +111,6 @@ public class UserService {
 
         // 프로필 업데이트
         user.updateProfile(phone, password, profileImageUrl);
-
-        return user.getId();
     }
 
     @Transactional

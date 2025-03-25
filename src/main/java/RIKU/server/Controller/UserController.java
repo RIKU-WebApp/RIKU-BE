@@ -67,16 +67,16 @@ public class UserController {
             
             """)
     @PatchMapping("/user/profile")
-    public BaseResponse<Map<String, Long>> updateProfile(
+    public BaseResponse<Map<String, Object>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
             @ModelAttribute @Validated UpdateProfileRequest request,
             BindingResult bindingResult) {
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        Long updatedUserId = userService.updateProfile(authMember.getId(), request);
+        userService.updateProfile(authMember, request);
 
-        Map<String, Long> response = new HashMap<>();
-        response.put("userId", updatedUserId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "마이페이지가 수정되었습니다.");
 
         return new BaseResponse<>(response);
     }
