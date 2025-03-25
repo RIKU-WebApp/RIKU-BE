@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -49,7 +50,7 @@ public class UserService {
     }
 
     // 마이페이지 조회
-    public ReadUserProfileResponse getProfile(AuthMember authMember) {
+    public ReadUserProfileResponse getProfile(AuthMember authMember, LocalDate date) {
         // 1. 유저 조회
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
@@ -58,9 +59,18 @@ public class UserService {
         int totalPoints = userPointRepository.sumPointsByUser(user);
 
         // 3. 출석 완료한 참여내역 수
-        int attendedCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+        int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
 
-        return ReadUserProfileResponse.of(user, totalPoints, attendedCount);
+        // 4. 해당 월의 출석 현황 리스트
+        LocalDate startDate = date.withDayOfMonth(1);
+        LocalDate endDate = startDate.plusMonths(1).minusDays(1);
+
+        LocalDateTime startDateTime = startDate.atStartOfDay();
+        LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
+
+        List<LocalDate> attendanceDates = userPointRepository.findAttendanceDatesInMonth(user, PointType.ADD_ATTENDANCE, startDateTime, endDateTime);
+
+        return ReadUserProfileResponse.of(user, totalPoints, participationCount, attendanceDates);
     }
 
     // 마이페이지 수정

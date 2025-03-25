@@ -10,13 +10,14 @@ import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,8 +51,13 @@ public class UserController {
             
             """)
     @GetMapping("/user/profile")
-    public BaseResponse<ReadUserProfileResponse> getProfile(@AuthenticationPrincipal AuthMember authMember) {
-        ReadUserProfileResponse response = userService.getProfile(authMember);
+    public BaseResponse<ReadUserProfileResponse> getProfile(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+            @AuthenticationPrincipal AuthMember authMember) {
+        if (date == null) {
+            throw new IllegalArgumentException("날짜를 입력해주세요.");
+        }
+        ReadUserProfileResponse response = userService.getProfile(authMember, date);
         return new BaseResponse<>(response);
     }
 

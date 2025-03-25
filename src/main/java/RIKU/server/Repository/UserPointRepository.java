@@ -8,7 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
@@ -16,6 +18,16 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
     boolean existsByUserAndPointTypeAndCreatedAtBetween(User user, PointType pointType, LocalDateTime start, LocalDateTime end);
 
     // 유저 포인트 총합
-    @Query("SELECT COALLESCE(SUM(up.point), 0) FROM UserPoint up WHERE up.user = :user")
+    @Query("SELECT COALESCE(SUM(up.point), 0) FROM UserPoint up WHERE up.user = :user")
     int sumPointsByUser(@Param("user") User user);
+
+    // 해당 월 출석 현황 리스트 조회
+    @Query("SELECT DATE(up.createdAt) FROM UserPoint  up " +
+            "WHERE up.user = :user " +
+            "AND up.pointType = :pointType " +
+            "AND up.createdAt BETWEEN :start AND :end")
+    List<LocalDate> findAttendanceDatesInMonth(@Param("user") User user,
+                                               @Param("pointType") PointType pointType,
+                                               @Param("start") LocalDateTime start,
+                                               @Param("end") LocalDateTime end);
 }
