@@ -3,8 +3,12 @@ package RIKU.server.Service;
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
+import RIKU.server.Entity.User.PointType;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Entity.User.UserPoint;
+import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
+import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Service
 @Slf4j
@@ -22,6 +28,7 @@ import java.io.IOException;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserPointRepository userPointRepository;
     private final PasswordEncoder passwordEncoder;
     private final S3Uploader s3Uploader;
 
@@ -83,5 +90,24 @@ public class UserService {
         user.updateProfile(phone, password, profileImageUrl);
 
         return user.getId();
+    }
+
+    @Transactional
+    public void attendProfile(AuthMember authMember) {
+        // 1. 유저 조회
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 2. 오늘 이미 출석한 경우 예외처리
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
+
+        if(userPointRepository.existsByUserAndPointTypeAndCreatedAtBetween(user, PointType.ADD_ATTENDANCE, startOfToday, endOfToday)) {
+            throw new UserException(BaseResponseStatus.ALREADY_ATTENDED_TODAY);
+        }
+
+        // 3. 출석 포인트 1점 적립
+        UserPoint userPoint = UserPoint.create(user, 1, "마이페이지 출석", PointType.ADD_ATTENDANCE);
+        userPointRepository.save(userPoint);
     }
 }

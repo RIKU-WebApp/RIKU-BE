@@ -74,4 +74,18 @@ public class UserController {
 
         return new BaseResponse<>(response);
     }
+
+    @Operation(summary = "마이페이지 출석", description = """
+            
+            유저가 마이페이지에서 오늘의 출석을 합니다.
+            
+            """)
+    @PostMapping("/user/attend")
+    public BaseResponse<Map<String, Object>> attendProfile(@AuthenticationPrincipal AuthMember authMember) {
+        userService.attendProfile(authMember);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "출석이 완료되었습니다.");
+        return new BaseResponse<>(response);
+    }
 }
