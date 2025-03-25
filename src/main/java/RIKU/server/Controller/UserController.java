@@ -51,7 +51,7 @@ public class UserController {
             """)
     @GetMapping("/user/profile")
     public BaseResponse<ReadUserProfileResponse> getProfile(@AuthenticationPrincipal AuthMember authMember) {
-        ReadUserProfileResponse response = userService.getProfile(authMember.getId());
+        ReadUserProfileResponse response = userService.getProfile(authMember);
         return new BaseResponse<>(response);
     }
 

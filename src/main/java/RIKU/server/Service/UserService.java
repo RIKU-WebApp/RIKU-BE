@@ -3,9 +3,11 @@ package RIKU.server.Service;
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.PointType;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserPoint;
+import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Security.AuthMember;
@@ -29,6 +31,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
+    private final ParticipantRepository participantRepository;
     private final PasswordEncoder passwordEncoder;
     private final S3Uploader s3Uploader;
 
@@ -46,12 +49,18 @@ public class UserService {
     }
 
     // 마이페이지 조회
-    public ReadUserProfileResponse getProfile(Long userId) {
-        // 유저 조회
-        User user = userRepository.findById(userId)
+    public ReadUserProfileResponse getProfile(AuthMember authMember) {
+        // 1. 유저 조회
+        User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        return ReadUserProfileResponse.of(user);
+        // 2. 유저 포인트 총합
+        int totalPoints = userPointRepository.sumPointsByUser(user);
+
+        // 3. 출석 완료한 참여내역 수
+        int attendedCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+
+        return ReadUserProfileResponse.of(user, totalPoints, attendedCount);
     }
 
     // 마이페이지 수정

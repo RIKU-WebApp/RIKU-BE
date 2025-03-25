@@ -28,7 +28,13 @@ public class ReadUserProfileResponse {
         this.attendanceCount = attendanceCount;
     }
 
-    public static ReadUserProfileResponse of(User user) {
-        return new ReadUserProfileResponse(user.getStudentId(), user.getName(), user.getProfileImageUrl(), user.getUserRole(), 0,0);
+    public static ReadUserProfileResponse of(User user, int points, int attendanceCount) {
+        return new ReadUserProfileResponse(
+                user.getStudentId(),
+                user.getName(),
+                user.getProfileImageUrl(),
+                user.getUserRole(),
+                points,
+                attendanceCount);
     }
 }
