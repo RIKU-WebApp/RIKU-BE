@@ -10,13 +10,14 @@ import RIKU.server.Util.Exception.Validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -50,8 +51,13 @@ public class UserController {
             
             """)
     @GetMapping("/user/profile")
-    public BaseResponse<ReadUserProfileResponse> getProfile(@AuthenticationPrincipal AuthMember authMember) {
-        ReadUserProfileResponse response = userService.getProfile(authMember.getId());
+    public BaseResponse<ReadUserProfileResponse> getProfile(
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+            @AuthenticationPrincipal AuthMember authMember) {
+        if (date == null) {
+            throw new IllegalArgumentException("날짜를 입력해주세요.");
+        }
+        ReadUserProfileResponse response = userService.getProfile(authMember, date);
         return new BaseResponse<>(response);
     }
 
@@ -61,17 +67,31 @@ public class UserController {
             
             """)
     @PatchMapping("/user/profile")
-    public BaseResponse<Map<String, Long>> updateProfile(
+    public BaseResponse<Map<String, Object>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
             @ModelAttribute @Validated UpdateProfileRequest request,
             BindingResult bindingResult) {
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        Long updatedUserId = userService.updateProfile(authMember.getId(), request);
+        userService.updateProfile(authMember, request);
 
-        Map<String, Long> response = new HashMap<>();
-        response.put("userId", updatedUserId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "마이페이지가 수정되었습니다.");
 
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "마이페이지 출석", description = """
+            
+            유저가 마이페이지에서 오늘의 출석을 합니다.
+            
+            """)
+    @PostMapping("/user/attend")
+    public BaseResponse<Map<String, Object>> attendProfile(@AuthenticationPrincipal AuthMember authMember) {
+        userService.attendProfile(authMember);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "출석이 완료되었습니다.");
         return new BaseResponse<>(response);
     }
 }

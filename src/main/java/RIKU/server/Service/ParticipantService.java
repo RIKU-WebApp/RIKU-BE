@@ -5,7 +5,9 @@ import RIKU.server.Entity.Board.Post.*;
 import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.Participant.ParticipantStatus;
+import RIKU.server.Entity.User.PointType;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Entity.User.UserPoint;
 import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
@@ -28,6 +30,7 @@ public class ParticipantService {
     private final RegularPostRepository regularPostRepository;
     private final TrainingPostRepository trainingPostRepository;
     private final UserRepository userRepository;
+    private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
 
 
@@ -112,6 +115,13 @@ public class ParticipantService {
         // 7. 출석 상태 변경
         participant.attend();
 
+        // 8. 출석 포인트 적립
+        switch (postType) {
+            case REGULAR -> savePoint(user, 5, "정규런 출석 포인트", PointType.ADD_FLASH_JOIN);
+            case FLASH -> savePoint(user, 3, "번개런 출석 포인트", PointType.ADD_FLASH_JOIN);
+            case TRAINING -> savePoint(user, 4, "훈련 출석 포인트", PointType.ADD_TRAINING_JOIN);
+        }
+
         return UpdateParticipantResponse.of(participant);
     }
 
@@ -137,6 +147,11 @@ public class ParticipantService {
                 participant.absent();
             }
         });
+
+        // 6. 번개런 생성 포인트 적립
+        if (postType == PostType.FLASH) {
+            savePoint(post.getPostCreator(), 5, "번개런 생성 포인트", PointType.ADD_FLASH_CREATE);
+        }
     }
 
     private PostType validatePostType(String runType, PostType postType) {
@@ -209,5 +224,10 @@ public class ParticipantService {
                         }, () -> {throw new PostException(BaseResponseStatus.POST_NOT_FOUND);});
                 break;
         }
+    }
+
+    private void savePoint(User user, int point, String description, PointType pointType) {
+        UserPoint userPoint = UserPoint.create(user, point, description, pointType);
+        userPointRepository.save(userPoint);
     }
 }

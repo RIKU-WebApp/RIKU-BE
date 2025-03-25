@@ -43,12 +43,11 @@ public enum BaseResponseStatus {
     UNAUTHORIZED_USER(false, 2017, "권한이 없는 회원입니다."),
     ROLE_ALREADY_ASSIGNED(false, 2018, "이미 해당 역할이 할당되어 있습니다."),
     USER_NOT_A_PACER(false, 2019, "해당 유저는 페이서가 아닙니다."),
-
-
     INVALID_FIELD(false, 2020, "요청 값이 잘못되었습니다."),
     EMPTY_REQUEST_PARAMETER(false, 2021, "Request Parameter가 존재하지 않습니다."),
     METHOD_ARGUMENT_TYPE_MISMATCH(false, 2022, "Request Parameter나 Path Variable의 유형이 불일치합니다."),
     PROFILE_IMAGE_UPLOAD_FAILED(false, 2023, "프로필 이미지 업로드에 실패하였습니다."),
+    ALREADY_ATTENDED_TODAY(false, 2024, "이미 오늘 출석했습니다."),
 
     // PostException
     POST_NOT_FOUND(false, 3001, "존재하지 않는 게시글입니다."),

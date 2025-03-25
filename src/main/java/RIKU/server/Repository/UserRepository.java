@@ -20,13 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 학번 중복 확인
     boolean existsByStudentId(String studentId);
 
-//
-//    // 포인트 기준 Top 10 유저 조회
-//    List<User> findTop10ByOrderByTotalPointsDescNameAsc();
-//
-//    // 전체 유저를 포인트 내림차순 정렬하여 조회
-//    List<User> findAllByOrderByTotalPointsDescNameAsc();
-
     // 페이서 조회
     List<User> findByIsPacer(Boolean isPacer);
 }

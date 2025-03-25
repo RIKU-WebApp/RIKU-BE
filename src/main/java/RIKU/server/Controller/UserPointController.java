@@ -1,6 +1,6 @@
 package RIKU.server.Controller;
 
-import RIKU.server.Dto.User.Response.UserRankingResponseDto;
+import RIKU.server.Dto.User.Response.ReadUserRankingResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserPointService;
 import RIKU.server.Util.BaseResponse;
@@ -19,9 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserPointController {
     private final UserPointService userPointService;
 
-//    @GetMapping("/ranking")
-//    public BaseResponse<UserRankingResponseDto> getUserPointRanking(@AuthenticationPrincipal AuthMember authMember) {
-//        UserRankingResponseDto response = userPointService.getUserPointRanking(authMember.getId());
-//        return new BaseResponse<>(response);
-//    }
+    @GetMapping("/ranking")
+    public BaseResponse<ReadUserRankingResponse> getUserPointRanking(@AuthenticationPrincipal AuthMember authMember) {
+        ReadUserRankingResponse response = userPointService.getUserPointRanking(authMember);
+        return new BaseResponse<>(response);
+    }
 }
