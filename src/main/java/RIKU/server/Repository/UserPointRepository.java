@@ -8,7 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,12 +21,12 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
     int sumPointsByUser(@Param("user") User user);
 
     // 해당 월 출석 현황 리스트 조회
-    @Query("SELECT DATE(up.createdAt) FROM UserPoint  up " +
+    @Query("SELECT up.createdAt FROM UserPoint  up " +
             "WHERE up.user = :user " +
             "AND up.pointType = :pointType " +
             "AND up.createdAt BETWEEN :start AND :end")
-    List<LocalDate> findAttendanceDatesInMonth(@Param("user") User user,
-                                               @Param("pointType") PointType pointType,
-                                               @Param("start") LocalDateTime start,
-                                               @Param("end") LocalDateTime end);
+    List<LocalDateTime> findAttendanceDatesInMonth(@Param("user") User user,
+                                                   @Param("pointType") PointType pointType,
+                                                   @Param("start") LocalDateTime start,
+                                                   @Param("end") LocalDateTime end);
 }

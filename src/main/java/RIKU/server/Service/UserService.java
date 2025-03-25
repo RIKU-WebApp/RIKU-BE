@@ -68,7 +68,11 @@ public class UserService {
         LocalDateTime startDateTime = startDate.atStartOfDay();
         LocalDateTime endDateTime = endDate.atTime(23, 59, 59);
 
-        List<LocalDate> attendanceDates = userPointRepository.findAttendanceDatesInMonth(user, PointType.ADD_ATTENDANCE, startDateTime, endDateTime);
+        List<LocalDateTime> dateTimes = userPointRepository.findAttendanceDatesInMonth(user, PointType.ADD_ATTENDANCE, startDateTime, endDateTime);
+        List<LocalDate> attendanceDates = dateTimes.stream()
+                .map(LocalDateTime::toLocalDate)
+                .distinct()
+                .toList();
 
         return ReadUserProfileResponse.of(user, totalPoints, participationCount, attendanceDates);
     }
