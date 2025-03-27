@@ -19,21 +19,21 @@ public class ReadUsersResponse {
 
     private String phone;
 
-    private int point;
+    private int points;
 
-    private int attendanceCount;
+    private int participationCount;
 
     private UserRole userRole;
 
-    public static ReadUsersResponse of(User user) {
+    public static ReadUsersResponse of(User user, int points, int participationCount) {
         return ReadUsersResponse.builder()
                 .studentId(user.getStudentId())
                 .userName(user.getName())
                 .college(user.getCollege())
                 .major(user.getMajor())
                 .phone(user.getPhone())
-                .point(0)
-                .attendanceCount(0)
+                .points(points)
+                .participationCount(participationCount)
                 .userRole(user.getUserRole())
                 .build();
     }
