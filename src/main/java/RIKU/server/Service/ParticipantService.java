@@ -46,6 +46,10 @@ public class ParticipantService {
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
         // 3. 출석 코드 생성자 검증
         validatePostCreator(post, authMember);
 
@@ -107,6 +111,10 @@ public class ParticipantService {
         // 3. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
         // 4. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
         if (storedCode.isPresent() && !storedCode.get().equals(inputCode)) {
@@ -127,7 +135,7 @@ public class ParticipantService {
 
         // 8. 출석 포인트 적립
         switch (postType) {
-            case REGULAR -> savePoint(user, 5, "정규런 출석 포인트", PointType.ADD_FLASH_JOIN);
+            case REGULAR -> savePoint(user, 5, "정규런 출석 포인트", PointType.ADD_REGULAR_JOIN);
             case FLASH -> savePoint(user, 3, "번개런 출석 포인트", PointType.ADD_FLASH_JOIN);
             case TRAINING -> savePoint(user, 4, "훈련 출석 포인트", PointType.ADD_TRAINING_JOIN);
         }
@@ -144,6 +152,10 @@ public class ParticipantService {
 
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
+
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
 
         // 3. 출석 종료 권한 검증
         validatePostCreator(post, authMember);
@@ -196,14 +208,12 @@ public class ParticipantService {
             if (!postType.equals(requestType)) {
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
             }
-            if (postType == PostType.EVENT) {
-                throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
-            }
             return postType;
         } catch (IllegalArgumentException e) {
             throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
     }
+
     private void validatePostCreator(Post post, AuthMember authMember) {
         if (!post.getPostCreator().getId().equals(authMember.getId())){
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
