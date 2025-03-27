@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Dto.Participant.Request.ManualAttendParticipantRequest;
 import RIKU.server.Dto.Participant.Response.UpdateParticipantResponse;
 import RIKU.server.Entity.Board.Post.*;
 import RIKU.server.Entity.Board.PostStatus;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -152,6 +154,31 @@ public class ParticipantService {
         if (postType == PostType.FLASH) {
             savePoint(post.getPostCreator(), 5, "번개런 생성 포인트", PointType.ADD_FLASH_CREATE);
         }
+    }
+
+    // 수동 출석 처리
+    public void manualAttendRun(String runType, Long postId, AuthMember authMember, List<ManualAttendParticipantRequest> requests) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        // 3. 출석 처리 권한 검증
+        validatePermission(post, postType, authMember);
+
+        // 4. 출석 처리
+        requests.forEach(request -> {
+            Participant participant = participantRepository.findByPostIdAndUserId(postId, request.getUserId())
+                    .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+
+            if (request.getIsAttend()) {
+                participant.updateParticipantStatus(ParticipantStatus.ATTENDED);
+            } else {
+                participant.updateParticipantStatus(ParticipantStatus.ABSENT);
+            }
+        });
     }
 
     private PostType validatePostType(String runType, PostType postType) {
