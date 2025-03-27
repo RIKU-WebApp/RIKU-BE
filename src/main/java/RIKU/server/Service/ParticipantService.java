@@ -133,13 +133,6 @@ public class ParticipantService {
         // 7. 출석 상태 변경
         participant.attend();
 
-        // 8. 출석 포인트 적립
-        switch (postType) {
-            case REGULAR -> savePoint(user, 5, "정규런 출석 포인트", PointType.ADD_REGULAR_JOIN);
-            case FLASH -> savePoint(user, 3, "번개런 출석 포인트", PointType.ADD_FLASH_JOIN);
-            case TRAINING -> savePoint(user, 4, "훈련 출석 포인트", PointType.ADD_TRAINING_JOIN);
-        }
-
         return UpdateParticipantResponse.of(participant);
     }
 
@@ -163,16 +156,29 @@ public class ParticipantService {
         // 4. 출석 종료 처리
         post.updatePostStatus(PostStatus.CLOSED);
 
-        // 5. 출석하지 않은 참여자 상태를 ABSENT로 변경
-        participantRepository.findByPost(post).forEach(participant -> {
-            if(participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
-                participant.absent();
+        // 5. 결석자 처리 및 출석 포인트 일괄 지급
+        List<Participant> participants = participantRepository.findByPost(post);
+
+        for (Participant participant : participants) {
+            if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
+                // 번개런 생성자는 출석 포인트 지급 제외
+                boolean isFlashCreator = post.getPostType() == PostType.FLASH && participant.getUser().getId().equals(post.getPostCreator().getId());
+
+                if (!isFlashCreator) {
+                    switch (postType) {
+                        case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN);
+                        case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN);
+                        case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN);
+                    }
+                }
+            } else {
+                participant.absent();   // 출석하지 않은 참여자 상태 ABSENT로 변경
             }
-        });
+        }
 
         // 6. 번개런 생성 포인트 적립
         if (postType == PostType.FLASH) {
-            savePoint(post.getPostCreator(), 5, "번개런 생성 포인트", PointType.ADD_FLASH_CREATE);
+            savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE);
         }
     }
 
