@@ -68,9 +68,8 @@ public class EventPostService {
         eventPostRepository.save(eventPost);
 
         try {
-            // 게시글 작성자를 참여자로 추가 및 출석으로 변경
+            // 게시글 작성자를 참여자로 추가
             Participant participant = Participant.create(savedPost, user);
-            participant.attend();
             participantRepository.save(participant);
 
             return eventPost.getId();
