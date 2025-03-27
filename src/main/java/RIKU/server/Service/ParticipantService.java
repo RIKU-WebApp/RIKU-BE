@@ -46,8 +46,12 @@ public class ParticipantService {
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
         // 3. 출석 코드 생성자 검증
-        validatePermission(post, postType, authMember);
+        validatePostCreator(post, authMember);
 
         // 4. 기존 출석 코드가 존재하면 반환
         return getExistingAttendanceCode(post, postType)
@@ -55,6 +59,14 @@ public class ParticipantService {
                     // 5. 출석 코드 생성 및 저장
                     String code = generateAttendanceCode();
                     saveAttendanceCode(post, postType, code);
+
+                    // 6. 생성자 출석 처리
+                    Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
+                            .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+                    if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                        participant.attend();
+                    }
+
                     return code;
                 });
     }
@@ -71,7 +83,7 @@ public class ParticipantService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 3. PostType 검증
-        PostType postType = validatePostType(runType, post.getPostType());
+        validatePostType(runType, post.getPostType());
 
         // 4. 이미 참여한 경우 예외 처리
         if (participantRepository.existsByPostAndUser(post, user)) {
@@ -99,6 +111,10 @@ public class ParticipantService {
         // 3. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
         // 4. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
         if (storedCode.isPresent() && !storedCode.get().equals(inputCode)) {
@@ -117,13 +133,6 @@ public class ParticipantService {
         // 7. 출석 상태 변경
         participant.attend();
 
-        // 8. 출석 포인트 적립
-        switch (postType) {
-            case REGULAR -> savePoint(user, 5, "정규런 출석 포인트", PointType.ADD_FLASH_JOIN);
-            case FLASH -> savePoint(user, 3, "번개런 출석 포인트", PointType.ADD_FLASH_JOIN);
-            case TRAINING -> savePoint(user, 4, "훈련 출석 포인트", PointType.ADD_TRAINING_JOIN);
-        }
-
         return UpdateParticipantResponse.of(participant);
     }
 
@@ -137,36 +146,54 @@ public class ParticipantService {
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
+        if (postType == PostType.EVENT) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
         // 3. 출석 종료 권한 검증
-        validatePermission(post, postType, authMember);
+        validatePostCreator(post, authMember);
 
         // 4. 출석 종료 처리
         post.updatePostStatus(PostStatus.CLOSED);
 
-        // 5. 출석하지 않은 참여자 상태를 ABSENT로 변경
-        participantRepository.findByPost(post).forEach(participant -> {
-            if(participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
-                participant.absent();
+        // 5. 결석자 처리 및 출석 포인트 일괄 지급
+        List<Participant> participants = participantRepository.findByPost(post);
+
+        for (Participant participant : participants) {
+            if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
+                // 번개런 생성자는 출석 포인트 지급 제외
+                boolean isFlashCreator = post.getPostType() == PostType.FLASH && participant.getUser().getId().equals(post.getPostCreator().getId());
+
+                if (!isFlashCreator) {
+                    switch (postType) {
+                        case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN);
+                        case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN);
+                        case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN);
+                    }
+                }
+            } else {
+                participant.absent();   // 출석하지 않은 참여자 상태 ABSENT로 변경
             }
-        });
+        }
 
         // 6. 번개런 생성 포인트 적립
         if (postType == PostType.FLASH) {
-            savePoint(post.getPostCreator(), 5, "번개런 생성 포인트", PointType.ADD_FLASH_CREATE);
+            savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE);
         }
     }
 
     // 수동 출석 처리
+    @Transactional
     public void manualAttendRun(String runType, Long postId, AuthMember authMember, List<ManualAttendParticipantRequest> requests) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
-        PostType postType = validatePostType(runType, post.getPostType());
+        validatePostType(runType, post.getPostType());
 
         // 3. 출석 처리 권한 검증
-        validatePermission(post, postType, authMember);
+        validatePostCreator(post, authMember);
 
         // 4. 출석 처리
         requests.forEach(request -> {
@@ -187,26 +214,15 @@ public class ParticipantService {
             if (!postType.equals(requestType)) {
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
             }
-            if (postType == PostType.EVENT) {
-                throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
-            }
             return postType;
         } catch (IllegalArgumentException e) {
             throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
     }
-    private void validatePermission(Post post, PostType postType, AuthMember authMember) {
-        if (postType == PostType.FLASH) {
-            // 번개런이면 생성자 권한
-            if (!post.getPostCreator().getId().equals(authMember.getId())){
-                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
 
-            }
-        } else {
-            // 번개런이 아닌 경우 운영진 권한
-            if (!authMember.isAdmin()) {
-                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-            }
+    private void validatePostCreator(Post post, AuthMember authMember) {
+        if (!post.getPostCreator().getId().equals(authMember.getId())){
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
     }
 

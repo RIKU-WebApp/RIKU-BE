@@ -5,7 +5,10 @@ import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
 import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
 import RIKU.server.Entity.Base.BaseStatus;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Repository.ParticipantRepository;
+import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
@@ -23,6 +26,8 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private final UserRepository userRepository;
+    private final UserPointRepository userPointRepository;
+    private final ParticipantRepository participantRepository;
 
     public List<ReadUsersResponse> getUsers(AuthMember authMember) {
         // 운영진 권한 검증
@@ -32,7 +37,11 @@ public class AdminService {
 
         return userRepository.findByStatus(BaseStatus.ACTIVE)
                 .stream()
-                .map(ReadUsersResponse::of)
+                .map(user -> {
+                    int totalPoints = userPointRepository.sumPointsByUser(user);
+                    int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+                    return ReadUsersResponse.of(user, totalPoints, participationCount);
+                })
                 .collect(Collectors.toList());
     }
 

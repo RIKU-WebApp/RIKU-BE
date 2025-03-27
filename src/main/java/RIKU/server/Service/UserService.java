@@ -128,7 +128,7 @@ public class UserService {
         }
 
         // 3. 출석 포인트 1점 적립
-        UserPoint userPoint = UserPoint.create(user, 1, "마이페이지 출석", PointType.ADD_ATTENDANCE);
+        UserPoint userPoint = UserPoint.create(user, 1, "오늘의 출석", PointType.ADD_ATTENDANCE);
         userPointRepository.save(userPoint);
     }
 }
