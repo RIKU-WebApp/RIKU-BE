@@ -56,4 +56,8 @@ public class Participant extends BaseEntity {
         }
         this.participantStatus = ParticipantStatus.ABSENT;
     }
+
+    public void updateParticipantStatus(ParticipantStatus status) {
+        this.participantStatus = status;
+    }
 }

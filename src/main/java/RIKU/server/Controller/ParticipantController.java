@@ -1,6 +1,7 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.Participant.Request.AttendParticipantRequest;
+import RIKU.server.Dto.Participant.Request.ManualAttendParticipantRequest;
 import RIKU.server.Dto.Participant.Response.UpdateParticipantResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.ParticipantService;
@@ -12,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -88,4 +90,22 @@ public class ParticipantController {
         return new BaseResponse<>(response);
     }
 
+    @Operation(summary = "참여자 출석 처리", description = """
+            
+            생성자가 출석하지 못한 참여자를 수동으로 출석 처리합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            
+            """)
+    @PatchMapping("/manual-attend")
+    public BaseResponse<Map<String, Object>> manualAttendRun(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember,
+            @RequestBody List<ManualAttendParticipantRequest> request) {
+        participantService.manualAttendRun(runType, postId, authMember, request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "출석 처리를 완료했습니다.");
+
+        return new BaseResponse<>(response);
+    }
 }

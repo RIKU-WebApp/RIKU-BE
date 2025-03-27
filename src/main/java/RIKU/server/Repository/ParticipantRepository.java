@@ -20,6 +20,9 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // 특정 게시글에서 특정 유저의 참여 내역 조회
     Optional<Participant> findByPostAndUser(Post post, User user);
 
+    // 특정 게시글에서 특정 유저의 참여 내역 조회
+    Optional<Participant> findByPostIdAndUserId(Long postId, Long userId);
+
     // 특정 게시글의 모든 참여자 리스트 조회
     List<Participant> findByPost(Post post);
 
