@@ -54,8 +54,10 @@ public class FlashPostController {
             
             """)
     @GetMapping("/flash/post/{postId}")
-    public BaseResponse<ReadFlashPostDetailResponse> getPostDetail(@PathVariable Long postId) {
-        ReadFlashPostDetailResponse response = flashPostService.getPostDetail(postId);
+    public BaseResponse<ReadFlashPostDetailResponse> getPostDetail(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        ReadFlashPostDetailResponse response = flashPostService.getPostDetail(postId, authMember);
         return new BaseResponse<>(response);
     }
 

@@ -4,6 +4,7 @@ import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreateFlashPostRequest;
 import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
 import RIKU.server.Dto.Post.Response.ReadFlashPostDetailResponse;
+import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Attachment;
 import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Post.FlashPost;
@@ -80,7 +81,7 @@ public class FlashPostService {
     }
 
     // 게시글 상세 조회
-    public ReadFlashPostDetailResponse getPostDetail(Long postId) {
+    public ReadFlashPostDetailResponse getPostDetail(Long postId, AuthMember authMember) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
@@ -104,7 +105,15 @@ public class FlashPostService {
                 .map(this::mapToDto)
                 .toList();
 
-        return ReadFlashPostDetailResponse.of(post, participants, attachmentUrls, comments);
+        // 5. 게시글 작성자 정보
+        ReadUserInfoResponse postCreator = ReadUserInfoResponse.of(post.getPostCreator());
+
+        // 6. 현재 유저 정보
+        User userEntity = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+        ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
+
+        return ReadFlashPostDetailResponse.of(post, participants, postCreator, attachmentUrls, user, comments);
     }
 
     private ReadCommentsResponse mapToDto (Comment comment) {
@@ -150,5 +159,4 @@ public class FlashPostService {
         }
         return attachments;
     }
-
 }
