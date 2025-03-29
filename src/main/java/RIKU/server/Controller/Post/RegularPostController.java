@@ -53,8 +53,10 @@ public class RegularPostController {
             
             """)
     @GetMapping("/regular/post/{postId}")
-    public BaseResponse<ReadRegularPostDetailResponse> getPostDetail(@PathVariable Long postId) {
-        ReadRegularPostDetailResponse response = regularPostService.getPostDetail(postId);
+    public BaseResponse<ReadRegularPostDetailResponse> getPostDetail(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        ReadRegularPostDetailResponse response = regularPostService.getPostDetail(postId, authMember);
         return new BaseResponse<>(response);
     }
 }

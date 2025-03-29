@@ -1,8 +1,10 @@
 package RIKU.server.Dto.Post.Response;
 
 import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
+import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.PostStatus;
+import RIKU.server.Entity.User.User;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,20 +21,19 @@ public class ReadRegularPostDetailResponse {
     private List<ReadParticipantListResponse> participants;
     private int participantsNum; // 참가자 수
     private List<ReadPacersListResponse> pacers;
+    private ReadUserInfoResponse postCreatorInfo;
     private String content;
     private PostStatus postStatus;
     private String postImageUrl;
     private List<String> attachmentUrls;
 
     // 유저 관련
-    private Long userId;
-    private String userProfileImg;
-    private String userName;
+    private ReadUserInfoResponse userInfo;
 
     // 댓글 관련
     private List<ReadCommentsResponse> comments;
 
-    public static ReadRegularPostDetailResponse of (Post post, List<ReadParticipantListResponse> participants, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, List<ReadCommentsResponse> comments) {
+    public static ReadRegularPostDetailResponse of (Post post, ReadUserInfoResponse postCreator, ReadUserInfoResponse user, List<ReadParticipantListResponse> participants, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, List<ReadCommentsResponse> comments) {
         return ReadRegularPostDetailResponse.builder()
                 .title(post.getTitle())
                 .location(post.getLocation())
@@ -40,13 +41,12 @@ public class ReadRegularPostDetailResponse {
                 .participants(participants)
                 .participantsNum(participants.size())
                 .pacers(pacers)
+                .postCreatorInfo(postCreator)
                 .content(post.getContent())
                 .postStatus(post.getPostStatus())
                 .postImageUrl(post.getPostImageUrl())
                 .attachmentUrls(attachmentUrls)
-                .userId(post.getPostCreator().getId())
-                .userProfileImg(post.getPostCreator().getProfileImageUrl())
-                .userName(post.getPostCreator().getName())
+                .userInfo(user)
                 .comments(comments)
                 .build();
     }
