@@ -54,8 +54,10 @@ public class TrainingPostController {
             
             """)
     @GetMapping("/training/post/{postId}")
-    public BaseResponse<ReadTrainingPostDetailResponse> getPostDetail(@PathVariable Long postId) {
-        ReadTrainingPostDetailResponse response = trainingPostService.getPostDetail(postId);
+    public BaseResponse<ReadTrainingPostDetailResponse> getPostDetail(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        ReadTrainingPostDetailResponse response = trainingPostService.getPostDetail(postId, authMember);
         return new BaseResponse<>(response);
     }
 }

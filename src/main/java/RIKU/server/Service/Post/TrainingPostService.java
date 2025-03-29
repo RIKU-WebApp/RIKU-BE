@@ -6,6 +6,7 @@ import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
 import RIKU.server.Dto.Post.Response.ReadPacersListResponse;
 import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
 import RIKU.server.Dto.Post.Response.ReadTrainingPostDetailResponse;
+import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Attachment;
 import RIKU.server.Entity.Board.Comment;
 import RIKU.server.Entity.Board.Pacer;
@@ -104,7 +105,7 @@ public class TrainingPostService {
     }
 
     // 게시글 상세 조회
-    public ReadTrainingPostDetailResponse getPostDetail(Long postId) {
+    public ReadTrainingPostDetailResponse getPostDetail(Long postId, AuthMember authMember) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
@@ -124,20 +125,28 @@ public class TrainingPostService {
                 .map(ReadPacersListResponse::of)
                 .toList();
 
-        // 3. 첨부파일 조회
+        // 4. 첨부파일 조회
         List<String> attachmentUrls = attachmentRepository.findByPost(post)
                 .stream()
                 .map(Attachment::getImageUrl)
                 .toList();
 
-        // 4. 댓글 조회
+        // 5. 댓글 조회
         List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
                 .stream()
                 .filter(comment -> comment.getTargetId() == null)
                 .map(this::mapToDto)
                 .toList();
 
-        return ReadTrainingPostDetailResponse.of(post, trainingPost, participants, pacers, attachmentUrls, comments);
+        // 6. 게시글 작성자 정보
+        ReadUserInfoResponse postCreator = ReadUserInfoResponse.of(post.getPostCreator());
+
+        // 7. 현재 유저 정보
+        User userEntity = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+        ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
+
+        return ReadTrainingPostDetailResponse.of(post, trainingPost, participants, postCreator, pacers, attachmentUrls, user, comments);
     }
 
     private ReadCommentsResponse mapToDto (Comment comment) {
