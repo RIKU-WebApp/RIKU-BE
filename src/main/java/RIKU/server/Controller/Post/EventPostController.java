@@ -54,8 +54,10 @@ public class EventPostController {
             
             """)
     @GetMapping("/event/post/{postId}")
-    public BaseResponse<ReadEventPostDetailResponse> getPostDetail(@PathVariable Long postId) {
-        ReadEventPostDetailResponse response = eventPostService.getPostDetail(postId);
+    public BaseResponse<ReadEventPostDetailResponse> getPostDetail(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+        ReadEventPostDetailResponse response = eventPostService.getPostDetail(postId, authMember);
         return new BaseResponse<>(response);
     }
 }
