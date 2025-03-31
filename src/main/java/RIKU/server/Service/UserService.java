@@ -2,6 +2,7 @@ package RIKU.server.Service;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
+import RIKU.server.Dto.User.Response.ReadUserProfileDetailResponse;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.PointType;
@@ -18,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -77,6 +79,15 @@ public class UserService {
         return ReadUserProfileResponse.of(user, totalPoints, participationCount, attendanceDates);
     }
 
+    // 마이페이지 상세조회
+    public ReadUserProfileDetailResponse getProfileDetail(AuthMember authMember) {
+        // 유저 조회
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        return ReadUserProfileDetailResponse.of(user);
+    }
+
     // 마이페이지 수정
     @Transactional
     public void updateProfile(AuthMember authMember, UpdateProfileRequest request) {
@@ -87,26 +98,32 @@ public class UserService {
         // 전화번호 업데이트 (입력값이 있는 경우만 변경)
         String phone = (request.getPhone() != null && !request.getPhone().isEmpty()) ? request.getPhone() : user.getPhone();
 
-        // 비밀번호 업데이트
+        // 비밀번호 업데이트 (입력값이 있는 경우만 변경)
         String password = (request.getPassword() != null && !request.getPassword().isEmpty())
                 ? passwordEncoder.encode(request.getPassword())
                 : user.getPassword();
 
         // 프로필 이미지 업데이트
         String profileImageUrl = user.getProfileImageUrl();
-        if (request.getUserProfileImg() != null && !request.getUserProfileImg().isEmpty()) {
+        MultipartFile requestImg =  request.getUserProfileImg();
+
+        if (requestImg != null && !requestImg.isEmpty()) {
             try {
-                log.debug("Received profile image: {}", request.getUserProfileImg().getOriginalFilename());
-                profileImageUrl = s3Uploader.upload(request.getUserProfileImg(), "profileImg");
-                log.debug("Profile image uploaded: {}", profileImageUrl);
+                // 기존 이미지가 있다면 삭제
+                if (profileImageUrl != null) {
+                    s3Uploader.deleteFileByUrl(profileImageUrl);
+                }
+                // 새 이미지 업로드
+                profileImageUrl = s3Uploader.upload(requestImg, "profileImg");
             } catch (IOException e) {
-                log.error("File upload failed: {}", request.getUserProfileImg().getOriginalFilename(), e);
                 throw new UserException(BaseResponseStatus.PROFILE_IMAGE_UPLOAD_FAILED);
             }
-        } else if (request.getUserProfileImg() == null) {
+        } else if (requestImg != null && requestImg.isEmpty()) {
             // 사용자가 기존 프로필 이미지를 삭제하려는 경우
+            if (profileImageUrl != null) {
+                s3Uploader.deleteFileByUrl(profileImageUrl);
+            }
             profileImageUrl = null;
-            // TODO: S3 이미지 삭제 로직 추가
         }
 
         // 프로필 업데이트

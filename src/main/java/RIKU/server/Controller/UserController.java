@@ -2,6 +2,7 @@ package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
+import RIKU.server.Dto.User.Response.ReadUserProfileDetailResponse;
 import RIKU.server.Dto.User.Response.ReadUserProfileResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserService;
@@ -61,12 +62,23 @@ public class UserController {
         return new BaseResponse<>(response);
     }
 
-    @Operation(summary = "마이페이지 수정", description = """
+    @Operation(summary = "마이페이지 프로필 상세조회", description = """
             
-            유저가 마이페이지를 수정합니다.
+            유저의 마이페이지 프로필 수정을 위한 상세조회 api입니다.
             
             """)
-    @PatchMapping("/user/profile")
+    @GetMapping("/user/profile/detail")
+    public BaseResponse<ReadUserProfileDetailResponse> getProfileDetail(@AuthenticationPrincipal AuthMember authMember) {
+        ReadUserProfileDetailResponse response = userService.getProfileDetail(authMember);
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "마이페이지 프로필 수정", description = """
+            
+            유저가 마이페이지 프로필을 수정합니다.
+            
+            """)
+    @PatchMapping(value = "/user/profile", consumes = "multipart/form-data")
     public BaseResponse<Map<String, Object>> updateProfile(
             @AuthenticationPrincipal AuthMember authMember,
             @ModelAttribute @Validated UpdateProfileRequest request,
@@ -76,7 +88,7 @@ public class UserController {
         userService.updateProfile(authMember, request);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "마이페이지가 수정되었습니다.");
+        response.put("message", "마이페이지 프로필이 수정되었습니다.");
 
         return new BaseResponse<>(response);
     }

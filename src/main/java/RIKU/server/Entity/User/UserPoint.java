@@ -1,8 +1,6 @@
 package RIKU.server.Entity.User;
 
 import RIKU.server.Entity.Base.BaseEntity;
-import RIKU.server.Entity.Base.BaseStatus;
-import RIKU.server.Entity.Board.PostStatus;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
