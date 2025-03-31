@@ -2,6 +2,7 @@ package RIKU.server.Dto.Post.Response;
 
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Comment;
+import RIKU.server.Util.ConvertCreatedDate;
 import lombok.*;
 
 import java.util.List;
@@ -20,6 +21,8 @@ public class ReadCommentsResponse {
 
     private String content;
 
+    private String createdAt;
+
     private BaseStatus commentStatus;
 
     private List<ReadCommentsResponse> replies; // 대댓글 리스트
@@ -31,6 +34,7 @@ public class ReadCommentsResponse {
                 .userProfileImg(comment.getUser().getProfileImageUrl())
                 .userName(comment.getUser().getName())
                 .content(comment.getContent())
+                .createdAt(ConvertCreatedDate.setCreatedDate(comment.getCreatedAt()))
                 .commentStatus(comment.getStatus())
                 .replies(replies)
                 .build();
