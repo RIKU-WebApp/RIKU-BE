@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class UpdatePacerRequest {
+public class AuthorizePacerRequest {
 
     private String studentId;
 

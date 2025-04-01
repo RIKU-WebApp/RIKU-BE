@@ -1,6 +1,6 @@
 package RIKU.server.Controller;
 
-import RIKU.server.Dto.User.Request.UpdatePacerRequest;
+import RIKU.server.Dto.User.Request.AuthorizePacerRequest;
 import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
@@ -78,14 +78,14 @@ public class AdminController {
             
             """)
     @PatchMapping("/pacer")
-    public BaseResponse<Map<String, Object>> updatePacer(
+    public BaseResponse<Map<String, Object>> authorizePacer(
             @AuthenticationPrincipal AuthMember authMember,
-            @RequestBody @Validated List<UpdatePacerRequest> request,
+            @RequestBody @Validated List<AuthorizePacerRequest> request,
             BindingResult bindingResult) {
 
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-        adminService.updatePacer(authMember, request);
+        adminService.authorizePacer(authMember, request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "페이서 변경이 완료되었습니다.");
