@@ -26,7 +26,7 @@ public class ParticipantController {
 
     @Operation(summary = "출석 코드 생성", description = """
             
-            생성자가 러닝을 시작합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            생성자가 러닝을 시작합니다.(생성자 권한)
             
             """)
     @PostMapping("/code")
@@ -74,7 +74,7 @@ public class ParticipantController {
 
     @Operation(summary = "출석 종료", description = """
             
-            생성자가 러닝에 출석을 종료합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            생성자가 러닝에 출석을 종료합니다.(생성자 권한)
             
             """)
     @PatchMapping("/close")
@@ -92,7 +92,7 @@ public class ParticipantController {
 
     @Operation(summary = "참여자 출석 처리", description = """
             
-            생성자가 출석하지 못한 참여자를 수동으로 출석 처리합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            생성자가 출석하지 못한 참여자를 수동으로 출석 처리합니다.(생성자 권한)
             
             """)
     @PatchMapping("/manual-attend")

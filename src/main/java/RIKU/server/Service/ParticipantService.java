@@ -166,9 +166,9 @@ public class ParticipantService {
 
                 if (!isFlashCreator) {
                     switch (postType) {
-                        case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN);
-                        case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN);
-                        case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN);
+                        case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post);
+                        case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
+                        case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post);
                     }
                 }
             } else {
@@ -178,7 +178,7 @@ public class ParticipantService {
 
         // 6. 번개런 생성 포인트 적립
         if (postType == PostType.FLASH) {
-            savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE);
+            savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
         }
     }
 
@@ -269,8 +269,8 @@ public class ParticipantService {
         }
     }
 
-    private void savePoint(User user, int point, String description, PointType pointType) {
-        UserPoint userPoint = UserPoint.create(user, point, description, pointType);
+    private void savePoint(User user, int point, String description, PointType pointType, Post post) {
+        UserPoint userPoint = UserPoint.createWithPost(user, point, description, pointType, post);
         userPointRepository.save(userPoint);
     }
 }

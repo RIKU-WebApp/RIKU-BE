@@ -1,6 +1,8 @@
 package RIKU.server.Entity.User;
 
 import RIKU.server.Entity.Base.BaseEntity;
+import RIKU.server.Entity.Board.Post.Post;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -28,6 +30,11 @@ public class UserPoint extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PointType pointType;    // 적립(add), 차감(remove)
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    @Nullable
+    private Post post;
+
     private UserPoint(User user, int point, String description, PointType pointType) {
         this.user = user;
         this.point = point;
@@ -37,5 +44,11 @@ public class UserPoint extends BaseEntity {
 
     public static UserPoint create(User user, int point, String description, PointType pointType) {
         return new UserPoint(user, point, description, pointType);
+    }
+
+    public static UserPoint createWithPost(User user, int point, String description, PointType pointType, Post post) {
+        UserPoint userPoint = new UserPoint(user, point, description, pointType);
+        userPoint.post = post;
+        return userPoint;
     }
 }
