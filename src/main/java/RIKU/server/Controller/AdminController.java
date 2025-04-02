@@ -1,7 +1,7 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.AuthorizePacerRequest;
-import RIKU.server.Dto.User.Request.UpdateUserRoleRequest;
+import RIKU.server.Dto.User.Request.UpdateUsersRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
 import RIKU.server.Security.AuthMember;
@@ -41,15 +41,15 @@ public class AdminController {
         return new BaseResponse<>(response);
     }
 
-    @Operation(summary = "부원 등급 변경", description = """
+    @Operation(summary = "운영진 페이지 부원 정보 수정", description = """
             
-            운영진 페이지에서 부원들의 등급을 변경합니다. (운영진 권한)
+            운영진 페이지에서 부원들의 등급과 페이서 여부를 변경합니다. (운영진 권한)
             
             """)
     @PatchMapping("/admin")
     public BaseResponse<Map<String, Object>> updateUsers(
             @AuthenticationPrincipal AuthMember authMember,
-            @Validated @RequestBody List<UpdateUserRoleRequest> request,
+            @Validated @RequestBody List<UpdateUsersRequest> request,
             BindingResult bindingResult) {
 
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);

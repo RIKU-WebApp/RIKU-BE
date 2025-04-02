@@ -68,8 +68,4 @@ public class User extends BaseEntity {
     public void updateUserRole(UserRole userRole) {
         this.userRole = userRole;
     }
-
-    public boolean isAdmin() {
-        return this.userRole == UserRole.ADMIN;
-    }
 }
