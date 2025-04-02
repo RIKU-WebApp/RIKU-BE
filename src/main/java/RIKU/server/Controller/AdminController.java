@@ -57,7 +57,7 @@ public class AdminController {
         adminService.updateUsers(authMember, request);
 
         Map<String, Object> response = new HashMap<>();
-        response.put("message", "회원 등급 변경이 완료되었습니다.");
+        response.put("message", "유저 정보 변경이 완료되었습니다.");
         return new BaseResponse<>(response);
     }
 
