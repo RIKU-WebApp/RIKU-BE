@@ -13,4 +13,6 @@ public interface PacerRepository extends JpaRepository<Pacer, Long> {
     List<Pacer> findByPost(Post post);
 
     boolean existsByUserAndPost(User user, Post post);
+
+    void deleteByPost(Post post);
 }

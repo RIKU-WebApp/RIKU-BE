@@ -37,17 +37,9 @@ public class PostController {
         return new BaseResponse<>(posts);
     }
 
-//    // 게시글 상세 조회
-//    @GetMapping("/post/{postId}")
-//    public BaseResponse<ReadPostDetailResponseDto> getPost(@PathVariable Long postId) {
-//        ReadPostDetailResponseDto responseDto = postService.getPostDetail(postId);
-//        return new BaseResponse<>(responseDto);
-//
-//    }
-
     @Operation(summary = "게시글 수정", description = """
             
-            유저가 게시글을 수정합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            유저가 게시글을 수정합니다.(생성자 권한)
             
             """)
     @PatchMapping(value = "/post/{postId}", consumes = "multipart/form-data")
@@ -61,7 +53,7 @@ public class PostController {
         // 유효성 검증 실패 시 처리
         if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
 
-//        postService.updatePost(authMember, runType, postId, request);
+        postService.updatePost(authMember, runType, postId, request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "게시글이 수정되었습니다.");
@@ -71,7 +63,7 @@ public class PostController {
 
     @Operation(summary = "게시글 러닝 취소", description = """
             
-            유저가 게시글을 취소합니다.(번개런은 생성자 권한, 나머지는 운영진 권한)
+            유저가 게시글을 취소합니다.(생성자 권한)
             
             """)
     @PatchMapping("/post/{postId}/cancel")
@@ -87,5 +79,4 @@ public class PostController {
 
         return new BaseResponse<>(response);
     }
-
 }

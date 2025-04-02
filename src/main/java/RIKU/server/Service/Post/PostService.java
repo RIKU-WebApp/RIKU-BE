@@ -1,16 +1,19 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Post.Request.UpdatePacerRequest;
 import RIKU.server.Dto.Post.Request.UpdatePostRequest;
 import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Dto.Post.Response.ReadPostPreviewResponse;
 import RIKU.server.Entity.Base.BaseStatus;
+import RIKU.server.Entity.Board.Attachment;
+import RIKU.server.Entity.Board.Pacer;
+import RIKU.server.Entity.Board.Post.EventPost;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.PostType;
+import RIKU.server.Entity.Board.Post.TrainingPost;
 import RIKU.server.Entity.Board.PostStatus;
-import RIKU.server.Repository.CommentRepository;
-import RIKU.server.Repository.ParticipantRepository;
-import RIKU.server.Repository.PostRepository;
-import RIKU.server.Repository.UserRepository;
+import RIKU.server.Entity.User.User;
+import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.S3Uploader;
 import RIKU.server.Util.BaseResponseStatus;
@@ -20,8 +23,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,7 +41,10 @@ public class PostService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
-    private final CommentRepository commentRepository;
+    private final AttachmentRepository attachmentRepository;
+    private final PacerRepository pacerRepository;
+    private final TrainingPostRepository trainingPostRepository;
+    private final EventPostRepository eventPostRepository;
     private final S3Uploader s3Uploader;
 
 
@@ -81,48 +90,71 @@ public class PostService {
         return ReadPostListResponse.of(todayRuns, upcomingRuns, pastRuns);
     }
 
-//    // 게시글 수정하기
-//    @Transactional
-//    public void updatePost(AuthMember authMember, String runType, Long postId, UpdatePostRequest request) {
-//        // 게시글 조회
-//        Post post = postRepository.findById(postId)
-//                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
-//
-//        // 게시글 작성자 검증
-//        if (!post.getPostCreator().getId().equals(authMember.getId())) {
-//            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-//        }
-//
-//        // 유효한 집합 날짜인지 확인
-//        LocalDateTime now = LocalDateTime.now();
-//        if (request.getDate().isBefore(now)) {
-//            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
-//        }
-//
-//        String postImageUrl = post.getPostImageUrl();
-//
-//        // 이미지 처리
-//        if (request.getPostImage() != null) {
-//            if (!request.getPostImage().isEmpty()) {
-//                // 새로운 이미지 업로드
-//                try {
-//                    log.debug("Received post image: {}", request.getPostImage().getOriginalFilename());
-//                    postImageUrl = s3Uploader.upload(request.getPostImage(), "postImg");
-//                    log.debug("post image uploaded: {}", postImageUrl);
-//
-//                } catch (IOException e) {
-//                    log.error("File upload failed: {}", request.getPostImage().getOriginalFilename(), e);
-//                    throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
-//                }
-//            }
-//        } else {
-//            // 이미지를 없애는 경우
-//            postImageUrl = null;
-//
-//        }
-//        post.updatePost(request.getTitle(), request.getLocation(), request.getDate(), request.getContent(), postImageUrl);
-//    }
+    // 게시글 수정하기
+    @Transactional
+    public void updatePost(AuthMember authMember, String runType, Long postId, UpdatePostRequest request) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
+        // 2. 게시글 작성자 검증
+        validatePostCreator(authMember, post);
+
+        // 3. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        // 4. 날짜 유효성 검증
+        if (request.getDate() != null) {
+            validateDate(request); // ← 날짜 유효성 검사
+        }
+
+        // 4. 공통 필드 처리
+        String title = request.getTitle() != null ? request.getTitle() : post.getTitle();
+        String location = request.getLocation() != null ? request.getLocation() : post.getLocation();
+        LocalDateTime date = request.getDate() != null ? request.getDate() : post.getDate();
+        String content = request.getContent() != null ? request.getContent() : post.getContent();
+        String postImageUrl = updateSingleImage(request.getPostImage(), post.getPostImageUrl(), "postImg");
+
+        post.updatePost(title, location, date, content, postImageUrl);
+
+        // 5. 첨부파일 처리
+        updateMultipleImages(post, request.getAttachments(), "attachmentImg");
+
+        // 6. 러닝 유형별 분기 처리
+        switch (postType) {
+            case REGULAR -> updateRegularPost(post, request);
+            case TRAINING -> updateTrainingPost(post, request);
+            case EVENT -> updateEventPost(post, request);
+            default -> throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
+        }
+    }
+
+    private void updateRegularPost(Post post, UpdatePostRequest request) {
+        if (request.getPacers() != null) {
+            updatePacers(post, request.getPacers());
+        }
+    }
+
+    private void updateTrainingPost(Post post, UpdatePostRequest request) {
+        if (request.getPacers() != null) {
+            updatePacers(post, request.getPacers());
+        }
+
+        // trainingType 수정
+        if (request.getTrainingType() != null) {
+            TrainingPost trainingPost = trainingPostRepository.findByPost(post)
+                    .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+            trainingPost.updateTrainingType(request.getTrainingType());
+        }
+    }
+
+    private void updateEventPost(Post post, UpdatePostRequest request) {
+        if (request.getEventType() != null) {
+            EventPost eventPost = eventPostRepository.findByPost(post)
+                    .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+            eventPost.updateEventType(request.getEventType());
+        }
+    }
 
     // 게시글 삭제하기
     @Transactional
@@ -131,21 +163,11 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
-        // 2.   PostType 검증
-        PostType postType = validatePostType(runType, post.getPostType());
+        // 2. PostType 검증
+        validatePostType(runType, post.getPostType());
 
         // 3. 게시글 작성자 검증
-        if (postType == PostType.FLASH) {
-            // 번개런이면 생성자 권한으로 취소 가능
-            if (!post.getPostCreator().getId().equals(authMember.getId())) {
-                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-            }
-        } else {
-            // 번개런이 아닌 경우 운영진만 취소 가능
-            if (!authMember.isAdmin()) {
-                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-            }
-        }
+        validatePostCreator(authMember, post);
 
         // 4. 게시글 취소 처리
         post.updatePostStatus(PostStatus.CANCELED);
@@ -157,9 +179,24 @@ public class PostService {
             if (!postType.equals(requestType)) {
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
             }
-            return requestType;
+            return postType;
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("잘못된 runType 입니다: " + runType);
+            throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
+        }
+    }
+
+    private void validatePostCreator(AuthMember authMember, Post post) {
+        // 게시글 작성자 검증
+        if (!post.getPostCreator().getId().equals(authMember.getId())) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+    }
+
+    private void validateDate(UpdatePostRequest request) {
+        // 유효한 집합 날짜인지 확인
+        LocalDateTime now = LocalDateTime.now();
+        if (request.getDate().isBefore(now)) {
+            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
         }
     }
 
@@ -169,5 +206,67 @@ public class PostService {
 
     private int countParticipants(Long postId) {
         return participantRepository.countByPostId(postId);
+    }
+
+    private String updateSingleImage(MultipartFile image, String originUrl, String dirName) {
+        try {
+            if (image != null && !image.isEmpty()) {
+                if (originUrl != null) {
+                    s3Uploader.deleteFileByUrl(originUrl);
+                }
+                return s3Uploader.upload(image, dirName);
+            } else if (image != null && image.isEmpty()) {
+                if (originUrl != null) {
+                    s3Uploader.deleteFileByUrl(originUrl);
+                }
+                return null;
+            }
+            return originUrl;
+        } catch (IOException e) {
+            throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
+        }
+    }
+
+    private void updateMultipleImages(Post post, List<MultipartFile> images, String dirName) {
+        if (images == null) { return; }
+
+        // 기존 첨부파일 삭제
+        List<Attachment> existingAttachments  = attachmentRepository.findByPost(post);
+        for (Attachment attachment : existingAttachments ) {
+            s3Uploader.deleteFileByUrl(attachment.getImageUrl());
+        }
+        attachmentRepository.deleteAll(existingAttachments );
+
+        // 요청된 파일이 비어있으면 첨부파일 제거만 하고 끝
+        if (images.isEmpty()) return;
+
+        // 새 첨부파일 업로드 및 저장
+        List<Attachment> newAttachments = new ArrayList<>();
+        for (MultipartFile file : images) {
+            try {
+                String uploadedUrl = s3Uploader.upload(file, dirName);
+                newAttachments.add(Attachment.create(post, uploadedUrl));
+            } catch (IOException e) {
+                throw new PostException(BaseResponseStatus.ATTACHMENT_UPLOAD_FAILED);
+            }
+        }
+        attachmentRepository.saveAll(newAttachments);
+    }
+
+    private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests) {
+        pacerRepository.deleteByPost(post);
+
+        List<Pacer> pacers = pacerRequests.stream()
+                .map(pacer -> {
+                    User user = userRepository.findById(pacer.getPacerId())
+                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+                    if (!user.getIsPacer()) {
+                        throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+                    }
+                    return pacer.toEntity(user, post);
+                })
+                .collect(Collectors.toList());
+
+        pacerRepository.saveAll(pacers);
     }
 }

@@ -31,4 +31,6 @@ public class EventPost {
     public static EventPost create (Post post, String eventType) {
         return new EventPost(post, eventType);
     }
+
+    public void updateEventType(String eventType) { this.eventType = eventType; }
 }
