@@ -74,6 +74,7 @@ public enum BaseResponseStatus {
     NOT_PARTICIPATED(false, 4003, "참여자가 아닙니다."),
     ALREADY_ATTENDED(false, 4004, "이미 출석했습니다."),
     ATTENDANCE_CODE_NOT_FOUND(false, 4005, "출석 코드가 존재하지 않습니다."),
+    ALREADY_CLOSED_POST(false, 4006, "이미 종료 처리된 게시글입니다."),
 
     /**
      * 9000 : MultipartFile 오류

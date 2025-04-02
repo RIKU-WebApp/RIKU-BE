@@ -149,10 +149,15 @@ public class ParticipantService {
         // 3. 출석 종료 권한 검증
         validatePostCreator(post, authMember);
 
-        // 4. 출석 종료 처리
+        // 4. 이미 종료된 게시글이라면 예외 발생
+        if (post.getPostStatus() == PostStatus.CLOSED) {
+            throw new PostException(BaseResponseStatus.ALREADY_CLOSED_POST);
+        }
+
+        // 5. 출석 종료 처리
         post.updatePostStatus(PostStatus.CLOSED);
 
-        // 5. 결석자 처리 및 출석 포인트 일괄 지급
+        // 6. 결석자 처리 및 출석 포인트 일괄 지급
         List<Participant> participants = participantRepository.findByPost(post);
 
         for (Participant participant : participants) {
@@ -173,7 +178,7 @@ public class ParticipantService {
             }
         }
 
-        // 6. 번개런 생성 포인트 적립
+        // 7. 번개런 생성 포인트 적립
         if (postType == PostType.FLASH) {
             savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
         }
