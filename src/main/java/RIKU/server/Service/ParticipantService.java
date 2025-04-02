@@ -200,7 +200,7 @@ public class ParticipantService {
             if (request.getIsAttend()) {
                 participant.updateParticipantStatus(ParticipantStatus.ATTENDED);
             } else {
-                participant.updateParticipantStatus(ParticipantStatus.ABSENT);
+                participant.updateParticipantStatus(ParticipantStatus.PENDING);
             }
         });
     }
