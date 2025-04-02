@@ -146,10 +146,6 @@ public class ParticipantService {
         // 2. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
-        if (postType == PostType.EVENT) {
-            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
-        }
-
         // 3. 출석 종료 권한 검증
         validatePostCreator(post, authMember);
 
@@ -169,6 +165,7 @@ public class ParticipantService {
                         case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post);
                         case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
                         case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post);
+                        case EVENT -> savePoint(participant.getUser(), 8, "행사 참여", PointType.ADD_EVENT_JOIN, post);
                     }
                 }
             } else {
