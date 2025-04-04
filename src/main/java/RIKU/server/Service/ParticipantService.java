@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,14 +54,20 @@ public class ParticipantService {
         // 3. 출석 코드 생성자 검증
         validatePostCreator(post, authMember);
 
-        // 4. 기존 출석 코드가 존재하면 반환
+        // 4. 날짜 검증
+        LocalDateTime now = LocalDateTime.now();
+        if (post.getDate().isAfter(now)) {
+            throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_TIME);
+        }
+
+        // 5. 기존 출석 코드가 존재하면 반환
         return getExistingAttendanceCode(post, postType)
                 .orElseGet(() -> {
-                    // 5. 출석 코드 생성 및 저장
+                    // 6. 출석 코드 생성 및 저장
                     String code = generateAttendanceCode();
                     saveAttendanceCode(post, postType, code);
 
-                    // 6. 생성자 출석 처리
+                    // 7. 생성자 출석 처리
                     Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
                             .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
                     if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
