@@ -14,6 +14,7 @@ import java.util.List;
 @Getter
 public class ReadFlashPostDetailResponse {
     // 게시글 관련
+    private Long id;
     private String title;
     private String location;
     private LocalDateTime date;
@@ -33,6 +34,7 @@ public class ReadFlashPostDetailResponse {
 
     public static ReadFlashPostDetailResponse of (Post post, List<ReadParticipantListResponse> participants, ReadUserInfoResponse postCreator, List<String> attachmentUrls, ReadUserInfoResponse user, List<ReadCommentsResponse> comments) {
         return ReadFlashPostDetailResponse.builder()
+                .id(post.getId())
                 .title(post.getTitle())
                 .location(post.getLocation())
                 .date(post.getDate())

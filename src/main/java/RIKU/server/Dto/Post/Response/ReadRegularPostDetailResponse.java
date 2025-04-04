@@ -15,6 +15,7 @@ import java.util.List;
 @Getter
 public class ReadRegularPostDetailResponse {
     // 게시글 관련
+    private Long id;
     private String title;
     private String location;
     private LocalDateTime date;
@@ -35,6 +36,7 @@ public class ReadRegularPostDetailResponse {
 
     public static ReadRegularPostDetailResponse of (Post post, ReadUserInfoResponse postCreator, ReadUserInfoResponse user, List<ReadParticipantListResponse> participants, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, List<ReadCommentsResponse> comments) {
         return ReadRegularPostDetailResponse.builder()
+                .id(post.getId())
                 .title(post.getTitle())
                 .location(post.getLocation())
                 .date(post.getDate())
