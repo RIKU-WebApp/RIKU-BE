@@ -31,6 +31,7 @@ public class CreateRegularPostRequest {
     private LocalDateTime date;     // 집합 날짜 및 시간
 
     @NotNull(message = "페이서 정보는 필수 항목입니다.")
+    @Size(min = 1, message = "페이서는 최소 한 명 이상이어야 합니다.")
     private List<CreatePacerRequest> pacers;
 
     @NotBlank(message = "내용은 필수 항목입니다.")
