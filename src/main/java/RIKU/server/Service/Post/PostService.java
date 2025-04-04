@@ -176,11 +176,13 @@ public class PostService {
     private PostType validatePostType(String runType, PostType postType) {
         try {
             PostType requestType = PostType.valueOf(runType.toUpperCase());
+            log.info("[validatePostType] 요청 runType = {}, 게시글 실제 postType = {}", runType, postType);
             if (!postType.equals(requestType)) {
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
             }
             return postType;
         } catch (IllegalArgumentException e) {
+            log.error("[validatePostType] 잘못된 runType 요청: {}", runType);
             throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
     }
