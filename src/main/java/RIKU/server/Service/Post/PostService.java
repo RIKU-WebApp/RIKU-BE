@@ -125,7 +125,8 @@ public class PostService {
             case REGULAR -> updateRegularPost(post, request);
             case TRAINING -> updateTrainingPost(post, request);
             case EVENT -> updateEventPost(post, request);
-            default -> throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
+            case FLASH -> {}
+            default -> throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
     }
 
@@ -176,7 +177,6 @@ public class PostService {
     private PostType validatePostType(String runType, PostType postType, Long postId) {
         try {
             PostType requestType = PostType.valueOf(runType.toUpperCase());
-            log.info("[validatePostType] postId = {}, 요청 runType = {}, 게시글 실제 postType = {}", postId, runType, postType);
             if (!postType.equals(requestType)) {
                 log.warn("[validatePostType] 게시글 타입 불일치 - postId: {}, 요청 runType: {}, 실제 postType: {}", postId, runType, postType);
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
