@@ -101,7 +101,7 @@ public class PostService {
         validatePostCreator(authMember, post);
 
         // 3. PostType 검증
-        PostType postType = validatePostType(runType, post.getPostType());
+        PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 날짜 유효성 검증
         if (request.getDate() != null) {
@@ -164,7 +164,7 @@ public class PostService {
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
-        validatePostType(runType, post.getPostType());
+        validatePostType(runType, post.getPostType(), post.getId());
 
         // 3. 게시글 작성자 검증
         validatePostCreator(authMember, post);
@@ -173,16 +173,17 @@ public class PostService {
         post.updatePostStatus(PostStatus.CANCELED);
     }
 
-    private PostType validatePostType(String runType, PostType postType) {
+    private PostType validatePostType(String runType, PostType postType, Long postId) {
         try {
             PostType requestType = PostType.valueOf(runType.toUpperCase());
-            log.info("[validatePostType] 요청 runType = {}, 게시글 실제 postType = {}", runType, postType);
+            log.info("[validatePostType] postId = {}, 요청 runType = {}, 게시글 실제 postType = {}", postId, runType, postType);
             if (!postType.equals(requestType)) {
+                log.warn("[validatePostType] 게시글 타입 불일치 - postId: {}, 요청 runType: {}, 실제 postType: {}", postId, runType, postType);
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
             }
             return postType;
         } catch (IllegalArgumentException e) {
-            log.error("[validatePostType] 잘못된 runType 요청: {}", runType);
+            log.error("[validatePostType] 잘못된 runType 요청: {}, postId: {}", runType, postId);
             throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
     }
