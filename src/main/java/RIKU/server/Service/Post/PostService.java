@@ -175,8 +175,13 @@ public class PostService {
     }
 
     private PostType validatePostType(String runType, PostType postType, Long postId) {
+        log.info("[validatePostType] 원본 runType: '{}'", runType);
+
         try {
-            PostType requestType = PostType.valueOf(runType.toUpperCase());
+            PostType requestType = PostType.valueOf(runType.toUpperCase().trim());
+            log.info("[validatePostType] requestType(enum): {}", requestType);
+            log.info("[validatePostType] actual postType(enum from DB): {}", postType);
+
             if (!postType.equals(requestType)) {
                 log.warn("[validatePostType] 게시글 타입 불일치 - postId: {}, 요청 runType: {}, 실제 postType: {}", postId, runType, postType);
                 throw new PostException(BaseResponseStatus.INVALID_POST_TYPE);
