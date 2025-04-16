@@ -1,13 +1,16 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.Calendar.Response.ListMonthlyScheduleResponse;
 import RIKU.server.Dto.Calendar.Response.ReadDailyScheduleResponse;
 import RIKU.server.Dto.Calendar.Response.ReadMonthlyScheduleResponse;
+import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.CalendarService;
 import RIKU.server.Util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -41,12 +44,14 @@ public class CalendarController {
             
             """)
     @GetMapping("/monthly")
-    public BaseResponse<List<ReadMonthlyScheduleResponse>> getMonthlySchedule(@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
+    public BaseResponse<ListMonthlyScheduleResponse> getMonthlySchedule(
+            @AuthenticationPrincipal AuthMember authMember,
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
         if (date == null) {
             throw new IllegalArgumentException("날짜를 입력해주세요.");
         }
-        List<ReadMonthlyScheduleResponse> schedules = calendarService.getMonthlySchedule(date);
-        return new BaseResponse<>(schedules);
+        ListMonthlyScheduleResponse response = calendarService.getMonthlySchedule(authMember, date);
+        return new BaseResponse<>(response);
     }
 
 }

@@ -1,10 +1,16 @@
 package RIKU.server.Service;
 
+import RIKU.server.Dto.Calendar.Response.ListMonthlyScheduleResponse;
 import RIKU.server.Dto.Calendar.Response.ReadDailyScheduleResponse;
 import RIKU.server.Dto.Calendar.Response.ReadMonthlyScheduleResponse;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Post.Post;
+import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.PostRepository;
+import RIKU.server.Repository.UserRepository;
+import RIKU.server.Security.AuthMember;
+import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +28,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class CalendarService {
 
+    private final UserRepository userRepository;
     private final PostRepository postRepository;
 
     // 해당 일자 일정 조회
@@ -43,8 +50,12 @@ public class CalendarService {
     }
 
     // 월별 게시글 조회
-    public List<ReadMonthlyScheduleResponse> getMonthlySchedule(LocalDate date) {
+    public ListMonthlyScheduleResponse getMonthlySchedule(AuthMember authMember, LocalDate date) {
+        // 1. 유저 조회
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
+        // 날짜 계산
         LocalDateTime startOfMonth = date.withDayOfMonth(1).atStartOfDay();
         LocalDateTime endOfMonth = date.withDayOfMonth(date.lengthOfMonth()).atTime(23, 59, 59);
 
@@ -55,9 +66,11 @@ public class CalendarService {
         Map<LocalDate, Long> eventCounts = posts.stream()
                 .collect(Collectors.groupingBy(post -> post.getDate().toLocalDate(), Collectors.counting()));
 
-        return eventCounts.entrySet().stream()
+        List<ReadMonthlyScheduleResponse> schedules = eventCounts.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> ReadMonthlyScheduleResponse.of(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+                .toList();
+
+        return ListMonthlyScheduleResponse.of(user, schedules);
     }
 }
