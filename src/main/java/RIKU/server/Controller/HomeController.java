@@ -1,11 +1,13 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.Post.Response.ReadHomeResponse;
+import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.HomeService;
 import RIKU.server.Util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,8 +28,8 @@ public class HomeController {
             
             """)
     @GetMapping("")
-    public BaseResponse<ReadHomeResponse> getHome() {
-        ReadHomeResponse response = homeService.getHome();
+    public BaseResponse<ReadHomeResponse> getHome(@AuthenticationPrincipal AuthMember authMember) {
+        ReadHomeResponse response = homeService.getHome(authMember);
         return new BaseResponse<>(response);
     }
 }
