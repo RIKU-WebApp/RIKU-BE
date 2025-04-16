@@ -25,6 +25,8 @@ public class ReadUsersResponse {
 
     private UserRole userRole;
 
+    private Boolean isPacer;
+
     public static ReadUsersResponse of(User user, int points, int participationCount) {
         return ReadUsersResponse.builder()
                 .studentId(user.getStudentId())
@@ -35,6 +37,7 @@ public class ReadUsersResponse {
                 .points(points)
                 .participationCount(participationCount)
                 .userRole(user.getUserRole())
+                .isPacer(user.getIsPacer())
                 .build();
     }
 }
