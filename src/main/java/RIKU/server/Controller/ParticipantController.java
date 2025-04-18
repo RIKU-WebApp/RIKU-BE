@@ -51,8 +51,9 @@ public class ParticipantController {
     public BaseResponse<UpdateParticipantResponse> joinRun(
             @PathVariable String runType,
             @PathVariable Long postId,
+            @RequestParam(required = false) String group,
             @AuthenticationPrincipal AuthMember authMember) {
-        UpdateParticipantResponse response = participantService.joinRun(runType, postId, authMember);
+        UpdateParticipantResponse response = participantService.joinRun(runType, postId, group, authMember);
         return new BaseResponse<>(response);
     }
 

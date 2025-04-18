@@ -80,7 +80,7 @@ public class ParticipantService {
 
     // 러닝 참여하기
     @Transactional
-    public UpdateParticipantResponse joinRun(String runType, Long postId, AuthMember authMember) {
+    public UpdateParticipantResponse joinRun(String runType, Long postId, String group, AuthMember authMember) {
         // 1. 게시글 조회
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
@@ -90,7 +90,7 @@ public class ParticipantService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 3. PostType 검증
-        validatePostType(runType, post.getPostType());
+        PostType postType = validatePostType(runType, post.getPostType());
 
         // 4. 이미 참여한 경우 예외 처리
         if (participantRepository.existsByPostAndUser(post, user)) {
@@ -98,7 +98,15 @@ public class ParticipantService {
         }
 
         // 5. 새로운 참여자 생성 후 저장
-        Participant participant = Participant.create(post, user);
+        Participant participant;
+        if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
+            if (group == null || group.isBlank()) {
+                throw new ParticipantException(BaseResponseStatus.GROUP_REQUIRED);
+            }
+            participant = Participant.createWithGroup(post, user, group);
+        } else {
+            participant = Participant.create(post, user);
+        }
         participantRepository.save(participant);
 
         return UpdateParticipantResponse.of(participant);

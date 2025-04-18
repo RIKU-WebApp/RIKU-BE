@@ -76,6 +76,7 @@ public enum BaseResponseStatus {
     ATTENDANCE_CODE_NOT_FOUND(false, 4005, "출석 코드가 존재하지 않습니다."),
     ALREADY_CLOSED_POST(false, 4006, "이미 종료 처리된 게시글입니다."),
     INVALID_ATTENDANCE_TIME(false, 4007, "출석 시간이 유효하지 않습니다."),
+    GROUP_REQUIRED(false, 4008, "정규런/번개런 참여 시 그룹 정보는 필수입니다."),
 
     /**
      * 9000 : MultipartFile 오류
