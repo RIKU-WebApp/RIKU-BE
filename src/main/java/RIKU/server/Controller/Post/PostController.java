@@ -1,6 +1,7 @@
 package RIKU.server.Controller.Post;
 
 import RIKU.server.Dto.Post.Request.UpdatePostRequest;
+import RIKU.server.Dto.Post.Response.ReadPaceGroupResponse;
 import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.Post.PostService;
@@ -15,6 +16,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -78,5 +80,20 @@ public class PostController {
         response.put("message", "게시글이 취소되었습니다.");
 
         return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "페이스 그룹 조회", description = """
+        
+            게시글에 등록된 페이서들의 그룹 목록을 조회합니다.
+            
+            """)
+    @GetMapping("/post/{postId}/group")
+    public BaseResponse<List<ReadPaceGroupResponse>> getPaceGroups (
+            @PathVariable String runType,
+            @PathVariable Long postId) {
+
+        List<ReadPaceGroupResponse> responses = postService.getPaceGroups(runType, postId);
+
+        return new BaseResponse<>(responses);
     }
 }

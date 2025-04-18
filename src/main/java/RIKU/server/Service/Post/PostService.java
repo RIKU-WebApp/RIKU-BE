@@ -2,6 +2,7 @@ package RIKU.server.Service.Post;
 
 import RIKU.server.Dto.Post.Request.UpdatePacerRequest;
 import RIKU.server.Dto.Post.Request.UpdatePostRequest;
+import RIKU.server.Dto.Post.Response.ReadPaceGroupResponse;
 import RIKU.server.Dto.Post.Response.ReadPostListResponse;
 import RIKU.server.Dto.Post.Response.ReadPostPreviewResponse;
 import RIKU.server.Entity.Base.BaseStatus;
@@ -157,7 +158,7 @@ public class PostService {
         }
     }
 
-    // 게시글 삭제하기
+    // 게시글 러닝 취소
     @Transactional
     public void cancelPost(AuthMember authMember, String runType, Long postId) {
         // 1. 게시글 조회
@@ -172,6 +173,24 @@ public class PostService {
 
         // 4. 게시글 취소 처리
         post.updatePostStatus(PostStatus.CANCELED);
+    }
+
+    // 페이스 그룹 조회
+    public List<ReadPaceGroupResponse> getPaceGroups(String runType, Long postId) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType(), post.getId());
+        if (postType != PostType.REGULAR && postType != PostType.TRAINING) {
+            throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+        }
+
+        return pacerRepository.findByPost(post)
+                .stream()
+                .map(ReadPaceGroupResponse::of)
+                .toList();
     }
 
     private PostType validatePostType(String runType, PostType postType, Long postId) {
