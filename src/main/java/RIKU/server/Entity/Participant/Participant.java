@@ -27,18 +27,25 @@ public class Participant extends BaseEntity {
     @JoinColumn(name = "post_id")
     private Post post;
 
+    private String group;
+
     @Column(name = "participant_status")
     @Enumerated(EnumType.STRING)
     private ParticipantStatus participantStatus;
 
-    private Participant(Post post, User user, ParticipantStatus status) {
+    private Participant(Post post, User user, String group, ParticipantStatus status) {
         this.post = post;
         this.user = user;
+        this.group = group;
         this.participantStatus = status;
     }
 
+    public static Participant createWithGroup(Post post, User user, String group) {
+        return new Participant(post, user, group, ParticipantStatus.PENDING);
+    }
+
     public static Participant create(Post post, User user) {
-        return new Participant(post, user, ParticipantStatus.PENDING);
+        return new Participant(post, user, null, ParticipantStatus.PENDING);
     }
 
     // 참여 의사 후 출석 코드 입력 시 상태 ATTENDED로 변경
