@@ -132,7 +132,10 @@ public class ParticipantService {
 
         // 4. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
-        if (storedCode.isPresent() && !storedCode.get().equals(inputCode)) {
+        if (storedCode.isEmpty()) {
+            throw new ParticipantException(BaseResponseStatus.ATTENDANCE_CODE_NOT_YET_CREATED);
+        }
+        if (!storedCode.get().equals(inputCode)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
         }
 
