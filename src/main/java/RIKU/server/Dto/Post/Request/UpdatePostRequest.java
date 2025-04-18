@@ -1,7 +1,6 @@
 package RIKU.server.Dto.Post.Request;
 
 import jakarta.annotation.Nullable;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -30,7 +29,6 @@ public class UpdatePostRequest {
     private String location;    // 집합 장소
 
     @Nullable
-    @Future(message = "미래 날짜만 입력가능합니다.")
     private LocalDateTime date;     // 집합 날짜 및 시간
 
     @Nullable

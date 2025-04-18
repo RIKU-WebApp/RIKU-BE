@@ -27,7 +27,6 @@ public class CreateRegularPostRequest {
     private String location;    // 집합 장소
 
     @NotNull(message = "집합 날짜 및 시간은 필수 항목입니다.")
-    @Future(message = "미래 날짜만 입력가능합니다.")
     private LocalDateTime date;     // 집합 날짜 및 시간
 
     @NotNull(message = "페이서 정보는 필수 항목입니다.")
