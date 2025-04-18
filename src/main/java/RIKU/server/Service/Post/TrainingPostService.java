@@ -189,6 +189,14 @@ public class TrainingPostService {
         if (request.getDate().isBefore(now)) {
             throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
         }
+
+        // 3. 작성자가 페이서 리스트에 포함되어 있는 지 확인
+        boolean isCreatorInPacerList = request.getPacers().stream()
+                .anyMatch(p -> p.getPacerId().equals(authMember.getId()));
+
+        if (!isCreatorInPacerList) {
+            throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
+        }
     }
 
     private String uploadSingleImage(MultipartFile image, String dirName) {

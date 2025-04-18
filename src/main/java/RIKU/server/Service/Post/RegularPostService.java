@@ -5,7 +5,6 @@ import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreatePacerRequest;
 import RIKU.server.Dto.Post.Request.CreateRegularPostRequest;
 import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
-import RIKU.server.Dto.Post.Response.ReadFlashPostDetailResponse;
 import RIKU.server.Dto.Post.Response.ReadPacersListResponse;
 import RIKU.server.Dto.Post.Response.ReadRegularPostDetailResponse;
 import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
@@ -185,6 +184,14 @@ public class RegularPostService {
         LocalDateTime now = LocalDateTime.now();
         if (request.getDate().isBefore(now)) {
             throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
+        }
+
+        // 3. 작성자가 페이서 리스트에 포함되어 있는 지 확인
+        boolean isCreatorInPacerList = request.getPacers().stream()
+                .anyMatch(p -> p.getPacerId().equals(authMember.getId()));
+
+        if (!isCreatorInPacerList) {
+            throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
         }
     }
 
