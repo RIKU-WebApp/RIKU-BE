@@ -1,5 +1,6 @@
 package RIKU.server.Service.Post;
 
+import RIKU.server.Dto.Participant.Response.GroupParticipantResponse;
 import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.Post.Request.CreatePacerRequest;
 import RIKU.server.Dto.Post.Request.CreateTrainingPostRequest;
@@ -19,6 +20,7 @@ import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.S3Uploader;
 import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.Exception.Domain.ParticipantException;
 import RIKU.server.Util.Exception.Domain.PostException;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +33,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -120,10 +123,21 @@ public class TrainingPostService {
         TrainingPost trainingPost = trainingPostRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.TRAINING_POST_NOT_FOUND));
 
-        // 2. 참여자 조회
-        List<ReadParticipantListResponse> participants = participantRepository.findByPost(post)
-                .stream()
-                .map(ReadParticipantListResponse::of)
+        // 2. 그룹별 참여자 조회
+        List<Participant> participants = participantRepository.findByPost(post);
+
+        if (participants.stream().anyMatch(p -> p.getGroup() == null)) {
+            throw new ParticipantException(BaseResponseStatus.INVALID_PARTICIPANT_GROUP);
+        }
+
+        Map<String, List<ReadParticipantListResponse>> groupedMap = participants.stream()
+                .collect(Collectors.groupingBy(
+                        Participant::getGroup,
+                        Collectors.mapping(ReadParticipantListResponse::of, Collectors.toList())
+                ));
+
+        List<GroupParticipantResponse> groupedParticipants = groupedMap.entrySet().stream()
+                .map(entry -> GroupParticipantResponse.of(entry.getKey(), entry.getValue()))
                 .toList();
 
         // 3. 페이서 조회
@@ -153,7 +167,7 @@ public class TrainingPostService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
         ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
 
-        return ReadTrainingPostDetailResponse.of(post, trainingPost, participants, postCreator, pacers, attachmentUrls, user, comments);
+        return ReadTrainingPostDetailResponse.of(post, trainingPost, groupedParticipants, postCreator, pacers, attachmentUrls, user, comments);
     }
 
     private ReadCommentsResponse mapToDto (Comment comment) {

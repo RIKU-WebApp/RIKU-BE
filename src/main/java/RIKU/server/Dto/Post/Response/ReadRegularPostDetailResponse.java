@@ -1,5 +1,6 @@
 package RIKU.server.Dto.Post.Response;
 
+import RIKU.server.Dto.Participant.Response.GroupParticipantResponse;
 import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Post.Post;
@@ -19,8 +20,10 @@ public class ReadRegularPostDetailResponse {
     private String title;
     private String location;
     private LocalDateTime date;
-    private List<ReadParticipantListResponse> participants;
+
+    private List<GroupParticipantResponse> groupedParticipants;
     private int participantsNum; // 참가자 수
+
     private List<ReadPacersListResponse> pacers;
     private ReadUserInfoResponse postCreatorInfo;
     private String content;
@@ -34,14 +37,14 @@ public class ReadRegularPostDetailResponse {
     // 댓글 관련
     private List<ReadCommentsResponse> comments;
 
-    public static ReadRegularPostDetailResponse of (Post post, ReadUserInfoResponse postCreator, ReadUserInfoResponse user, List<ReadParticipantListResponse> participants, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, List<ReadCommentsResponse> comments) {
+    public static ReadRegularPostDetailResponse of (Post post, ReadUserInfoResponse postCreator, ReadUserInfoResponse user, List<GroupParticipantResponse> groupedParticipants, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, List<ReadCommentsResponse> comments) {
         return ReadRegularPostDetailResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .location(post.getLocation())
                 .date(post.getDate())
-                .participants(participants)
-                .participantsNum(participants.size())
+                .groupedParticipants(groupedParticipants)
+                .participantsNum(groupedParticipants.stream().mapToInt(g -> g.getParticipants().size()).sum())
                 .pacers(pacers)
                 .postCreatorInfo(postCreator)
                 .content(post.getContent())

@@ -1,5 +1,6 @@
 package RIKU.server.Dto.Post.Response;
 
+import RIKU.server.Dto.Participant.Response.GroupParticipantResponse;
 import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Post.Post;
@@ -20,8 +21,10 @@ public class ReadTrainingPostDetailResponse {
     private String location;
     private LocalDateTime date;
     private String trainingType;
-    private List<ReadParticipantListResponse> participants;
+
+    private List<GroupParticipantResponse> groupedParticipants;
     private int participantsNum; // 참가자 수
+
     private List<ReadPacersListResponse> pacers;
     private ReadUserInfoResponse postCreatorInfo;
     private String content;
@@ -35,15 +38,15 @@ public class ReadTrainingPostDetailResponse {
     // 댓글 관련
     private List<ReadCommentsResponse> comments;
 
-    public static ReadTrainingPostDetailResponse of (Post post, TrainingPost trainingPost, List<ReadParticipantListResponse> participants, ReadUserInfoResponse postCreator, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, ReadUserInfoResponse user, List<ReadCommentsResponse> comments) {
+    public static ReadTrainingPostDetailResponse of (Post post, TrainingPost trainingPost, List<GroupParticipantResponse> groupedParticipants, ReadUserInfoResponse postCreator, List<ReadPacersListResponse> pacers, List<String> attachmentUrls, ReadUserInfoResponse user, List<ReadCommentsResponse> comments) {
         return ReadTrainingPostDetailResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
                 .location(post.getLocation())
                 .date(post.getDate())
                 .trainingType(trainingPost.getTrainingType())
-                .participants(participants)
-                .participantsNum(participants.size())
+                .groupedParticipants(groupedParticipants)
+                .participantsNum(groupedParticipants.stream().mapToInt(g -> g.getParticipants().size()).sum())
                 .pacers(pacers)
                 .postCreatorInfo(postCreator)
                 .content(post.getContent())

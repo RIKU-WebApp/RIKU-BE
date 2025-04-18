@@ -77,6 +77,7 @@ public enum BaseResponseStatus {
     ALREADY_CLOSED_POST(false, 4006, "이미 종료 처리된 게시글입니다."),
     INVALID_ATTENDANCE_TIME(false, 4007, "출석 시간이 유효하지 않습니다."),
     GROUP_REQUIRED(false, 4008, "정규런/번개런 참여 시 그룹 정보는 필수입니다."),
+    INVALID_PARTICIPANT_GROUP(false, 4009, "그룹이 지정되지 않은 참여자가 존재합니다."),
 
     /**
      * 9000 : MultipartFile 오류
