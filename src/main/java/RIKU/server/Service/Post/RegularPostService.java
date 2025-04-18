@@ -1,6 +1,7 @@
 package RIKU.server.Service.Post;
 
 import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
+import RIKU.server.Dto.Post.Request.CreatePacerRequest;
 import RIKU.server.Dto.Post.Request.CreateRegularPostRequest;
 import RIKU.server.Dto.Post.Response.ReadCommentsResponse;
 import RIKU.server.Dto.Post.Response.ReadFlashPostDetailResponse;
@@ -93,8 +94,14 @@ public class RegularPostService {
         regularPostRepository.save(regularPost);
 
         try {
-            // 게시글 작성자를 참여자로 추가
-            Participant participant = Participant.create(savedPost, user);
+            // 게시글 작성자가 페이서로 지정된 그룹을 찾아서 참여자로 추가
+            String creatorGroup = request.getPacers().stream()
+                    .filter(p -> p.getPacerId().equals(authMember.getId()))
+                    .findFirst()
+                    .map(CreatePacerRequest::getGroup)
+                    .orElseThrow(() -> new PostException(BaseResponseStatus.PACER_NOT_FOUND));
+
+            Participant participant = Participant.createWithGroup(savedPost, user, creatorGroup);
             participantRepository.save(participant);
 
             return regularPost.getId();

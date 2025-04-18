@@ -66,7 +66,7 @@ public enum BaseResponseStatus {
     REGULAR_POST_NOT_FOUND(false, 3013, "존재하지 않는 정규런 게시글입니다."),
     TRAINING_POST_NOT_FOUND(false, 3014, "존재하지 않는 훈련 게시글입니다."),
     EVENT_POST_NOT_FOUND(false, 3015, "존재하지 않는 행사 게시글입니다."),
-
+    PACER_NOT_FOUND(false, 3016, "존재하지 않는 페이서입니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),
