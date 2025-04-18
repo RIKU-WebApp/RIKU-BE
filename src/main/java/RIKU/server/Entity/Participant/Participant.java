@@ -27,6 +27,7 @@ public class Participant extends BaseEntity {
     @JoinColumn(name = "post_id")
     private Post post;
 
+    @Column(name = "participant_group")
     private String group;
 
     @Column(name = "participant_status")
