@@ -58,7 +58,7 @@ public enum BaseResponseStatus {
     INVALID_DATE_AND_TIME(false, 3006, "유효하지 않은 집합 날짜 및 시간입니다."),
     COMMENT_NOT_FOUND(false, 3007, "존재하지 않는 댓글입니다."),
     INVALID_COMMENT_FOR_POST(false, 3008, "게시글에 속한 댓글이 아닙니다."),
-    DUPLICATED_PACER(false, 3009, "이미 등록된 페이서입니다."),
+    ALREADY_ASSIGNED_PACER(false, 3009, "이미 등록된 페이서입니다."),
     INVALID_POST_TYPE(false, 3010, "해당 게시글 유형과 일치하지 않습니다."),
     INVALID_RUN_TYPE(false, 3010, "유효하지 않은 runType입니다."),
     UNAUTHORIZED_POST_TYPE(false, 3011, "해당 게시글 유형은 권한이 없습니다."),
@@ -68,7 +68,7 @@ public enum BaseResponseStatus {
     EVENT_POST_NOT_FOUND(false, 3015, "존재하지 않는 행사 게시글입니다."),
     PACER_NOT_FOUND(false, 3016, "존재하지 않는 페이서입니다."),
     CREATOR_NOT_IN_PACER_LIST(false, 3017, "생성자는 페이서 리스트에 포함되어야 합니다."),
-
+    DUPLICATED_PACER(false, 3018, "페이서가 중복 지정되었습니다."),
 
 
     // ParticipantException

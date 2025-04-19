@@ -31,9 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -68,7 +66,18 @@ public class TrainingPostService {
         Post post = request.toPostEntity(user, postImageUrl);
         Post savedPost = postRepository.save(post);
 
-        // 5. Pacer 엔티티 생성 및 저장
+        // 5. 페이서 중복 검증
+        List<CreatePacerRequest> pacerRequests = request.getPacers();
+        List<Long> pacerIds = pacerRequests.stream()
+                .map(CreatePacerRequest::getPacerId)
+                .toList();
+
+        Set<Long> uniquePacerIds = new HashSet<>(pacerIds);
+        if (uniquePacerIds.size() < pacerIds.size()) {
+            throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
+        }
+
+        // 6. Pacer 엔티티 생성 및 저장
         List<Pacer> pacers = request.getPacers().stream()
                 .map(pacer -> {
                     User pacerUser = userRepository.findById(pacer.getPacerId())
@@ -78,21 +87,17 @@ public class TrainingPostService {
                     if (!pacerUser.getIsPacer()) {
                         throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
                     }
-                    // 해당 게시글에 이미 등록된 페이서인지
-                    if (pacerRepository.existsByUserAndPost(pacerUser, savedPost)) {
-                        throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
-                    }
 
                     return pacer.toEntity(pacerUser, savedPost);
                 })
                 .collect(Collectors.toList());
         pacerRepository.saveAll(pacers);
 
-        // 6. S3에 첨부파일 이미지 업로드 및 저장
+        // 7. S3에 첨부파일 이미지 업로드 및 저장
         List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
         attachmentRepository.saveAll(attachments);
 
-        // 7. TrainingPost 엔티티 생성 및 저장
+        // 8. TrainingPost 엔티티 생성 및 저장
         TrainingPost trainingPost = request.toTrainingPostEntity(savedPost, request.getTrainingType());
         trainingPostRepository.save(trainingPost);
 
