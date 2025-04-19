@@ -1,5 +1,6 @@
 package RIKU.server.Dto.User.Response;
 
+import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserRole;
 import lombok.Builder;
@@ -23,7 +24,7 @@ public class ReadUsersResponse {
 
     private int participationCount;
 
-    private UserRole userRole;
+    private String userRole;
 
     private Boolean isPacer;
 
@@ -36,8 +37,20 @@ public class ReadUsersResponse {
                 .phone(user.getPhone())
                 .points(points)
                 .participationCount(participationCount)
-                .userRole(user.getUserRole())
+                .userRole(getUserStatus(user))
                 .isPacer(user.getIsPacer())
                 .build();
+    }
+
+    private static String getUserStatus(User user) {
+        if (user.getStatus() == BaseStatus.INACTIVE) {
+            return "INACTIVE";
+        }
+
+        return switch (user.getUserRole()) {
+            case NEW_MEMBER ->  "NEW_MEMBER";
+            case MEMBER -> "MEMBER";
+            case ADMIN -> "ADMIN";
+        };
     }
 }

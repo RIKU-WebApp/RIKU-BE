@@ -7,6 +7,7 @@ import RIKU.server.Dto.User.Request.UpdateUsersRequest;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Participant.ParticipantStatus;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Repository.ParticipantRepository;
 import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
@@ -58,7 +59,7 @@ public class AdminService {
 
             // 회원 등급 수정
             if (request.getUserRole() != null) {
-                user.updateUserRole(request.getUserRole());
+                updateUserStatus(user, request.getUserRole());
             }
 
             // 페이서 여부 수정
@@ -95,5 +96,26 @@ public class AdminService {
 
             user.updatePacer(request.getIsPacer());
         });
+    }
+
+    private void updateUserStatus(User user, String userRole) {
+        switch (userRole.toUpperCase()) {
+            case "NEW_MEMBER" -> {
+                user.updateUserRole(UserRole.NEW_MEMBER);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "MEMBER" -> {
+                user.updateUserRole(UserRole.MEMBER);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "ADMIN" -> {
+                user.updateUserRole(UserRole.ADMIN);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "INACTIVE" -> {
+                user.updateStatus(BaseStatus.INACTIVE);
+            }
+            default -> throw new IllegalArgumentException("Invalid userRole: " + userRole);
+        }
     }
 }

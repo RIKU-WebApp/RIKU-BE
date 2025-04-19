@@ -14,7 +14,7 @@ public class UpdateUsersRequest {
     private String studentId;
 
     @Nullable
-    private UserRole userRole;
+    private String userRole;
 
     @Nullable
     private Boolean isPacer;
