@@ -18,6 +18,7 @@ import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.S3Uploader;
 import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.DateTimeUtils;
 import RIKU.server.Util.Exception.Domain.PostException;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static RIKU.server.Util.DateTimeUtils.*;
 
 @Service
 @Slf4j
@@ -62,28 +65,28 @@ public class PostService {
         // 2. DB에서 ACTIVE인 해당 postType의 모든 게시글 조회
         List<Post> posts = postRepository.findByStatusAndPostType(BaseStatus.ACTIVE, postType);
 
-        // 3. 현재 날짜 기준
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay();
+        // 3. 현재 시간 및 내일 0시 (KST 기준)
+        LocalDateTime now = nowKST();
+        LocalDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay(getDefaultZone()).toLocalDateTime();
 
         // 4. 게시글 분류
         // 오늘의 러닝 (오늘 날짜, 모집 중 or 마감 임박, 취소됨 제외)
         List<ReadPostPreviewResponse> todayRuns = posts.stream()
-                .filter(post -> isToday(post.getDate(), now))
+                .filter(post -> isToday(post.getDate()))
                 .filter(post -> post.getPostStatus() != PostStatus.CANCELED)
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
         // 예정된 러닝 (오늘 이후, 가장 빠른 날짜순 정렬, 취소됨 포함)
         List<ReadPostPreviewResponse> upcomingRuns = posts.stream()
-                .filter(post -> post.getDate().isAfter(tomorrow.minusNanos(1)))
+                .filter(post -> toUserZonedTime(post.getDate()).toLocalDateTime().isAfter(tomorrow.minusNanos(1)))
                 .sorted(Comparator.comparing(Post::getDate))
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
         // 지난 러닝 (오늘 이전, 마감된 러닝만)
         List<ReadPostPreviewResponse> pastRuns = posts.stream()
-                .filter(post -> post.getDate().toLocalDate().isBefore(now.toLocalDate()))
+                .filter(post -> toUserLocalDate(post.getDate()).isBefore(now.toLocalDate()))
                 .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
@@ -225,10 +228,6 @@ public class PostService {
         if (request.getDate().isBefore(now)) {
             throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
         }
-    }
-
-    private boolean isToday(LocalDateTime postDate, LocalDateTime now) {
-        return postDate.toLocalDate().isEqual(now.toLocalDate());
     }
 
     private int countParticipants(Long postId) {
