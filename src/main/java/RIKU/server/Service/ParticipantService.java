@@ -51,16 +51,19 @@ public class ParticipantService {
             throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
         }
 
-        // 3. 출석 코드 생성자 검증
+        // 3. PostStatus 검증
+        validatePostIsOpen(post);
+
+        // 4. 출석 코드 생성자 검증
         validatePostCreator(post, authMember);
 
-        // 4. 날짜 검증
+        // 5. 날짜 검증
         LocalDateTime now = LocalDateTime.now();
         if (post.getDate().isAfter(now)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_TIME);
         }
 
-        // 5. 기존 출석 코드가 존재하면 반환
+        // 6. 기존 출석 코드가 존재하면 반환
         return getExistingAttendanceCode(post, postType)
                 .orElseGet(() -> {
                     // 6. 출석 코드 생성 및 저장
@@ -92,12 +95,15 @@ public class ParticipantService {
         // 3. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType());
 
-        // 4. 이미 참여한 경우 예외 처리
+        // 4. PostStatus 검증
+        validatePostIsOpen(post);
+
+        // 5. 이미 참여한 경우 예외 처리
         if (participantRepository.existsByPostAndUser(post, user)) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_PARTICIPATED);
         }
 
-        // 5. 새로운 참여자 생성 후 저장
+        // 6. 새로운 참여자 생성 후 저장
         Participant participant;
         if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
             if (group == null || group.isBlank()) {
@@ -130,7 +136,10 @@ public class ParticipantService {
             throw new PostException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
         }
 
-        // 4. 출석 코드 조회 및 검증
+        // 4. PostStatus 검증
+        validatePostIsOpen(post);
+
+        // 5. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
         if (storedCode.isEmpty()) {
             throw new ParticipantException(BaseResponseStatus.ATTENDANCE_CODE_NOT_YET_CREATED);
@@ -139,16 +148,16 @@ public class ParticipantService {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
         }
 
-        // 5. 참여자 조회
+        // 6. 참여자 조회
         Participant participant = participantRepository.findByPostAndUser(post, user)
                 .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
 
-        // 6. 이미 출석한 경우 예외 발생
+        // 7. 이미 출석한 경우 예외 발생
         if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
         }
 
-        // 7. 출석 상태 변경
+        // 8. 출석 상태 변경
         participant.attend();
 
         return UpdateParticipantResponse.of(participant);
@@ -292,5 +301,11 @@ public class ParticipantService {
     private void savePoint(User user, int point, String description, PointType pointType, Post post) {
         UserPoint userPoint = UserPoint.createWithPost(user, point, description, pointType, post);
         userPointRepository.save(userPoint);
+    }
+
+    private void validatePostIsOpen(Post post) {
+        if (!post.getPostStatus().equals(PostStatus.NOW)) {
+            throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
+        }
     }
 }
