@@ -69,7 +69,7 @@ public enum BaseResponseStatus {
     PACER_NOT_FOUND(false, 3016, "존재하지 않는 페이서입니다."),
     CREATOR_NOT_IN_PACER_LIST(false, 3017, "생성자는 페이서 리스트에 포함되어야 합니다."),
     DUPLICATED_PACER(false, 3018, "페이서가 중복 지정되었습니다."),
-    INVALID_POST_STATUS(false, 3019, "현재 상태의 게시글에는 참여나 출석이 유효하지 않습니다."),
+    INVALID_POST_STATUS(false, 3019, "해당 게시글은 취소되거나 종료되었습니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),
@@ -79,7 +79,7 @@ public enum BaseResponseStatus {
     ATTENDANCE_CODE_NOT_FOUND(false, 4005, "출석 코드가 존재하지 않습니다."),
     ALREADY_CLOSED_POST(false, 4006, "이미 종료 처리된 게시글입니다."),
     INVALID_ATTENDANCE_TIME(false, 4007, "출석 시간이 유효하지 않습니다."),
-    GROUP_REQUIRED(false, 4008, "정규런/번개런 참여 시 그룹 정보는 필수입니다."),
+    GROUP_REQUIRED(false, 4008, "정규런/훈련 참여 시 그룹 정보는 필수입니다."),
     INVALID_PARTICIPANT_GROUP(false, 4009, "그룹이 지정되지 않은 참여자가 존재합니다."),
     ATTENDANCE_CODE_NOT_YET_CREATED(false, 4010, "출석 코드가 아직 생성되지 않았습니다."),
 
