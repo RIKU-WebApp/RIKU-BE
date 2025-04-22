@@ -131,6 +131,7 @@ public class UserService {
         user.updateProfile(phone, password, profileImageUrl);
     }
 
+    // 출석하기
     @Transactional
     public void attendProfile(AuthMember authMember) {
         // 1. 유저 조회

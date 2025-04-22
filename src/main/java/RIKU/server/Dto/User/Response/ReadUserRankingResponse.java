@@ -6,14 +6,14 @@ import java.util.List;
 @Getter
 public class ReadUserRankingResponse {
 
-    private List<ReadUserPointResponse> top10;
+    private List<ReadUserPointResponse> top20;
 
     private int userRanking; // 사용자 순위
 
     private ReadUserPointResponse userPoints; // 사용자 정보 및 포인트
 
     private ReadUserRankingResponse(List<ReadUserPointResponse> topUsers, int userRanking, ReadUserPointResponse userPoints) {
-        this.top10 = topUsers;
+        this.top20 = topUsers;
         this.userRanking = userRanking;
         this.userPoints = userPoints;
     }

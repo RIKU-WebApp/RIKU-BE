@@ -1,9 +1,11 @@
 package RIKU.server.Controller;
 
+import RIKU.server.Dto.User.Response.ReadUserParticipationsResponse;
 import RIKU.server.Dto.User.Response.ReadUserRankingResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.UserPointService;
 import RIKU.server.Util.BaseResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,11 +19,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("")
 @Tag(name = "UserPoint", description = "유저 포인트 관련 API")
 public class UserPointController {
+
     private final UserPointService userPointService;
 
     @GetMapping("/ranking")
     public BaseResponse<ReadUserRankingResponse> getUserPointRanking(@AuthenticationPrincipal AuthMember authMember) {
         ReadUserRankingResponse response = userPointService.getUserPointRanking(authMember);
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "마이페이지 활동내역 조회", description = """
+            
+            마이페이지 활동 내역 조회 api입니다.
+            
+            """)
+    @GetMapping("/user/profile/participations")
+    public BaseResponse<ReadUserParticipationsResponse> getParticipations(@AuthenticationPrincipal AuthMember authMember) {
+        ReadUserParticipationsResponse response = userPointService.getParticipations(authMember);
         return new BaseResponse<>(response);
     }
 }
