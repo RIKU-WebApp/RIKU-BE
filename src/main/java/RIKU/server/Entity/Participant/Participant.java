@@ -68,4 +68,8 @@ public class Participant extends BaseEntity {
     public void updateParticipantStatus(ParticipantStatus status) {
         this.participantStatus = status;
     }
+
+    public void updateGroup(String group) {
+        this.group = group;
+    }
 }

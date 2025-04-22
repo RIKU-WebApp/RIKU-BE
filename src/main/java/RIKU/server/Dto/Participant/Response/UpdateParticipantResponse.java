@@ -13,16 +13,24 @@ public class UpdateParticipantResponse {
 
     private ParticipantStatus status;
 
-    private UpdateParticipantResponse(Long userId, Long postId, ParticipantStatus status) {
+    private String message;
+
+    private UpdateParticipantResponse(Long userId, Long postId, ParticipantStatus status, String message) {
         this.userId = userId;
         this.postId = postId;
         this.status = status;
+        this.message = message;
     }
     public static UpdateParticipantResponse of (Participant participant) {
         return new UpdateParticipantResponse(
                 participant.getUser().getId(),
                 participant.getPost().getId(),
-                participant.getParticipantStatus()
+                participant.getParticipantStatus(),
+                null
         );
+    }
+
+    public static UpdateParticipantResponse message (String message) {
+        return new UpdateParticipantResponse(null, null, null, message);
     }
 }

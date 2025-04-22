@@ -44,10 +44,11 @@ public class ParticipantController {
 
     @Operation(summary = "참여하기", description = """
             
-            유저가 러닝에 참여합니다.
+            유저가 러닝에 참여하거나, 참여를 취소하거나, 그룹을 변경합니다.
+            정규런/훈련일 경우 그룹 지정 필수이며, 출석 후에는 그룹 변경이 불가능합니다.
             
             """)
-    @PostMapping("/join")
+    @PatchMapping("/join")
     public BaseResponse<UpdateParticipantResponse> joinRun(
             @PathVariable String runType,
             @PathVariable Long postId,

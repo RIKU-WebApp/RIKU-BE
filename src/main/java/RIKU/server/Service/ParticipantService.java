@@ -98,24 +98,44 @@ public class ParticipantService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
 
-        // 5. 이미 참여한 경우 예외 처리
-        if (participantRepository.existsByPostAndUser(post, user)) {
-            throw new ParticipantException(BaseResponseStatus.ALREADY_PARTICIPATED);
-        }
+        // 5. 참여 여부 검증
+        Participant existing = participantRepository.findByPostAndUser(post, user).orElse(null);
 
-        // 6. 새로운 참여자 생성 후 저장
-        Participant participant;
-        if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
-            if (group == null || group.isBlank()) {
-                throw new ParticipantException(BaseResponseStatus.GROUP_REQUIRED);
+        // 6. 참여 정보 저장
+        if (existing == null) {
+            // 기존 참여자 아님 -> 참여하기
+            if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
+                if (group == null || group.isBlank()) {
+                    throw new ParticipantException(BaseResponseStatus.GROUP_REQUIRED);
+                }
+                Participant participant = Participant.createWithGroup(post, user, group);
+                participantRepository.save(participant);
+                return UpdateParticipantResponse.of(participant);
+            } else {
+                Participant participant = Participant.create(post, user);
+                participantRepository.save(participant);
+                return UpdateParticipantResponse.of(participant);
             }
-            participant = Participant.createWithGroup(post, user, group);
         } else {
-            participant = Participant.create(post, user);
-        }
-        participantRepository.save(participant);
+            // 기존 참여자
+            if (group == null || group.isBlank()) {
+                // 그룹이 없으면 참여 취소
+                participantRepository.delete(existing);
+                return UpdateParticipantResponse.message("참여가 취소되었습니다.");
+            } else {
+                // 그룹 변경 (정규런, 훈련만 허용)
+                if (postType != PostType.REGULAR && postType != PostType.TRAINING) {
+                    throw new ParticipantException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
+                }
 
-        return UpdateParticipantResponse.of(participant);
+                if (existing.getParticipantStatus() == ParticipantStatus.ATTENDED) {
+                    throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
+                }
+
+                existing.updateGroup(group);
+                return UpdateParticipantResponse.of(existing);
+            }
+        }
     }
 
     // 러닝 출석하기
