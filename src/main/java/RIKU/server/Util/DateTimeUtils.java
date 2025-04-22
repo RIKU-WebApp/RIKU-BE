@@ -36,4 +36,12 @@ public class DateTimeUtils {
     public static LocalDateTime nowKST() {
         return LocalDateTime.now(DEFAULT_ZONE);
     }
+
+    public static LocalDateTime startOfTodayKST() {
+        return LocalDate.now(DEFAULT_ZONE).atStartOfDay();
+    }
+
+    public static LocalDateTime endOfTodayKST() {
+        return startOfTodayKST().plusDays(1).minusNanos(1);
+    }
 }

@@ -13,6 +13,7 @@ import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.DateTimeUtils;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +73,7 @@ public class UserService {
 
         List<LocalDateTime> dateTimes = userPointRepository.findAttendanceDatesInMonth(user, PointType.ADD_ATTENDANCE, startDateTime, endDateTime);
         List<LocalDate> attendanceDates = dateTimes.stream()
-                .map(LocalDateTime::toLocalDate)
+                .map(DateTimeUtils::toUserLocalDate)
                 .distinct()
                 .toList();
 
@@ -137,8 +138,8 @@ public class UserService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 2. 오늘 이미 출석한 경우 예외처리
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfToday = startOfToday.plusDays(1).minusNanos(1);
+        LocalDateTime startOfToday = DateTimeUtils.startOfTodayKST();
+        LocalDateTime endOfToday = DateTimeUtils.endOfTodayKST();
 
         if(userPointRepository.existsByUserAndPointTypeAndCreatedAtBetween(user, PointType.ADD_ATTENDANCE, startOfToday, endOfToday)) {
             throw new UserException(BaseResponseStatus.ALREADY_ATTENDED_TODAY);
