@@ -107,12 +107,15 @@ public class PostService {
         // 3. PostType 검증
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
-        // 4. 날짜 유효성 검증
+        // 4. PostStatus 검증
+        validatePostIsOpen(post);
+
+        // 5. 날짜 유효성 검증
         if (request.getDate() != null) {
             validateDate(request); // ← 날짜 유효성 검사
         }
 
-        // 4. 공통 필드 처리
+        // 6. 공통 필드 처리
         String title = request.getTitle() != null ? request.getTitle() : post.getTitle();
         String location = request.getLocation() != null ? request.getLocation() : post.getLocation();
         LocalDateTime date = request.getDate() != null ? request.getDate() : post.getDate();
@@ -121,10 +124,10 @@ public class PostService {
 
         post.updatePost(title, location, date, content, postImageUrl);
 
-        // 5. 첨부파일 처리
+        // 7. 첨부파일 처리
         updateMultipleImages(post, request.getAttachments(), "attachmentImg");
 
-        // 6. 러닝 유형별 분기 처리
+        // 8. 러닝 유형별 분기 처리
         switch (postType) {
             case REGULAR -> updateRegularPost(post, request);
             case TRAINING -> updateTrainingPost(post, request);
@@ -227,6 +230,12 @@ public class PostService {
         LocalDateTime now = LocalDateTime.now();
         if (request.getDate().isBefore(now)) {
             throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
+        }
+    }
+
+    private void validatePostIsOpen(Post post) {
+        if (!post.getPostStatus().equals(PostStatus.NOW)) {
+            throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
         }
     }
 
