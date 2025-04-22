@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static RIKU.server.Util.DateTimeUtils.*;
+
 
 @Service
 @RequiredArgsConstructor
@@ -34,16 +36,17 @@ public class CalendarService {
     // 해당 일자 일정 조회
     public List<ReadDailyScheduleResponse> getDailySchedule(LocalDate date) {
 
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+        // 1. 시작/끝 날짜 계산 (UTC 기준)
+        LocalDateTime utcStart = startOfDayUtc(date);
+        LocalDateTime utcEnd = endOfDayUtc(date);
 
-        // 해당 날짜의 게시글 조회
-        List<Post> posts = postRepository.findByStatusAndDateBetween(BaseStatus.ACTIVE, startOfDay, endOfDay)
+        // 2. DB 조회 (UTC 기준)
+        List<Post> posts = postRepository.findByStatusAndDateBetween(BaseStatus.ACTIVE, utcStart, utcEnd)
                 .stream()
                 .sorted(Comparator.comparing(Post::getDate))
                 .toList();
 
-        // 게시글 정보를 DTO로 변환
+        // 3.  DTO 변환
         return posts.stream()
                 .map(ReadDailyScheduleResponse::of)
                 .collect(Collectors.toList());
@@ -55,17 +58,22 @@ public class CalendarService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 날짜 계산
-        LocalDateTime startOfMonth = date.withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endOfMonth = date.withDayOfMonth(date.lengthOfMonth()).atTime(23, 59, 59);
+        // 2. 해당 월의 시작/끝 날짜 계산 (KST 기준)
+        LocalDate firstDay = date.withDayOfMonth(1);
+        LocalDate lastDay = date.withDayOfMonth(date.lengthOfMonth());
 
-        // 해당 월의 게시글 조회
-        List<Post> posts = postRepository.findByStatusAndDateBetween(BaseStatus.ACTIVE, startOfMonth, endOfMonth);
+        // 3. 시간 범위 계산 (UTC 기준)
+        LocalDateTime utcStart = startOfDayUtc(firstDay);
+        LocalDateTime utcEnd = endOfDayUtc(lastDay);
 
-        // 날짜별 게시물 개수 집계
+        // 4. DB 조회 (UTC 기준)
+        List<Post> posts = postRepository.findByStatusAndDateBetween(BaseStatus.ACTIVE, utcStart, utcEnd);
+
+        // 5. 날짜별 그룹핑 (KST 기준)
         Map<LocalDate, Long> eventCounts = posts.stream()
-                .collect(Collectors.groupingBy(post -> post.getDate().toLocalDate(), Collectors.counting()));
+                .collect(Collectors.groupingBy(post -> toUserLocalDate(post.getDate()), Collectors.counting()));
 
+        // 6. DTO 변환 및 정렬
         List<ReadMonthlyScheduleResponse> schedules = eventCounts.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .map(entry -> ReadMonthlyScheduleResponse.of(entry.getKey(), entry.getValue()))
