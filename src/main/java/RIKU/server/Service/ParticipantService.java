@@ -2,6 +2,7 @@ package RIKU.server.Service;
 
 import RIKU.server.Dto.Participant.Request.ManualAttendParticipantRequest;
 import RIKU.server.Dto.Participant.Response.UpdateParticipantResponse;
+import RIKU.server.Entity.Board.Pacer;
 import RIKU.server.Entity.Board.Post.*;
 import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.Participant.Participant;
@@ -34,6 +35,7 @@ public class ParticipantService {
     private final TrainingPostRepository trainingPostRepository;
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
+    private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
 
 
@@ -66,17 +68,30 @@ public class ParticipantService {
         // 6. 기존 출석 코드가 존재하면 반환
         return getExistingAttendanceCode(post, postType)
                 .orElseGet(() -> {
-                    // 6. 출석 코드 생성 및 저장
+                    // 7. 출석 코드 생성 및 저장
                     String code = generateAttendanceCode();
                     saveAttendanceCode(post, postType, code);
 
-                    // 7. 생성자 출석 처리
-                    Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
-                            .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
-                    if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
-                        participant.attend();
-                    }
+                    // 8. 생성자 출석 처리
+                    // 정규런/훈련의 경우, 페이서도 출석 처리
+                    if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
+                        List<Pacer> pacers = pacerRepository.findByPost(post);
+                        for(Pacer pacer : pacers) {
+                            Participant participant = participantRepository.findByPostIdAndUserId(postId, pacer.getUser().getId())
+                                    .orElse(null);
+                            if (participant != null && participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                                participant.attend();
+                            }
+                        }
+                    } else if (postType == PostType.FLASH) {
+                        // 번개런은 작성자만 출석 처리
+                        Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
+                                .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
 
+                        if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                            participant.attend();
+                        }
+                    }
                     return code;
                 });
     }

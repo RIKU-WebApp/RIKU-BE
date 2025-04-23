@@ -27,6 +27,7 @@ public class ParticipantController {
     @Operation(summary = "출석 코드 생성", description = """
             
             생성자가 러닝을 시작합니다.(생성자 권한)
+            출석 코드 생성 시, 번개런은 생성자 자동 출석 처리되고, 정규런과 훈련은 생성자 포함 페이서 모두 자동 출석 처리 됩니다.
             
             """)
     @PostMapping("/code")
