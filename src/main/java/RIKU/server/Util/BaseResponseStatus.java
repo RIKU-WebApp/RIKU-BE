@@ -82,6 +82,7 @@ public enum BaseResponseStatus {
     GROUP_REQUIRED(false, 4008, "정규런/훈련 참여 시 그룹 정보는 필수입니다."),
     INVALID_PARTICIPANT_GROUP(false, 4009, "그룹이 지정되지 않은 참여자가 존재합니다."),
     ATTENDANCE_CODE_NOT_YET_CREATED(false, 4010, "출석 코드가 아직 생성되지 않았습니다."),
+    PACER_CANNOT_PARTICIPATE(false, 4011, "페이서는 직접 참여하거나 출석할 수 없습니다."),
 
     /**
      * 9000 : MultipartFile 오류

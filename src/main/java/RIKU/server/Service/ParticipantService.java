@@ -113,10 +113,13 @@ public class ParticipantService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
 
-        // 5. 참여 여부 검증
+        // 5. Pacer 검증
+        validatePacer(postType, post, user);
+
+        // 6. 참여 여부 검증
         Participant existing = participantRepository.findByPostAndUser(post, user).orElse(null);
 
-        // 6. 참여 정보 저장
+        // 7. 참여 정보 저장
         if (existing == null) {
             // 기존 참여자 아님 -> 참여하기
             if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
@@ -174,7 +177,10 @@ public class ParticipantService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
 
-        // 5. 출석 코드 조회 및 검증
+        // 5. Pacer 검증
+        validatePacer(postType, post, user);
+
+        // 6. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
         if (storedCode.isEmpty()) {
             throw new ParticipantException(BaseResponseStatus.ATTENDANCE_CODE_NOT_YET_CREATED);
@@ -183,16 +189,16 @@ public class ParticipantService {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_CODE);
         }
 
-        // 6. 참여자 조회
+        // 7. 참여자 조회
         Participant participant = participantRepository.findByPostAndUser(post, user)
                 .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
 
-        // 7. 이미 출석한 경우 예외 발생
+        // 8. 이미 출석한 경우 예외 발생
         if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
             throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
         }
 
-        // 8. 출석 상태 변경
+        // 9. 출석 상태 변경
         participant.attend();
 
         return UpdateParticipantResponse.of(participant);
@@ -341,6 +347,13 @@ public class ParticipantService {
     private void validatePostIsOpen(Post post) {
         if (!post.getPostStatus().equals(PostStatus.NOW)) {
             throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
+        }
+    }
+
+    private void validatePacer(PostType postType, Post post, User user) {
+        if ((postType == PostType.REGULAR || postType == PostType.TRAINING)
+                && pacerRepository.existsByUserAndPost(user, post)) {
+            throw new ParticipantException(BaseResponseStatus.PACER_CANNOT_PARTICIPATE);
         }
     }
 }
