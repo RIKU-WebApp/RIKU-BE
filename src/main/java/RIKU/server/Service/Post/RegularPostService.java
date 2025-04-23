@@ -100,22 +100,18 @@ public class RegularPostService {
         RegularPost regularPost = request.toRegularPostEntity(savedPost);
         regularPostRepository.save(regularPost);
 
-        try {
-            // 게시글 작성자가 페이서로 지정된 그룹을 찾아서 참여자로 추가
-            String creatorGroup = request.getPacers().stream()
-                    .filter(p -> p.getPacerId().equals(authMember.getId()))
-                    .findFirst()
-                    .map(CreatePacerRequest::getGroup)
-                    .orElseThrow(() -> new PostException(BaseResponseStatus.PACER_NOT_FOUND));
+        // 9. 페이서 목록 지정된 그룹에 따라 참여자로 추가
+        List<Participant> participants = request.getPacers().stream()
+                .map(p -> {
+                    User pacerUser = userRepository.findById(p.getPacerId())
+                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-            Participant participant = Participant.createWithGroup(savedPost, user, creatorGroup);
-            participantRepository.save(participant);
+                   return Participant.createWithGroup(savedPost, pacerUser, p.getGroup());
+                })
+                .collect(Collectors.toList());
+        participantRepository.saveAll(participants);
 
-            return regularPost.getId();
-
-        } catch (Exception e) {
-            throw new PostException(BaseResponseStatus.POST_CREATION_FAILED);
-        }
+        return regularPost.getId();
     }
 
     // 게시글 상세 조회
