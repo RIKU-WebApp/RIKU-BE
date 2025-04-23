@@ -74,6 +74,7 @@ public class PostService {
         List<ReadPostPreviewResponse> todayRuns = posts.stream()
                 .filter(post -> isToday(post.getDate()))
                 .filter(post -> post.getPostStatus() != PostStatus.CANCELED)
+                .sorted(Comparator.comparing(Post::getDate))
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
@@ -88,6 +89,7 @@ public class PostService {
         List<ReadPostPreviewResponse> pastRuns = posts.stream()
                 .filter(post -> toUserLocalDate(post.getDate()).isBefore(now.toLocalDate()))
                 .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
+                .sorted(Comparator.comparing(Post::getDate).reversed())
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
