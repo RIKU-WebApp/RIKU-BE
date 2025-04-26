@@ -13,6 +13,7 @@ import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.PostType;
 import RIKU.server.Entity.Board.Post.TrainingPost;
 import RIKU.server.Entity.Board.PostStatus;
+import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
@@ -291,8 +292,25 @@ public class PostService {
     }
 
     private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests) {
+        // 1. 기존 페이서 수 확인
+        int pacerCount = pacerRepository.countByPost(post);
+
+        // 2. 업데이트 페이서 수 검증
+        if(pacerRequests.size() != pacerCount) {
+            throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
+        }
+
+        // 3. 기존 페이서 삭제
         pacerRepository.deleteByPost(post);
 
+        // 4. 기존 페이서였던 참여자 삭제
+        List<Long> pacerUserIds = participantRepository.findPacerUserIdsByPost(post); // (쿼리 추가 필요)
+        List<Participant> participantsToDelete = participantRepository.findByPost(post).stream()
+                .filter(p -> pacerUserIds.contains(p.getUser().getId()))
+                .toList();
+        participantRepository.deleteAll(participantsToDelete);
+
+        // 5. 새 페이서 등록
         List<Pacer> pacers = pacerRequests.stream()
                 .map(pacer -> {
                     User user = userRepository.findById(pacer.getPacerId())
@@ -305,5 +323,15 @@ public class PostService {
                 .collect(Collectors.toList());
 
         pacerRepository.saveAll(pacers);
+
+        // 6. 새 페이서 참여자 등록
+        List<Participant> participants = pacerRequests.stream()
+                .map(p -> {
+                    User user = userRepository.findById(p.getPacerId())
+                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+                    return Participant.createWithGroup(post, user, p.getGroup());
+                })
+                .collect(Collectors.toList());
+        participantRepository.saveAll(participants);
     }
 }

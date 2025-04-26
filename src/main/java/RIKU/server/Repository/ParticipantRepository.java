@@ -32,4 +32,8 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
     // 특정 유저가 특정 상태로 참여한 횟수 조회
     int countByUserAndParticipantStatus(User user, ParticipantStatus participantStatus);
+
+    // 특정 게시글 페이저 유저 ID 조회
+    @Query("SELECT p.user.id FROM Pacer p WHERE p.post = :post")
+    List<Long> findPacerUserIdsByPost(@Param("post") Post post);
 }
