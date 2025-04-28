@@ -5,6 +5,7 @@ import RIKU.server.Dto.Post.Response.ReadHomeResponse;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.PostType;
+import RIKU.server.Entity.Board.PostStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.PostRepository;
 import RIKU.server.Repository.UserRepository;
@@ -44,7 +45,7 @@ public class HomeService {
     }
 
     private ReadHomeCardResponse getClosestPostByType(PostType postType, LocalDateTime now) {
-        Optional<Post> closestPost = postRepository.findTopByStatusAndPostTypeAndDateAfterOrderByDateAsc(BaseStatus.ACTIVE, postType, now);
+        Optional<Post> closestPost = postRepository.findTopByStatusAndPostTypeAndPostStatusAndDateAfterOrderByDateAsc(BaseStatus.ACTIVE, postType, PostStatus.NOW, now);
         return closestPost.map(ReadHomeCardResponse::of).orElse(null);
     }
 }

@@ -3,6 +3,7 @@ package RIKU.server.Repository;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.PostType;
+import RIKU.server.Entity.Board.PostStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,6 +20,6 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByStatusAndDateBetween(BaseStatus status, LocalDateTime startDate, LocalDateTime endDate);
 
     // 러닝 유형별 가장 가까운 날짜의 게시글 1개 조회
-    Optional<Post> findTopByStatusAndPostTypeAndDateAfterOrderByDateAsc(BaseStatus status, PostType postType, LocalDateTime now);
+    Optional<Post> findTopByStatusAndPostTypeAndPostStatusAndDateAfterOrderByDateAsc(BaseStatus status, PostType postType, PostStatus postStatus, LocalDateTime now);
 
 }
