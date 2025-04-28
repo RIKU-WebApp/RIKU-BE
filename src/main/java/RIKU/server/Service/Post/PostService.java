@@ -300,15 +300,18 @@ public class PostService {
             throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
         }
 
-        // 3. 기존 페이서 삭제
-        pacerRepository.deleteByPost(post);
+        // 3. 기존 페이서였던 참여자 삭제
+        List<Long> pacerIds = pacerRepository.findByPost(post).stream()
+                .map(p -> p.getUser().getId())
+                .toList();
 
-        // 4. 기존 페이서였던 참여자 삭제
-        List<Long> pacerUserIds = participantRepository.findPacerUserIdsByPost(post); // (쿼리 추가 필요)
         List<Participant> participantsToDelete = participantRepository.findByPost(post).stream()
-                .filter(p -> pacerUserIds.contains(p.getUser().getId()))
+                .filter(p -> pacerIds.contains(p.getUser().getId()))
                 .toList();
         participantRepository.deleteAll(participantsToDelete);
+
+        // 4. 기존 페이서 삭제
+        pacerRepository.deleteByPost(post);
 
         // 5. 새 페이서 등록
         List<Pacer> pacers = pacerRequests.stream()
@@ -325,7 +328,13 @@ public class PostService {
         pacerRepository.saveAll(pacers);
 
         // 6. 새 페이서 참여자 등록
+        List<Long> existingParticipantIds = participantRepository.findByPost(post)
+                .stream()
+                .map(p -> p.getUser().getId())
+                .toList();
+
         List<Participant> participants = pacerRequests.stream()
+                .filter(p -> !existingParticipantIds.contains(p.getPacerId()))
                 .map(p -> {
                     User user = userRepository.findById(p.getPacerId())
                             .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
