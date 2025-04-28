@@ -135,7 +135,12 @@ public class RegularPostService {
         Map<String, List<ReadParticipantListResponse>> groupedMap = participants.stream()
                 .collect(Collectors.groupingBy(
                         Participant::getGroup,
-                        Collectors.mapping(ReadParticipantListResponse::of, Collectors.toList())
+                        Collectors.collectingAndThen(
+                                Collectors.mapping(ReadParticipantListResponse::of, Collectors.toList()),
+                                list -> list.stream()
+                                        .sorted((p1, p2) -> Boolean.compare(!p1.isPacer(), !p2.isPacer())) // ⭐ 페이서를 먼저
+                                        .collect(Collectors.toList())
+                        )
                 ));
 
         List<GroupParticipantResponse> groupedParticipants = groupedMap.entrySet().stream()

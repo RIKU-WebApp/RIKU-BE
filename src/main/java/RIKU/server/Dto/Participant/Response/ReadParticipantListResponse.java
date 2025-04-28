@@ -15,11 +15,15 @@ public class ReadParticipantListResponse {
 
     private ParticipantStatus status;
 
-    private ReadParticipantListResponse(Long userId, String userName, String userProfileImg, ParticipantStatus status) {
+    private boolean isPacer;
+
+
+    private ReadParticipantListResponse(Long userId, String userName, String userProfileImg, ParticipantStatus status, boolean isPacer) {
         this.userId = userId;
         this.userName = userName;
         this.userProfileImg = userProfileImg;
         this.status = status;
+        this.isPacer = isPacer;
     }
 
     public static ReadParticipantListResponse of(Participant participant) {
@@ -27,7 +31,8 @@ public class ReadParticipantListResponse {
                 participant.getUser().getId(),
                 participant.getUser().getName(),
                 participant.getUser().getProfileImageUrl(),
-                participant.getParticipantStatus()
+                participant.getParticipantStatus(),
+                participant.getUser().getIsPacer()
         );
     }
 }
