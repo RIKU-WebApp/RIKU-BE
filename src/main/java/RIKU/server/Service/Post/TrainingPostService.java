@@ -59,14 +59,19 @@ public class TrainingPostService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 3. S3에 게시글 이미지 업로드
+        // 3. 중복 글 검사
+        if (postRepository.findByPostCreatorIdAndTitleAndDate(user.getId(), request.getTitle(), request.getDate()).isPresent()) {
+            throw new PostException(BaseResponseStatus.DUPLICATE_POST);
+        }
+
+        // 4. S3에 게시글 이미지 업로드
         String postImageUrl = uploadSingleImage(request.getPostImage(), "postImg");
 
-        // 4. Post 엔티티 생성 및 저장
+        // 5. Post 엔티티 생성 및 저장
         Post post = request.toPostEntity(user, postImageUrl);
         Post savedPost = postRepository.save(post);
 
-        // 5. 페이서 중복 검증
+        // 6. 페이서 중복 검증
         List<CreatePacerRequest> pacerRequests = request.getPacers();
         List<Long> pacerIds = pacerRequests.stream()
                 .map(CreatePacerRequest::getPacerId)
@@ -77,7 +82,7 @@ public class TrainingPostService {
             throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
         }
 
-        // 6. Pacer 엔티티 생성 및 저장
+        // 7. Pacer 엔티티 생성 및 저장
         List<Pacer> pacers = request.getPacers().stream()
                 .map(pacer -> {
                     User pacerUser = userRepository.findById(pacer.getPacerId())
@@ -93,15 +98,15 @@ public class TrainingPostService {
                 .collect(Collectors.toList());
         pacerRepository.saveAll(pacers);
 
-        // 7. S3에 첨부파일 이미지 업로드 및 저장
+        // 8. S3에 첨부파일 이미지 업로드 및 저장
         List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
         attachmentRepository.saveAll(attachments);
 
-        // 8. TrainingPost 엔티티 생성 및 저장
+        // 9. TrainingPost 엔티티 생성 및 저장
         TrainingPost trainingPost = request.toTrainingPostEntity(savedPost, request.getTrainingType());
         trainingPostRepository.save(trainingPost);
 
-        // 9. 페이서 목록 지정된 그룹에 따라 참여자로 추가
+        // 10. 페이서 목록 지정된 그룹에 따라 참여자로 추가
         List<Participant> participants = request.getPacers().stream()
                 .map(p -> {
                     User pacerUser = userRepository.findById(p.getPacerId())

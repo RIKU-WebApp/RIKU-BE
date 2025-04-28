@@ -71,7 +71,7 @@ public enum BaseResponseStatus {
     DUPLICATED_PACER(false, 3018, "페이서가 중복 지정되었습니다."),
     INVALID_POST_STATUS(false, 3019, "해당 게시글은 취소되거나 종료되었습니다."),
     INVALID_PACER_COUNT(false, 3020, "수정할 페이서 수는 기존과 동일해야 합니다."),
-
+    DUPLICATE_POST(false, 3021, "동일한 제목과 날짜로 이미 등록된 게시글이 존재합니다."),
 
     // ParticipantException
     ALREADY_PARTICIPATED(false, 4001, "이미 참여한 유저입니다."),

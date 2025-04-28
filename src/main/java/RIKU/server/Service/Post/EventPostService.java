@@ -53,18 +53,23 @@ public class EventPostService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 3. S3에 게시글 이미지 업로드
+        // 3. 중복 글 검사
+        if (postRepository.findByPostCreatorIdAndTitleAndDate(user.getId(), request.getTitle(), request.getDate()).isPresent()) {
+            throw new PostException(BaseResponseStatus.DUPLICATE_POST);
+        }
+
+        // 4. S3에 게시글 이미지 업로드
         String postImageUrl = uploadSingleImage(request.getPostImage(), "postImg");
 
-        // 4. Post 엔티티 생성 및 저장
+        // 5. Post 엔티티 생성 및 저장
         Post post = request.toPostEntity(user, postImageUrl);
         Post savedPost = postRepository.save(post);
 
-        // 5. S3에 첨부파일 이미지 업로드 및 저장
+        // 6. S3에 첨부파일 이미지 업로드 및 저장
         List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
         attachmentRepository.saveAll(attachments);
 
-        // 6. EventPost 엔티티 생성 및 저장
+        // 7. EventPost 엔티티 생성 및 저장
         EventPost eventPost = request.toEventPostEntity(savedPost, request.getEventType());
         eventPostRepository.save(eventPost);
 
