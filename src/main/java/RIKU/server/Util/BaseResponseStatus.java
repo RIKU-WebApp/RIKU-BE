@@ -91,9 +91,9 @@ public enum BaseResponseStatus {
      */
 
     IS_NOT_IMAGE_FILE(false, 9000, "지원되는 이미지 파일의 형식이 아닙니다."),
-    MULTIPARTFILE_CONVERT_FAIL_IN_MEMORY(false, 9001,"multipartFile memory 변환 과정에서 문제가 생겼습니다.")
-
-
+    MULTIPARTFILE_CONVERT_FAIL_IN_MEMORY(false, 9001,"multipartFile memory 변환 과정에서 문제가 생겼습니다."),
+    FILE_SIZE_EXCEEDED(false, 9002, "파일 크기가 10MB를 초과했습니다."),
+    REQUEST_SIZE_EXCEEDED(false, 9003, "파일 요청 전체 크기가 20MB를 초과했습니다.")
 
     ;
 

@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.CustomException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -28,9 +29,15 @@ public class S3Uploader {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
     // File에 저장하지 않고 Memory에서 변환 시행
     public String upload(MultipartFile file, String dirName) throws IOException {
+        if (file.getSize() > MAX_FILE_SIZE) {
+            log.error("파일 크기 초과: {} bytes", file.getSize());
+            throw new CustomException(BaseResponseStatus.FILE_SIZE_EXCEEDED);
+        }
+
         String originFileName = file.getOriginalFilename();
         String fileExtension = getFileExtension(originFileName);
         String uniqueFilename = generateUniqueFileName(dirName,fileExtension);

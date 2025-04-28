@@ -71,3 +71,10 @@ secret:
   jwt-access-expired-in: 7200000
   jwt-refresh-expired-in: 5184000000
 ---
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+---
