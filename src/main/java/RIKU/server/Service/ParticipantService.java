@@ -262,10 +262,13 @@ public class ParticipantService {
         // 2. PostType 검증
         validatePostType(runType, post.getPostType());
 
-        // 3. 출석 처리 권한 검증
+        // 3. PostStatus 검증
+        validatePostIsOpen(post);
+
+        // 4. 출석 처리 권한 검증
         validatePostCreator(post, authMember);
 
-        // 4. 출석 처리
+        // 5. 출석 처리
         requests.forEach(request -> {
             Participant participant = participantRepository.findByPostIdAndUserId(postId, request.getUserId())
                     .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
