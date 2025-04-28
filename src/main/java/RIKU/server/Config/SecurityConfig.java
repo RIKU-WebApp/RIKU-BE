@@ -92,9 +92,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173/", "https://localhost:5173/",
-                                                "http://localhost:5174/", "https://localhost:5174/",
-                                                "https://www.riku.run/", "https://riku-server.shop/"));
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://localhost:5173",
+                                                "http://localhost:5174", "https://localhost:5174",
+                                                "https://www.riku.run", "https://riku-server.shop"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("location", "Authorization"));
