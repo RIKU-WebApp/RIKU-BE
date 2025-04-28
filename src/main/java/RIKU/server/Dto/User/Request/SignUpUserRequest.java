@@ -11,7 +11,6 @@ import org.hibernate.validator.constraints.Length;
 @NoArgsConstructor
 public class SignUpUserRequest {
 
-    @Pattern(regexp = "^([0-9]){9}$", message = "숫자 9자리")
     @NotBlank(message = "학번은 필수 항목입니다.")
     private String studentId;
 
