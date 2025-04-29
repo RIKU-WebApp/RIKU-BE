@@ -36,16 +36,18 @@ public class HomeService {
         LocalDateTime now = LocalDateTime.now();
 
         // 3. 러닝 유형별 가장 가까운 날짜의 게시글 1개씩 조회
-        ReadHomeCardResponse flashRun = getClosestPostByType(PostType.FLASH, now);
-        ReadHomeCardResponse regularRun = getClosestPostByType(PostType.REGULAR, now);
-        ReadHomeCardResponse trainingRun = getClosestPostByType(PostType.TRAINING, now);
-        ReadHomeCardResponse eventRun = getClosestPostByType(PostType.EVENT, now);
+        ReadHomeCardResponse flashRun = getClosestPostByType(PostType.FLASH);
+        ReadHomeCardResponse regularRun = getClosestPostByType(PostType.REGULAR);
+        ReadHomeCardResponse trainingRun = getClosestPostByType(PostType.TRAINING);
+        ReadHomeCardResponse eventRun = getClosestPostByType(PostType.EVENT);
 
         return ReadHomeResponse.of(user, flashRun, regularRun, trainingRun, eventRun);
     }
 
-    private ReadHomeCardResponse getClosestPostByType(PostType postType, LocalDateTime now) {
-        Optional<Post> closestPost = postRepository.findTopByStatusAndPostTypeAndPostStatusAndDateAfterOrderByDateAsc(BaseStatus.ACTIVE, postType, PostStatus.NOW, now);
-        return closestPost.map(ReadHomeCardResponse::of).orElse(null);
+    private ReadHomeCardResponse getClosestPostByType(PostType postType) {
+        return postRepository.findTopByStatusAndPostTypeAndPostStatusOrderByDateAsc(
+                BaseStatus.ACTIVE, postType, PostStatus.NOW)
+                .map(ReadHomeCardResponse::of)
+                .orElse(null);
     }
 }
