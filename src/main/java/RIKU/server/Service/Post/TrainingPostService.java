@@ -16,6 +16,7 @@ import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.TrainingPost;
 import RIKU.server.Entity.Participant.Participant;
 import RIKU.server.Entity.User.User;
+import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Repository.*;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.S3Uploader;
@@ -200,8 +201,12 @@ public class TrainingPostService {
     }
 
     private void validate(AuthMember authMember, CreateTrainingPostRequest request) {
-        // 1. 작성자가 운영진인지
-        if(!authMember.isAdmin()) {
+        // 1. 작성자가 운영진이거나 페이서인지
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN || Boolean.TRUE.equals(user.getIsPacer());
+        if (!isAuthorized) {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
