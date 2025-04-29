@@ -16,7 +16,7 @@ public class ReadUserProfileResponse {
 
     private String userProfileImgUrl;
 
-    private UserRole userRole;
+    private String userRole;
 
     private int points;
 
@@ -24,7 +24,7 @@ public class ReadUserProfileResponse {
 
     private List<LocalDate> profileAttendanceDates;
 
-    private ReadUserProfileResponse(String studentId, String userName, String userProfileImgUrl, UserRole userRole, int points, int participationCount, List<LocalDate> profileAttendanceDates) {
+    private ReadUserProfileResponse(String studentId, String userName, String userProfileImgUrl, String userRole, int points, int participationCount, List<LocalDate> profileAttendanceDates) {
         this.studentId = studentId;
         this.userName = userName;
         this.userProfileImgUrl = userProfileImgUrl;
@@ -39,9 +39,19 @@ public class ReadUserProfileResponse {
                 user.getStudentId(),
                 user.getName(),
                 user.getProfileImageUrl(),
-                user.getUserRole(),
+                toUserRole(user),
                 points,
                 participationCount,
                 profileAttendanceDates);
+    }
+
+    private static String toUserRole(User user) {
+        if (user.getUserRole() == UserRole.ADMIN) return "운영진";
+        if (user.getUserRole() == UserRole.NEW_MEMBER) return "신입부원";
+        if (user.getUserRole() == UserRole.MEMBER) {
+            if (Boolean.TRUE.equals(user.getIsPacer())) return "페이서";
+            return "일반부원";
+        }
+        return "알 수 없음";
     }
 }
