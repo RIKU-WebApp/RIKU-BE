@@ -129,7 +129,14 @@ public class TrainingPostService {
         TrainingPost trainingPost = trainingPostRepository.findById(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.TRAINING_POST_NOT_FOUND));
 
-        // 2. 그룹별 참여자 조회
+        // 2. 페이서 조회
+        List<Pacer> pacerEntities = pacerRepository.findByPost(post);
+
+        List<Long> pacerIds = pacerEntities.stream()
+                .map(pacer -> pacer.getUser().getId())
+                .toList();
+
+        // 3. 그룹별 참여자 조회
         List<Participant> participants = participantRepository.findByPost(post);
 
         if (participants.stream().anyMatch(p -> p.getGroup() == null)) {
@@ -142,7 +149,11 @@ public class TrainingPostService {
                         Collectors.collectingAndThen(
                                 Collectors.mapping(ReadParticipantListResponse::of, Collectors.toList()),
                                 list -> list.stream()
-                                        .sorted((p1, p2) -> Boolean.compare(!p1.isPacer(), !p2.isPacer())) // ⭐ 페이서를 먼저
+                                        .sorted((p1, p2) ->  {
+                                            boolean p1IsPacer = pacerIds.contains(p1.getUserId());
+                                            boolean p2IsPacer = pacerIds.contains(p2.getUserId());
+                                            return Boolean.compare(!p1IsPacer, !p2IsPacer);
+                                        })
                                         .collect(Collectors.toList())
                         )
                 ));
@@ -151,29 +162,28 @@ public class TrainingPostService {
                 .map(entry -> GroupParticipantResponse.of(entry.getKey(), entry.getValue()))
                 .toList();
 
-        // 3. 페이서 조회
-        List<ReadPacersListResponse> pacers = pacerRepository.findByPost(post)
-                .stream()
+        // 4. 페이서 응답 변환
+        List<ReadPacersListResponse> pacers = pacerEntities.stream()
                 .map(ReadPacersListResponse::of)
                 .toList();
 
-        // 4. 첨부파일 조회
+        // 5. 첨부파일 조회
         List<String> attachmentUrls = attachmentRepository.findByPost(post)
                 .stream()
                 .map(Attachment::getImageUrl)
                 .toList();
 
-        // 5. 댓글 조회
+        // 6. 댓글 조회
         List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
                 .stream()
                 .filter(comment -> comment.getTargetId() == null)
                 .map(this::mapToDto)
                 .toList();
 
-        // 6. 게시글 작성자 정보
+        // 7. 게시글 작성자 정보
         ReadUserInfoResponse postCreator = ReadUserInfoResponse.of(post.getPostCreator());
 
-        // 7. 현재 유저 정보
+        // 8. 현재 유저 정보
         User userEntity = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
         ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
