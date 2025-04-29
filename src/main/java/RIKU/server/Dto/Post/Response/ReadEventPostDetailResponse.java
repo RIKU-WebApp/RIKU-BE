@@ -5,6 +5,7 @@ import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Post.EventPost;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.PostStatus;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -21,7 +22,8 @@ public class ReadEventPostDetailResponse {
     private LocalDateTime date;
     private String eventType;
     private List<ReadParticipantListResponse> participants;
-    private int participantsNum; // 참가자 수
+    private int participantsNum; // 참여자 수
+    private int attendedParticipantsNum; // 출석 완료한 참여자 수
     private ReadUserInfoResponse PostCreatorInfo;
     private String content;
     private PostStatus postStatus;
@@ -43,6 +45,9 @@ public class ReadEventPostDetailResponse {
                 .eventType(eventPost.getEventType())
                 .participants(participants)
                 .participantsNum(participants.size())
+                .attendedParticipantsNum((int) participants.stream()
+                        .filter(p -> p.getStatus() == ParticipantStatus.ATTENDED)
+                        .count())
                 .PostCreatorInfo(postCreator)
                 .content(post.getContent())
                 .postStatus(post.getPostStatus())

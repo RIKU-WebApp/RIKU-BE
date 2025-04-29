@@ -1,11 +1,11 @@
 package RIKU.server.Dto.Post.Response;
 
 import RIKU.server.Dto.Participant.Response.GroupParticipantResponse;
-import RIKU.server.Dto.Participant.Response.ReadParticipantListResponse;
 import RIKU.server.Dto.User.Response.ReadUserInfoResponse;
 import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.Board.Post.TrainingPost;
 import RIKU.server.Entity.Board.PostStatus;
+import RIKU.server.Entity.Participant.ParticipantStatus;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -23,7 +23,8 @@ public class ReadTrainingPostDetailResponse {
     private String trainingType;
 
     private List<GroupParticipantResponse> groupedParticipants;
-    private int participantsNum; // 참가자 수
+    private int participantsNum; // 참여자 수
+    private int attendedParticipantsNum; // 출석 완료한 참여자 수
 
     private List<ReadPacersListResponse> pacers;
     private ReadUserInfoResponse postCreatorInfo;
@@ -47,6 +48,10 @@ public class ReadTrainingPostDetailResponse {
                 .trainingType(trainingPost.getTrainingType())
                 .groupedParticipants(groupedParticipants)
                 .participantsNum(groupedParticipants.stream().mapToInt(g -> g.getParticipants().size()).sum())
+                .attendedParticipantsNum((int) groupedParticipants.stream()
+                        .flatMap(g -> g.getParticipants().stream())
+                        .filter(p -> p.getStatus() == ParticipantStatus.ATTENDED)
+                        .count())
                 .pacers(pacers)
                 .postCreatorInfo(postCreator)
                 .content(post.getContent())
