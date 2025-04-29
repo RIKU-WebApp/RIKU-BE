@@ -1,5 +1,6 @@
 package RIKU.server.Dto.User.Response;
 
+import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserRole;
 import lombok.Getter;
@@ -46,12 +47,13 @@ public class ReadUserProfileResponse {
     }
 
     private static String toUserRole(User user) {
-        if (user.getUserRole() == UserRole.ADMIN) return "운영진";
-        if (user.getUserRole() == UserRole.NEW_MEMBER) return "신입부원";
+        if (user.getUserRole() == UserRole.ADMIN) return "ADMIN";
+        if (user.getUserRole() == UserRole.NEW_MEMBER) return "NEW_MEMBER";
         if (user.getUserRole() == UserRole.MEMBER) {
-            if (Boolean.TRUE.equals(user.getIsPacer())) return "페이서";
-            return "일반부원";
+            if (Boolean.TRUE.equals(user.getIsPacer())) return "PACER";
+            return "MEMBER";
         }
-        return "알 수 없음";
+        if (user.getStatus() == BaseStatus.INACTIVE) return "INACTIVE";
+        return "UNKNOWN";
     }
 }
