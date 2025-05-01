@@ -29,7 +29,7 @@ public class ReadPointListResponse {
 
     public static ReadPointListResponse of(UserPoint userPoint, String tag) {
         return new ReadPointListResponse(
-                DateTimeUtils.toUserLocalDate(userPoint.getCreatedAt()),
+                userPoint.getCreatedAt().toLocalDate(),
                 tag,
                 userPoint.getDescription(),
                 userPoint.getPost() != null ? userPoint.getPost().getTitle() : null,
