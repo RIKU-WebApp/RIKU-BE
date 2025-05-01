@@ -138,11 +138,13 @@ public class UserService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        // 2. 오늘 이미 출석한 경우 예외처리
-        LocalDateTime startOfToday = DateTimeUtils.startOfTodayKST();
-        LocalDateTime endOfToday = DateTimeUtils.endOfTodayKST();
+        // 2. UTC 기준 날짜로 변환
+        LocalDate kstToday = LocalDate.now(DateTimeUtils.getDefaultZone());
+        LocalDateTime utcStartOfToday = DateTimeUtils.startOfDayUtc(kstToday);
+        LocalDateTime utcEndOfToday = DateTimeUtils.endOfDayUtc(kstToday);
 
-        if(userPointRepository.existsByUserAndPointTypeAndCreatedAtBetween(user, PointType.ADD_ATTENDANCE, startOfToday, endOfToday)) {
+        // 3. 출석 중복 확인 (UTC 기준 검사)
+        if(userPointRepository.existsByUserAndPointTypeAndCreatedAtBetween(user, PointType.ADD_ATTENDANCE, utcStartOfToday, utcEndOfToday)) {
             throw new UserException(BaseResponseStatus.ALREADY_ATTENDED_TODAY);
         }
 
