@@ -2,6 +2,7 @@ package RIKU.server.Dto.User.Response;
 
 import RIKU.server.Entity.User.UserPoint;
 import RIKU.server.Util.DateTimeUtils;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Getter
 public class ReadPointListResponse {
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime date;
 
     private String tag;
