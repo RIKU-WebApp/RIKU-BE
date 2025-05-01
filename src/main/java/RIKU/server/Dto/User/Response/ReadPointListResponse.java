@@ -44,7 +44,7 @@ public class ReadPointListResponse {
         log.info("📅 Final LocalDate (KST): {}", kstDate);
 
         return new ReadPointListResponse(
-                DateTimeUtils.toUserLocalDate(userPoint.getCreatedAt()),
+                kstDate,
                 tag,
                 userPoint.getDescription(),
                 userPoint.getPost() != null ? userPoint.getPost().getTitle() : null,
