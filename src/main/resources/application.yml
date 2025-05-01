@@ -42,6 +42,7 @@ logging:
   level:
     root: debug
     org.hibernate.sql: debug
+    RIKU.server: info
 
 ---
 spring:

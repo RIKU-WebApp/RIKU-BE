@@ -53,6 +53,15 @@ public class UserPointService {
                 .sorted(Comparator.comparing(UserPoint::getCreatedAt).reversed())
                 .toList();
 
+        // 🔍 포인트별 createdAt 로그 출력
+        userPoints.forEach(point -> {
+            var utcTime = point.getCreatedAt();
+            var kstDate = RIKU.server.Util.DateTimeUtils.toUserLocalDate(utcTime);
+
+            log.info("🟡 Point ID: {}, UTC createdAt: {}, KST LocalDate: {}, Type: {}",
+                    point.getId(), utcTime, kstDate, point.getPointType());
+        });
+
         // 3. 포인트 총합 계산
         int totalPoint = userPointRepository.sumPointsByUser(user);
 
