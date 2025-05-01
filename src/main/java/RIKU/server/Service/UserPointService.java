@@ -58,8 +58,10 @@ public class UserPointService {
             var utcTime = point.getCreatedAt();
             var kstDate = RIKU.server.Util.DateTimeUtils.toUserLocalDate(utcTime);
 
-            log.info("🟡 Point ID: {}, UTC createdAt: {}, KST LocalDate: {}, Type: {}",
-                    point.getId(), utcTime, kstDate, point.getPointType());
+            System.out.println("🟡 Point ID: " + point.getId());
+            System.out.println("🕒 UTC createdAt: " + utcTime);
+            System.out.println("📆 KST LocalDate: " + kstDate);
+            System.out.println("🏷️ Type: " + point.getPointType());
         });
 
         // 3. 포인트 총합 계산

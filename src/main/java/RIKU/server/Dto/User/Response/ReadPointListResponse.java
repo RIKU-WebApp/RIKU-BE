@@ -38,10 +38,10 @@ public class ReadPointListResponse {
         ZonedDateTime kstZoned = utcZoned.withZoneSameInstant(DateTimeUtils.getDefaultZone());
         LocalDate kstDate = kstZoned.toLocalDate();
 
-        log.info("🟡 Raw createdAt: {}", createdAt);
-        log.info("🟢 UTC ZonedDateTime: {}", utcZoned);
-        log.info("🔵 KST ZonedDateTime: {}", kstZoned);
-        log.info("📅 Final LocalDate (KST): {}", kstDate);
+        System.out.println("🟡 Raw createdAt: " + createdAt);
+        System.out.println("🟢 UTC ZonedDateTime: " + utcZoned);
+        System.out.println("🔵 KST ZonedDateTime: " + kstZoned);
+        System.out.println("📅 Final LocalDate (KST): " + kstDate);
 
         return new ReadPointListResponse(
                 kstDate,
