@@ -1,6 +1,7 @@
 package RIKU.server.Dto.User.Response;
 
 import RIKU.server.Entity.User.UserPoint;
+import RIKU.server.Util.DateTimeUtils;
 import lombok.Getter;
 
 import java.time.LocalDate;
@@ -28,7 +29,7 @@ public class ReadPointListResponse {
 
     public static ReadPointListResponse of(UserPoint userPoint, String tag) {
         return new ReadPointListResponse(
-                userPoint.getCreatedAt().toLocalDate(),
+                DateTimeUtils.toUserLocalDate(userPoint.getCreatedAt()),
                 tag,
                 userPoint.getDescription(),
                 userPoint.getPost() != null ? userPoint.getPost().getTitle() : null,
