@@ -1,5 +1,7 @@
 package RIKU.server.Security;
 
+import RIKU.server.Util.BaseResponse;
+import RIKU.server.Util.Exception.CustomJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,13 +32,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
          * @Breif 토큰 검증 후 Spring Security Context에 인증 정보 담음
          * @Condition 토큰 값이 존재하고, 검증 되었으면 실행
          */
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);log.debug("Authentication set in SecurityContextHolder: " + authentication);
-        } else {
-            log.debug("No valid token found or token validation failed.");
+        try {
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                Authentication authentication = jwtTokenProvider.getAuthentication(token);
+                SecurityContextHolder.getContext().setAuthentication(authentication);log.debug("Authentication set in SecurityContextHolder: " + authentication);
+            } else {
+                log.debug("No valid token found or token validation failed.");
+            }
+            filterChain.doFilter(request,response);
+        } catch (CustomJwtException ex) {
+            // 토큰 만료, 서명 오류 등 커스텀 JWT 예외에 대한 직접 처리
+            log.warn("[JwtAuthenticationFilter] JWT 예외 발생: {}", ex.getStatus().getResponseMessage());
+
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401
+            response.setContentType("application/json;charset=UTF-8");
+
+            BaseResponse<Object> errorResponse = new BaseResponse<>(ex.getStatus());
+
+            String json = new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(errorResponse);
+            response.getWriter().write(json);
         }
-        filterChain.doFilter(request,response);
     }
 
     /**
