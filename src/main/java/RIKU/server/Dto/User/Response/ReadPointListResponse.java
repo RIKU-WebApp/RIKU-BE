@@ -5,11 +5,12 @@ import RIKU.server.Util.DateTimeUtils;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 public class ReadPointListResponse {
 
-    private LocalDate date;
+    private LocalDateTime date;
 
     private String tag;
 
@@ -19,7 +20,7 @@ public class ReadPointListResponse {
 
     private int point;
 
-    private ReadPointListResponse(LocalDate date, String tag, String type, String postTitle, int point) {
+    private ReadPointListResponse(LocalDateTime date, String tag, String type, String postTitle, int point) {
         this.date = date;
         this.tag = tag;
         this.type = type;
@@ -29,7 +30,7 @@ public class ReadPointListResponse {
 
     public static ReadPointListResponse of(UserPoint userPoint, String tag) {
         return new ReadPointListResponse(
-                userPoint.getCreatedAt().toLocalDate(),
+                userPoint.getCreatedAt(),
                 tag,
                 userPoint.getDescription(),
                 userPoint.getPost() != null ? userPoint.getPost().getTitle() : null,
