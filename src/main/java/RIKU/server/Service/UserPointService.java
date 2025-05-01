@@ -14,6 +14,7 @@ import RIKU.server.Repository.UserPointRepository;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
+import RIKU.server.Util.DateTimeUtils;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,24 +54,23 @@ public class UserPointService {
                 .sorted(Comparator.comparing(UserPoint::getCreatedAt).reversed())
                 .toList();
 
-        // 🔍 포인트별 createdAt 로그 출력
-        userPoints.forEach(point -> {
-            var utcTime = point.getCreatedAt();
-            var kstDate = RIKU.server.Util.DateTimeUtils.toUserLocalDate(utcTime);
-
-            System.out.println("🟡 Point ID: " + point.getId());
-            System.out.println("🕒 UTC createdAt: " + utcTime);
-            System.out.println("📆 KST LocalDate: " + kstDate);
-            System.out.println("🏷️ Type: " + point.getPointType());
-        });
-
         // 3. 포인트 총합 계산
         int totalPoint = userPointRepository.sumPointsByUser(user);
+
+        // 🔍 포인트별 createdAt 로그 출력
+        log.info("📌 유저 ID={}의 포인트 총합: {}", user.getId(), totalPoint);
+
+        userPoints.forEach(point -> {
+            var utcTime = point.getCreatedAt();
+            var kstDate = DateTimeUtils.toUserLocalDate(utcTime);
+            log.info("🟡 Point ID: {}, UTC createdAt: {}, KST LocalDate: {}, Type: {}",
+                    point.getId(), utcTime, kstDate, point.getPointType());
+        });
 
         // 4. 참여 내역 수
         int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
 
-        // 5.
+        // 5. 랭킹 계산
         ReadUserRankingResponse ranking = calculateUserRankAndTop20(user);
 
         // 6. 포인트 리스트 DTO 변환

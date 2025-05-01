@@ -3,15 +3,10 @@ package RIKU.server.Dto.User.Response;
 import RIKU.server.Entity.User.UserPoint;
 import RIKU.server.Util.DateTimeUtils;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 
 @Getter
-@Slf4j
 public class ReadPointListResponse {
 
     private LocalDate date;
@@ -33,18 +28,8 @@ public class ReadPointListResponse {
     }
 
     public static ReadPointListResponse of(UserPoint userPoint, String tag) {
-        LocalDateTime createdAt = userPoint.getCreatedAt();
-        ZonedDateTime utcZoned = createdAt.atZone(ZoneOffset.UTC);
-        ZonedDateTime kstZoned = utcZoned.withZoneSameInstant(DateTimeUtils.getDefaultZone());
-        LocalDate kstDate = kstZoned.toLocalDate();
-
-        System.out.println("🟡 Raw createdAt: " + createdAt);
-        System.out.println("🟢 UTC ZonedDateTime: " + utcZoned);
-        System.out.println("🔵 KST ZonedDateTime: " + kstZoned);
-        System.out.println("📅 Final LocalDate (KST): " + kstDate);
-
         return new ReadPointListResponse(
-                kstDate,
+                DateTimeUtils.toUserLocalDate(userPoint.getCreatedAt()),
                 tag,
                 userPoint.getDescription(),
                 userPoint.getPost() != null ? userPoint.getPost().getTitle() : null,
