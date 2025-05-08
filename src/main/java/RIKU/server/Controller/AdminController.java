@@ -91,4 +91,20 @@ public class AdminController {
         response.put("message", "페이서 변경이 완료되었습니다.");
         return new BaseResponse<>(response);
     }
+
+    @Operation(summary = "유저 임시 비밀번호 발급", description = """
+            
+            운영진이 유저의 임시 비밀번호를 발급합니다.(운영진 권한)
+            
+            """)
+    @PostMapping("/admin/user/{userId}/reset-password")
+    public BaseResponse<Map<String, String>> resetUserPassword(
+            @AuthenticationPrincipal AuthMember authMember,
+            @PathVariable Long userId) {
+        String tempPassword = adminService.resetUserPassword(authMember, userId);
+
+        Map<String, String> response = new HashMap<>();
+        response.put("password", tempPassword);
+        return new BaseResponse<>(response);
+    }
 }

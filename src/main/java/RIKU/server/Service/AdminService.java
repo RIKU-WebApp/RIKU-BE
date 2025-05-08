@@ -15,9 +15,12 @@ import RIKU.server.Security.AuthMember;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.Domain.UserException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +32,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<ReadUsersResponse> getUsers(AuthMember authMember) {
         // 운영진 권한 검증
@@ -98,6 +102,28 @@ public class AdminService {
         });
     }
 
+    // 임시 비밀번호 발급
+    @Transactional
+    public String resetUserPassword(AuthMember authMember, Long userId) {
+        // 1. 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // 2. 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 3. 임시 비밀번호 생성 (8~20자, 영문+숫자+특수문자 포함)
+        String tempPassword = generateTempPassword();
+
+        // 4. 비밀번호 인코딩 후 업데이트
+        String encodedPassword = passwordEncoder.encode(tempPassword);
+        user.updatePassword(encodedPassword);
+
+        return tempPassword;
+    }
+
     private void updateUserStatus(User user, String userRole) {
         switch (userRole.toUpperCase()) {
             case "NEW_MEMBER" -> {
@@ -117,5 +143,37 @@ public class AdminService {
             }
             default -> throw new IllegalArgumentException("Invalid userRole: " + userRole);
         }
+    }
+
+    private String generateTempPassword() {
+        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lower = "abcdefghijklmnopqrstuvwxyz";
+        String digits = "0123456789";
+        String special = "!@#$%^&*()_+-=[]{};':\"\\|,.<>/?";
+        String all = upper + lower + digits + special;
+
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder();
+
+        // 각 조건 최소 1개씩 보장
+        password.append(upper.charAt(random.nextInt(upper.length())));
+        password.append(lower.charAt(random.nextInt(lower.length())));
+        password.append(digits.charAt(random.nextInt(digits.length())));
+        password.append(special.charAt(random.nextInt(special.length())));
+
+        // 나머지 채우기
+        for (int i = 4; i < 10; i++) {
+            password.append(all.charAt(random.nextInt(all.length())));
+        }
+
+        // 셔플
+        List<Character> passwordChars = password.chars()
+                .mapToObj(c -> (char) c)
+                .collect(Collectors.toList());
+        Collections.shuffle(passwordChars);
+
+        return passwordChars.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining());
     }
 }
