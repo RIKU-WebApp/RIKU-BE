@@ -71,11 +71,12 @@ public class PostService {
         LocalDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay(getDefaultZone()).toLocalDateTime();
 
         // 4. 게시글 분류
-        // 오늘의 러닝 (오늘 날짜, 모집 중 or 마감 임박, 취소됨 제외)
+        // 오늘의 러닝 (오늘 날짜, NOW 우선 -> 날짜순 정렬)
         List<ReadPostPreviewResponse> todayRuns = posts.stream()
                 .filter(post -> isToday(post.getDate()))
-                .filter(post -> post.getPostStatus() != PostStatus.CANCELED)
-                .sorted(Comparator.comparing(Post::getDate))
+                .sorted(Comparator
+                        .comparing((Post post) -> post.getPostStatus() != PostStatus.NOW)
+                        .thenComparing(Post::getDate))
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
