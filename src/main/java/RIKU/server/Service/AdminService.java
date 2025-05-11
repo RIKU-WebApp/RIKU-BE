@@ -75,8 +75,12 @@ public class AdminService {
 
     // 페이서 조회
     public List<ReadPacersResponse> getPacers(AuthMember authMember) {
-        // 운영진 권한 검증
-        if(!authMember.isAdmin()) {
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+
+        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN || Boolean.TRUE.equals(user.getIsPacer());
+        if (!isAuthorized) {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
