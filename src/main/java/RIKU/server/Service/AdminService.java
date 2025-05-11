@@ -40,7 +40,7 @@ public class AdminService {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
-        return userRepository.findByStatus(BaseStatus.ACTIVE)
+        return userRepository.findAll()
                 .stream()
                 .map(user -> {
                     int totalPoints = userPointRepository.sumPointsByUser(user);
