@@ -63,7 +63,9 @@ public class SecurityConfig {
                     authorize
                         .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
-                        .requestMatchers("/admin/**", "pacer/**", "pacers/**").hasRole("ADMIN");
+                        .requestMatchers("/admin/**", "pacer/**").hasRole("ADMIN")
+                        .requestMatchers("pacers/**").hasAnyRole("ADMIN", "MEMBER");
+
 
                     // 로컬 환경에서만 H2 콘솔 경로를 허용
                     if (isLocal) {
