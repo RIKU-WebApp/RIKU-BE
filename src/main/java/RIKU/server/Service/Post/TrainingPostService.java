@@ -205,7 +205,8 @@ public class TrainingPostService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN || Boolean.TRUE.equals(user.getIsPacer());
+        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN ||
+                (user.getUserRole() == UserRole.MEMBER && Boolean.TRUE.equals(user.getIsPacer()));
         if (!isAuthorized) {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
