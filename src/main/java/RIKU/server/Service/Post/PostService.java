@@ -95,6 +95,7 @@ public class PostService {
                 .filter(post -> toUserLocalDate(post.getDate()).isBefore(now.toLocalDate()))
                 .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
                 .sorted(Comparator.comparing(Post::getDate).reversed())
+                .limit(6)
                 .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
                 .collect(Collectors.toList());
 
