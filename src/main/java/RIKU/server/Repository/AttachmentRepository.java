@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
     List<Attachment> findByPost(Post post);
+
+    void deleteByPost(Post post);
 }

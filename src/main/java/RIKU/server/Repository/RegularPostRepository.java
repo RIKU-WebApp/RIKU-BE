@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface RegularPostRepository extends JpaRepository<RegularPost, Long> {
 
     Optional<RegularPost> findByPost(Post post);
+
+    void deleteByPost(Post post);
 }

@@ -47,7 +47,10 @@ public class PostService {
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
+    private final CommentRepository commentRepository;
     private final PacerRepository pacerRepository;
+    private final RegularPostRepository regularPostRepository;
+    private final FlashPostRepository flashPostRepository;
     private final TrainingPostRepository trainingPostRepository;
     private final EventPostRepository eventPostRepository;
     private final S3Uploader s3Uploader;
@@ -139,6 +142,38 @@ public class PostService {
             case FLASH -> {}
             default -> throw new PostException(BaseResponseStatus.INVALID_RUN_TYPE);
         }
+    }
+
+    // 게시글 삭제하기
+    @Transactional
+    public void deletePost(AuthMember authMember, String runType, Long postId) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2. 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // 3. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType(), post.getId());
+
+        // 4. 관련 엔티티 삭제
+        participantRepository.deleteByPost(post);
+        commentRepository.deleteByPost(post);
+        pacerRepository.deleteByPost(post);
+
+        attachmentRepository.findByPost(post).forEach(a -> s3Uploader.deleteFileByUrl(a.getImageUrl()));
+        attachmentRepository.deleteByPost(post);
+
+        switch(postType) {
+            case REGULAR -> regularPostRepository.deleteByPost(post);
+            case TRAINING -> trainingPostRepository.deleteByPost(post);
+            case EVENT -> eventPostRepository.deleteByPost(post);
+            case FLASH -> flashPostRepository.deleteByPost(post);
+        }
+        postRepository.delete(post);
     }
 
     private void updateRegularPost(Post post, UpdatePostRequest request) {

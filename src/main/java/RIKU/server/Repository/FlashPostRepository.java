@@ -11,4 +11,6 @@ public interface FlashPostRepository extends JpaRepository<FlashPost, Long> {
 
     Optional<FlashPost> findByPost(Post post);
 
+    void deleteByPost(Post post);
+
 }

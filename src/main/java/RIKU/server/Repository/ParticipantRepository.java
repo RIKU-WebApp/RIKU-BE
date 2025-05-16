@@ -36,4 +36,6 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // 특정 게시글 페이저 유저 ID 조회
     @Query("SELECT p.user.id FROM Pacer p WHERE p.post = :post")
     List<Long> findPacerUserIdsByPost(@Param("post") Post post);
+
+    void deleteByPost(Post post);
 }

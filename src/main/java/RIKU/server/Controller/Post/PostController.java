@@ -96,4 +96,23 @@ public class PostController {
 
         return new BaseResponse<>(responses);
     }
+
+    @Operation(summary = "게시글 삭제", description = """
+            
+            유저가 게시글을 삭제하며 관련된 페이서, 참여자, 첨부파일, 댓글 등도 함께 삭제됩니다. (관리자 권한)
+            
+            """)
+    @DeleteMapping("/post/{postId}")
+    public BaseResponse<Map<String, Object>> deletePost(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember) {
+
+        postService.deletePost(authMember, runType, postId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "게시글이 삭제되었습니다.");
+
+        return new BaseResponse<>(response);
+    }
 }

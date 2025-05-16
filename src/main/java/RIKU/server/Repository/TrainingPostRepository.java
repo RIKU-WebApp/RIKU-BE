@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface TrainingPostRepository extends JpaRepository<TrainingPost, Long> {
 
     Optional<TrainingPost> findByPost(Post post);
+
+    void deleteByPost(Post post);
 }
