@@ -29,4 +29,7 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
                                                    @Param("pointType") PointType pointType,
                                                    @Param("start") LocalDateTime start,
                                                    @Param("end") LocalDateTime end);
+
+    // 기간별 유저 포인트 조회
+    List<UserPoint> findByUserAndCreatedAtBetween(User user, LocalDateTime start, LocalDateTime end);
 }

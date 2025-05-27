@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Dto.User.Request.ReadUserEventRankingRequest;
 import RIKU.server.Dto.User.Response.ReadPointListResponse;
 import RIKU.server.Dto.User.Response.ReadUserParticipationsResponse;
 import RIKU.server.Dto.User.Response.ReadUserPointResponse;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -81,6 +83,38 @@ public class UserPointService {
         return ReadUserParticipationsResponse.of(user, totalPoint, participationCount, ranking.getUserRanking(), pointResponses);
     }
 
+    // 이벤트 랭킹 페이지 조회
+    public ReadUserRankingResponse getUserEventPointRanking(ReadUserEventRankingRequest request, AuthMember authMember) {
+        // 1. 유저 조회
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 2. 전체 사용자 조회
+        List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE);
+
+        // 3. utc 시간 변경
+        LocalDateTime startUtc = DateTimeUtils.startOfDayUtc(request.getStartDate());
+        LocalDateTime endUtc = DateTimeUtils.endOfDayUtc(request.getEndDate());
+        log.info("이벤트 랭킹 조회 범위: {} ~ {} (KST 기준), 변환된 UTC: {} ~ {}",
+                request.getStartDate(), request.getEndDate(), startUtc, endUtc);
+
+        // 4. 유저별 포인트 총합 계산 후 정렬
+        List<ReadUserPointResponse> userPointList = users.stream()
+                .map(u -> {
+                    int total = userPointRepository
+                            .findByUserAndCreatedAtBetween(u, startUtc, endUtc)
+                            .stream()
+                            .filter(p -> request.getPointTypes().contains(p.getPointType()))
+                            .mapToInt(UserPoint::getPoint)
+                            .sum();
+                    return ReadUserPointResponse.of(u, total);
+                        } )
+                .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
+                        .thenComparing(ReadUserPointResponse::getUserName))
+                .toList();
+        return processRanking(userPointList, authMember.getId());
+    }
+
     private ReadUserRankingResponse calculateUserRankAndTop20(User user) {
 
         // 전체 사용자 조회
@@ -93,6 +127,10 @@ public class UserPointService {
                         .thenComparing(ReadUserPointResponse::getUserName))
                 .toList();
 
+        return processRanking(userPointList, user.getId());
+    }
+
+    private ReadUserRankingResponse processRanking(List<ReadUserPointResponse> userPointList, Long userId) {
         // 공동 순위 처리
         int rank = 1;      // 현재 순위
         int prevPoints = -1;  // 이전 유저의 포인트 값
@@ -103,7 +141,7 @@ public class UserPointService {
             if (r.getTotalPoints() != prevPoints) {
                 actualRank = rank;
             }
-            if (r.getUserId().equals(user.getId())) {
+            if (r.getUserId().equals(userId)) {
                 userRanking = actualRank;
             }
             prevPoints = r.getTotalPoints();
@@ -116,9 +154,9 @@ public class UserPointService {
                 .toList();
 
         ReadUserPointResponse currentUserPoint = userPointList.stream()
-                .filter(p -> p.getUserId().equals(user.getId()))
+                .filter(p -> p.getUserId().equals(userId))
                 .findFirst()
-                .orElse(ReadUserPointResponse.of(user, 0)); // 못 찾은 경우 대비
+                .orElse(null); // 못 찾은 경우 대비
 
         return ReadUserRankingResponse.of(top20, userRanking, currentUserPoint);
     }
