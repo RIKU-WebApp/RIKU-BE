@@ -246,9 +246,16 @@ public class ParticipantService {
             }
         }
 
-        // 7. 번개런 생성 포인트 적립
+        // 7. 번개런 생성 포인트 적립 (참여자가 있는 경우에만 지급)
         if (postType == PostType.FLASH) {
-            savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
+            boolean hasOtherAttendee = participants.stream()
+                    .anyMatch(participant ->
+                            participant.getParticipantStatus() == ParticipantStatus.ATTENDED &&
+                                    !participant.getUser().getId().equals(post.getPostCreator().getId()));
+
+            if (hasOtherAttendee) {
+                savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
+            }
         }
     }
 
