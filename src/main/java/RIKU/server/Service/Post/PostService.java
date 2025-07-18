@@ -45,6 +45,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
     private final CommentRepository commentRepository;
@@ -161,6 +162,7 @@ public class PostService {
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 관련 엔티티 삭제
+        userPointRepository.deleteByPost(post);
         participantRepository.deleteByPost(post);
         commentRepository.deleteByPost(post);
         pacerRepository.deleteByPost(post);

@@ -1,5 +1,6 @@
 package RIKU.server.Repository;
 
+import RIKU.server.Entity.Board.Post.Post;
 import RIKU.server.Entity.User.PointType;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserPoint;
@@ -32,4 +33,6 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
 
     // 기간별 유저 포인트 조회
     List<UserPoint> findByUserAndCreatedAtBetween(User user, LocalDateTime start, LocalDateTime end);
+
+    void deleteByPost(Post post);
 }
