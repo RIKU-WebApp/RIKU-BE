@@ -29,65 +29,75 @@ public class S3Uploader {
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
 
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    @Value("${storage.s3.base-prefix}")
+    private String basePrefix;
 
-    // File에 저장하지 않고 Memory에서 변환 시행
-    public String upload(MultipartFile file, String dirName) throws IOException {
-        if (file.getSize() > MAX_FILE_SIZE) {
-            log.error("파일 크기 초과: {} bytes", file.getSize());
-            throw new CustomException(BaseResponseStatus.FILE_SIZE_EXCEEDED);
-        }
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
-        String originFileName = file.getOriginalFilename();
-        String fileExtension = getFileExtension(originFileName);
-        String uniqueFilename = generateUniqueFileName(dirName,fileExtension);
+    public String upload(MultipartFile file, String relativePathOrDir) throws IOException {
+        validateSize(file.getSize());
 
-        //String fileName = dirName + "/" + file.getOriginalFilename();
+        String ext = getFileExtension(file.getOriginalFilename());
+        String relative = ensureFileName(relativePathOrDir, ext);
+        String key = resolveKey(relative);
+
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentType(file.getContentType());
         metadata.setContentLength(file.getSize());
 
         try (InputStream inputStream = file.getInputStream()) {
-            log.info("Starting upload for file: {}", uniqueFilename);
-            //amazonS3Client.putObject(new PutObjectRequest(bucket, uniqueFilename, inputStream, metadata));
-            putS3( uniqueFilename, inputStream, metadata);
-            log.info("File uploaded successfully: {}", uniqueFilename);
-            return amazonS3Client.getUrl(bucket, uniqueFilename).toString();
+            log.info("[S3] putObject bucket={}, key={}", bucket, key);
+            amazonS3Client.putObject(new PutObjectRequest(bucket, key, inputStream, metadata));
+            return amazonS3Client.getUrl(bucket, key).toString();
         } catch (IOException e) {
-            log.error("Error uploading file: {}", uniqueFilename, e);
+            log.error("S3 upload 실패: key={}", key, e);
             throw new CustomException(MULTIPARTFILE_CONVERT_FAIL_IN_MEMORY);
         }
     }
 
-    private String generateUniqueFileName(String dirName ,String fileExtension){
-        return dirName + "/" + UUID.randomUUID().toString() + fileExtension;
-    }
-
-    // 이미지 지우기
     public void deleteFileByUrl(String fileUrl) {
-        // 예시: https://bucket.s3.amazonaws.com/dirName/profile.xxx
-        // S3 URL 형식에 따라 객체 키를 추출하는 로직
         try {
-            URL url = new URL(fileUrl);
-            String path = url.getPath();        // 예시: /dirName/profile.xxx
-            String key = path.startsWith("/") ? path.substring(1) : path;       // path에서 key 파싱
-
-            if (amazonS3Client.doesObjectExist(bucket, key)) {
-                amazonS3Client.deleteObject(bucket, key);
-                log.info("S3에서 파일 삭제됨 : {}", key);
-            } else {
-                log.warn("삭제할 파일이 존재하지 않음 : {}", key);
-            }
+            String key = extractKeyFromUrl(fileUrl);
+            deleteByKey(key);
         } catch (MalformedURLException e) {
             log.error("URL 파싱 오류 : {}", fileUrl, e);
         }
     }
 
-    // 업로드하기
-    private String putS3(String fileName, InputStream uploadFile, ObjectMetadata metadata) {
-        log.info("Uploading to S3 bucket: {}, file: {}", bucket, fileName);
-        amazonS3Client.putObject(new PutObjectRequest(bucket, fileName, uploadFile,metadata));
-        return amazonS3Client.getUrl(bucket, fileName).toString();
+    private void validateSize(long size) {
+        if (size > MAX_FILE_SIZE) {
+            log.error("파일 크기 초과: {} bytes (limit={} bytes)", size, MAX_FILE_SIZE);
+            throw new CustomException(BaseResponseStatus.FILE_SIZE_EXCEEDED);
+        }
+    }
+
+    private void deleteByKey(String key) {
+        if (amazonS3Client.doesObjectExist(bucket, key)) {
+            amazonS3Client.deleteObject(bucket, key);
+            log.info("[S3] 삭제 완료: {}", key);
+        } else {
+            log.warn("[S3] 삭제 대상 없음: {}", key);
+        }
+    }
+
+    private String resolveKey(String relativePath) {
+        String pfx = ensureTrailingSlash(nullToEmpty(basePrefix));
+        String rel = stripLeadingSlash(nullToEmpty(relativePath));
+        return pfx + rel;
+    }
+
+    private String ensureFileName(String relativePathOrDir, String ext) {
+        String path = strip(relativePathOrDir);
+        if (!path.contains(".")) {
+            return (path.isEmpty() ? "" : path + "/") + UUID.randomUUID() + ext;
+        }
+        return path;
+    }
+
+    private String extractKeyFromUrl(String urlStr) throws MalformedURLException {
+        URL url = new URL(urlStr);
+        String path = url.getPath();
+        return stripLeadingSlash(path);
     }
 
     private String getFileExtension(String fileName){
@@ -100,4 +110,14 @@ public class S3Uploader {
         }
         return fileName.substring(lastIndexOf);
     }
+
+    private static String strip(String s) {
+        String t = nullToEmpty(s);
+        return stripTrailingSlash(stripLeadingSlash(t));
+    }
+
+    private static String nullToEmpty(String s) { return (s == null) ? "" : s; }
+    private static String stripLeadingSlash(String s) { return s.startsWith("/") ? s.substring(1) : s; }
+    private static String stripTrailingSlash(String s) { return (s.endsWith("/")) ? s.substring(0, s.length()-1) : s; }
+    private static String ensureTrailingSlash(String s) { return (s.endsWith("/")) ? s : (s + "/"); }
 }
