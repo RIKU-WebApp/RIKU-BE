@@ -1,80 +1,25 @@
 spring:
   profiles:
     group:
-      "local": "localPort, localDB, localS3, localSecret"
-      "dev": "devPort, devDB, devS3, devSecret"
-      "prod": "prodPort, prodDB, prodS3, prodSecret"
+      "local": "localDB, localS3, localSecret"
+      "dev": "devDB, devS3, devSecret"
+      "prod": "prodDB, prodS3, prodSecret"
 ---
-spring:
-  config:
-    activate:
-      on-profile: "devPort"
 
 server:
   port: 8080
-
----
-spring:
-  config:
-    activate:
-      on-profile: "devDB"
-
-  datasource:
-    url: ${DATASOURCE_URL_DEV}
-    username: ${DATASOURCE_USERNAME}
-    password: ${DATASOURCE_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-  h2:
-    console:
-      enabled: false
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-
-    properties:
-      hibernate:
-        format_sql: true
-        show_sql: true
-
-logging:
-  level:
-    org.hibernate.sql: debug
-
----
-spring:
-  config:
-    activate:
-      on-profile: "devS3"
-cloud:
-  aws:
-    credentials:
-      access-key: ${S3_ACCESS_KEY}
-      secret-key: ${S3_SECRET_KEY}
-    s3:
-      bucket: rikubucket
-    region:
-      static: ap-northeast-2 # 리전 정보(서울)
-    stack:
-      auto: false
-
----
-spring:
-  config:
-    activate:
-      on-profile: "devSecret"
-
-secret:
-
-  jwt-secret-key: ${JWT_SECRET_KEY}
-  jwt-access-expired-in: 7200000
-  jwt-refresh-expired-in: 5184000000
----
 
 spring:
   servlet:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
----
+
+cloud:
+  aws:
+    s3:
+      bucket: rikubucket
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
