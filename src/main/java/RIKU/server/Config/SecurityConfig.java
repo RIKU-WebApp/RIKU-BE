@@ -41,7 +41,6 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring()
-                .requestMatchers(new AntPathRequestMatcher("/h2-console/**"))
                 .requestMatchers(new AntPathRequestMatcher( "/favicon.ico"))
                 .requestMatchers(new AntPathRequestMatcher( "/css/**"))
                 .requestMatchers(new AntPathRequestMatcher( "/js/**"))
@@ -65,12 +64,6 @@ public class SecurityConfig {
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         .requestMatchers("/admin/**", "pacer/**").hasRole("ADMIN")
                         .requestMatchers("/pacers/**").hasAnyRole("ADMIN", "MEMBER");
-
-
-                    // 로컬 환경에서만 H2 콘솔 경로를 허용
-                    if (isLocal) {
-                        authorize.requestMatchers(PathRequest.toH2Console()).permitAll();
-                    }
 
                     authorize.anyRequest().authenticated();
                 })
