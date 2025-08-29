@@ -8,6 +8,7 @@ import RIKU.server.Service.ParticipantService;
 import RIKU.server.Util.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -98,13 +99,32 @@ public class ParticipantController {
             생성자가 출석하지 못한 참여자를 수동으로 출석 처리합니다.(생성자 권한)
             
             """)
-    @PatchMapping("/manual-attend")
+    @PatchMapping("/manual-attendance")
     public BaseResponse<Map<String, Object>> manualAttendRun(
             @PathVariable String runType,
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthMember authMember,
-            @RequestBody List<ManualAttendParticipantRequest> request) {
+            @Valid @RequestBody List<@Valid ManualAttendParticipantRequest> request) {
         participantService.manualAttendRun(runType, postId, authMember, request);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "출석 처리를 완료했습니다.");
+
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "종료 후 참여자 출석 처리", description = """
+            
+            운영진이 종료 후 출석하지 못한 참여자를 수동으로 출석 처리합니다.(운영진 권한)
+            
+            """)
+    @PatchMapping("/fix-attendance")
+    public BaseResponse<Map<String, Object>> fixAttendRun(
+            @PathVariable String runType,
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthMember authMember,
+            @Valid @RequestBody List<@Valid ManualAttendParticipantRequest> request) {
+        participantService.fixAttendRun(runType, postId, authMember, request);
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "출석 처리를 완료했습니다.");

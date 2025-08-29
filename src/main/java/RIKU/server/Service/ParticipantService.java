@@ -288,6 +288,63 @@ public class ParticipantService {
         });
     }
 
+    @Transactional
+    public void fixAttendRun(String runType, Long postId, AuthMember authMember, List<ManualAttendParticipantRequest> requests) {
+        // 1. 게시글 조회
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        // 2. PostType 검증
+        PostType postType = validatePostType(runType, post.getPostType());
+
+        // 3. PostStatus 검증
+        validatePostIsClose(post);
+
+        // 4. 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // 5. 출석 처리
+        for (ManualAttendParticipantRequest request : requests) {
+            Participant participant = participantRepository.findByPostIdAndUserId(postId, request.getUserId())
+                    .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+
+            boolean attend = Boolean.TRUE.equals(request.getIsAttend());
+            boolean isCreator = participant.getUser().getId().equals(post.getPostCreator().getId());
+
+            if (attend) {
+                if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                    participant.updateParticipantStatus(ParticipantStatus.ATTENDED);
+                }
+                if(!userPointRepository.existsByUserIdAndPostId(request.getUserId(), postId)) {
+                    try {
+                        switch (postType) {
+                            case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post);
+                            case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post);
+                            case EVENT -> savePoint(participant.getUser(), 8, "행사 참여", PointType.ADD_EVENT_JOIN, post);
+                            case FLASH -> {
+                                if (isCreator) {
+                                    savePoint(participant.getUser(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
+                                } else {
+                                    savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
+                                }
+                            }
+                        }
+                    } catch (org.springframework.dao.DataIntegrityViolationException ignore) {}
+                }
+            } else {
+                if (participant.getParticipantStatus() != ParticipantStatus.ABSENT) {
+                    participant.updateParticipantStatus(ParticipantStatus.ABSENT);
+                }
+                if (userPointRepository.existsByUserIdAndPostId(request.getUserId(), postId)) {
+                    userPointRepository.deleteByUserIdAndPostId(request.getUserId(), postId);
+                }
+            }
+        }
+
+    }
+
     private PostType validatePostType(String runType, PostType postType) {
         try {
             PostType requestType = PostType.valueOf(runType.toUpperCase());
@@ -356,6 +413,12 @@ public class ParticipantService {
 
     private void validatePostIsOpen(Post post) {
         if (!post.getPostStatus().equals(PostStatus.NOW)) {
+            throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
+        }
+    }
+
+    private void validatePostIsClose(Post post) {
+        if (!post.getPostStatus().equals(PostStatus.CLOSED)) {
             throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
         }
     }

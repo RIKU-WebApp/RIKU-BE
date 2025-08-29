@@ -35,4 +35,8 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
     List<UserPoint> findByUserAndCreatedAtBetween(User user, LocalDateTime start, LocalDateTime end);
 
     void deleteByPost(Post post);
+
+    boolean existsByUserIdAndPostId(Long userId, Long postId);
+
+    void deleteByUserIdAndPostId(Long userId, Long postId);
 }

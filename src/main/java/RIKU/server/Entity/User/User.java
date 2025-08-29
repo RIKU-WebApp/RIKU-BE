@@ -54,7 +54,7 @@ public class User extends BaseEntity {
     }
 
     public static User create(String studentId, String password, String name, String college, String major, String phone) {
-        return new User(studentId, password, name, college, major, phone, UserRole.MEMBER, Boolean.FALSE);
+        return new User(studentId, password, name, college, major, phone, UserRole.NEW_MEMBER, Boolean.FALSE);
     }
 
     public void updateProfile(String phone, String password, String profileImageUrl) {
