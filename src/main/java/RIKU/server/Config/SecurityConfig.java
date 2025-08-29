@@ -63,7 +63,7 @@ public class SecurityConfig {
                     authorize
                         .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
-                        .requestMatchers("/admin/**", "pacer/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**", "/pacer/**").hasRole("ADMIN")
                         .requestMatchers("/pacers/**").hasAnyRole("ADMIN", "MEMBER");
 
 
@@ -96,7 +96,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://localhost:5173",
                                                 "http://localhost:5174", "https://localhost:5174",
-                                                "https://www.riku.run", "https://riku-server.shop"));
+                                                "https://www.riku.run", "https://riku.run",
+                                                "https://test.riku.run", "https://riku-server.shop"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("location", "Authorization"));
