@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,7 +33,7 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     int countByPostId(@Param("postId") Long postId);
 
     // 특정 유저가 특정 상태로 참여한 횟수 조회
-    int countByUserAndParticipantStatus(User user, ParticipantStatus participantStatus);
+    int countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(User user, ParticipantStatus participantStatus, LocalDateTime fromUtc);
 
     // 특정 게시글 페이저 유저 ID 조회
     @Query("SELECT p.user.id FROM Pacer p WHERE p.post = :post")
