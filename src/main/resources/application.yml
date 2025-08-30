@@ -23,3 +23,7 @@ cloud:
       static: ap-northeast-2
     stack:
       auto: false
+
+---
+season:
+  start-date: 2025-09-01   # KST 기준
