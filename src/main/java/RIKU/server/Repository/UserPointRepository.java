@@ -17,9 +17,15 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
     // 유저 출석 내역 중복 확인
     boolean existsByUserAndPointTypeAndCreatedAtBetween(User user, PointType pointType, LocalDateTime start, LocalDateTime end);
 
+    // 포인트 리스트 조회
+    List<UserPoint> findByUserAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(User user, LocalDateTime fromUtc);
+
     // 유저 포인트 총합
-    @Query("SELECT COALESCE(SUM(up.point), 0) FROM UserPoint up WHERE up.user = :user")
-    int sumPointsByUser(@Param("user") User user);
+    @Query("SELECT COALESCE(SUM(up.point), 0) " +
+            "FROM UserPoint up " +
+            "WHERE up.user = :user " +
+            "AND up.createdAt >= :fromUtc")
+    int sumPointsByUserSince(@Param("user") User user, @Param("fromUtc") LocalDateTime fromUtc);
 
     // 해당 월 출석 현황 리스트 조회
     @Query("SELECT up.createdAt FROM UserPoint  up " +

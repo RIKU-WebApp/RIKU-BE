@@ -26,7 +26,7 @@ public class UserPointController {
 
     @Operation(summary = " 전체 유저 포인트 랭킹 조회", description = """
             
-            현재 로그인한 유저의 전체 포인트 랭킹을 포함한 상위 20명의 랭킹 정보를 반환합니다.
+            현재 로그인한 유저의 전체 포인트 랭킹을 포함한 상위 20명의 랭킹 정보를 반환합니다.(시즌제)
             
             """)
     @GetMapping("/ranking")
@@ -37,7 +37,7 @@ public class UserPointController {
 
     @Operation(summary = "마이페이지 활동내역 조회", description = """
             
-            로그인한 유저의 포인트 내역, 참여 내역, 누적 포인트, 랭킹을 반환합니다.
+            로그인한 유저의 포인트 내역, 참여 내역, 누적 포인트, 랭킹을 반환합니다.(시즌제)
             
             """)
     @GetMapping("/user/profile/participations")

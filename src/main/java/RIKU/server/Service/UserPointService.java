@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -36,44 +37,40 @@ public class UserPointService {
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
 
+    private static final LocalDate SEASON_START_KST = LocalDate.of(2025,9,1);
+
+    private LocalDateTime seasonStartUtc() {
+        return DateTimeUtils.startOfDayUtc(SEASON_START_KST);
+    }
+
+    // 전체 랭킹(시즌)
     public ReadUserRankingResponse getUserPointRanking(AuthMember authMember) {
         // 1. 유저 조회
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        return calculateUserRankAndTop20(user);
+        return calculateUserRankAndTop20(user, seasonStartUtc());
     }
 
-    // 활동 내역 조회
+    // 마이페이지 활동 내역 조회
     public ReadUserParticipationsResponse getParticipations(AuthMember authMember) {
         // 1. 유저 조회
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
+        LocalDateTime fromUtc = seasonStartUtc();
+
         // 2. 유저 포인트 조회
-        List<UserPoint> userPoints = userPointRepository.findAll().stream()
-                .filter(p -> p.getUser().equals(user))
-                .sorted(Comparator.comparing(UserPoint::getCreatedAt).reversed())
-                .toList();
+        List<UserPoint> userPoints = userPointRepository.findByUserAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(user, fromUtc);
 
         // 3. 포인트 총합 계산
-        int totalPoint = userPointRepository.sumPointsByUser(user);
-
-        // 🔍 포인트별 createdAt 로그 출력
-        log.info("📌 유저 ID={}의 포인트 총합: {}", user.getId(), totalPoint);
-
-        userPoints.forEach(point -> {
-            var utcTime = point.getCreatedAt();
-            var kstDate = DateTimeUtils.toUserLocalDate(utcTime);
-            log.info("🟡 Point ID: {}, UTC createdAt: {}, KST LocalDate: {}, Type: {}",
-                    point.getId(), utcTime, kstDate, point.getPointType());
-        });
+        int totalPoint = userPointRepository.sumPointsByUserSince(user, fromUtc);
 
         // 4. 참여 내역 수
-        int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+        int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
 
         // 5. 랭킹 계산
-        ReadUserRankingResponse ranking = calculateUserRankAndTop20(user);
+        ReadUserRankingResponse ranking = calculateUserRankAndTop20(user, fromUtc);
 
         // 6. 포인트 리스트 DTO 변환
         List<ReadPointListResponse> pointResponses = userPoints.stream()
@@ -115,14 +112,14 @@ public class UserPointService {
         return processRanking(userPointList, authMember.getId());
     }
 
-    private ReadUserRankingResponse calculateUserRankAndTop20(User user) {
+    private ReadUserRankingResponse calculateUserRankAndTop20(User user, LocalDateTime fromUtc) {
 
         // 전체 사용자 조회
         List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE);
 
         // 유저별 포인트 총합 계산 후 정렬
         List<ReadUserPointResponse> userPointList = users.stream()
-                .map(u -> ReadUserPointResponse.of(u, userPointRepository.sumPointsByUser(u)))
+                .map(u -> ReadUserPointResponse.of(u, userPointRepository.sumPointsByUserSince(u, fromUtc)))
                 .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
                         .thenComparing(ReadUserPointResponse::getUserName))
                 .toList();
