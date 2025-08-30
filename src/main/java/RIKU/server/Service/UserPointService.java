@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Config.SeasonProvider;
 import RIKU.server.Dto.User.Request.ReadUserEventRankingRequest;
 import RIKU.server.Dto.User.Response.ReadPointListResponse;
 import RIKU.server.Dto.User.Response.ReadUserParticipationsResponse;
@@ -36,12 +37,7 @@ public class UserPointService {
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
-
-    private static final LocalDate SEASON_START_KST = LocalDate.of(2025,9,1);
-
-    private LocalDateTime seasonStartUtc() {
-        return DateTimeUtils.startOfDayUtc(SEASON_START_KST);
-    }
+    private final SeasonProvider seasonProvider;
 
     // 전체 랭킹(시즌)
     public ReadUserRankingResponse getUserPointRanking(AuthMember authMember) {
@@ -49,7 +45,7 @@ public class UserPointService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        return calculateUserRankAndTop20(user, seasonStartUtc());
+        return calculateUserRankAndTop20(user, seasonProvider.seasonStartUtc());
     }
 
     // 마이페이지 활동 내역 조회
@@ -58,7 +54,7 @@ public class UserPointService {
         User user = userRepository.findById(authMember.getId())
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
-        LocalDateTime fromUtc = seasonStartUtc();
+        LocalDateTime fromUtc = seasonProvider.seasonStartUtc();
 
         // 2. 유저 포인트 조회
         List<UserPoint> userPoints = userPointRepository.findByUserAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(user, fromUtc);

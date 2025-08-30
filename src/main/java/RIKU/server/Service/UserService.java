@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Config.SeasonProvider;
 import RIKU.server.Dto.User.Request.UpdateProfileRequest;
 import RIKU.server.Dto.User.Request.SignUpUserRequest;
 import RIKU.server.Dto.User.Response.ReadUserProfileDetailResponse;
@@ -38,6 +39,7 @@ public class UserService {
     private final ParticipantRepository participantRepository;
     private final PasswordEncoder passwordEncoder;
     private final S3Uploader s3Uploader;
+    private final SeasonProvider seasonProvider;
 
     // 회원가입
     @Transactional
@@ -59,10 +61,11 @@ public class UserService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 2. 유저 포인트 총합
-        int totalPoints = userPointRepository.sumPointsByUser(user);
+        LocalDateTime fromUtc = seasonProvider.seasonStartUtc();
+        int totalPoints = userPointRepository.sumPointsByUserSince(user, fromUtc);
 
         // 3. 출석 완료한 참여내역 수
-        int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+        int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
 
         // 4. 해당 월의 출석 현황 리스트
         LocalDate startDate = date.withDayOfMonth(1);

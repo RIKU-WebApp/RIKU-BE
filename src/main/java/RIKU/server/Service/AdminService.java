@@ -1,5 +1,6 @@
 package RIKU.server.Service;
 
+import RIKU.server.Config.SeasonProvider;
 import RIKU.server.Dto.User.Request.AuthorizePacerRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ public class AdminService {
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SeasonProvider seasonProvider;
 
     public List<ReadUsersResponse> getUsers(AuthMember authMember) {
         // 운영진 권한 검증
@@ -40,11 +43,12 @@ public class AdminService {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
+        LocalDateTime fromUtc = seasonProvider.seasonStartUtc();
         return userRepository.findAll()
                 .stream()
                 .map(user -> {
-                    int totalPoints = userPointRepository.sumPointsByUser(user);
-                    int participationCount = participantRepository.countByUserAndParticipantStatus(user, ParticipantStatus.ATTENDED);
+                    int totalPoints = userPointRepository.sumPointsByUserSince(user, fromUtc);
+                    int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
                     return ReadUsersResponse.of(user, totalPoints, participationCount);
                 })
                 .collect(Collectors.toList());
