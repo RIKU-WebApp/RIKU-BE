@@ -2,10 +2,14 @@ package RIKU.server.Config;
 
 import RIKU.server.Security.JwtAuthenticationFilter;
 import RIKU.server.Security.JwtTokenProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
@@ -18,6 +22,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -50,8 +55,6 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        boolean isLocal = isLocalProfile();
-
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,6 +63,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> {
                     authorize
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         .requestMatchers("/admin/**", "/pacer/**").hasRole("ADMIN")
@@ -74,16 +78,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    private boolean isLocalProfile() {
-        String[] activeProfiles = environment.getActiveProfiles();
-        for (String profile : activeProfiles) {
-            if (profile.equals("local")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -92,14 +86,21 @@ public class SecurityConfig {
                                                 "https://www.riku.run", "https://riku.run",
                                                 "https://test.riku.run", "https://riku-server.shop",
                                                 "https://test.riku-server.shop"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setExposedHeaders(List.of("location", "Authorization"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
+        configuration.addAllowedHeader("*");
+        configuration.setExposedHeaders(List.of("Location","Authorization","ETag"));
+        configuration.setMaxAge(3600L);
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public org.springframework.web.filter.CorsFilter corsFilter(@Qualifier("corsConfigurationSource") CorsConfigurationSource source) {
+        return new org.springframework.web.filter.CorsFilter(source);
     }
 
 }
