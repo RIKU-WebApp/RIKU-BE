@@ -96,11 +96,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    public org.springframework.web.filter.CorsFilter corsFilter(@Qualifier("corsConfigurationSource") CorsConfigurationSource source) {
-        return new org.springframework.web.filter.CorsFilter(source);
-    }
-
 }
