@@ -2,6 +2,7 @@ package RIKU.server.Security;
 
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.CustomJwtException;
+import RIKU.server.Util.Exception.Domain.UserException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -13,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -35,8 +37,13 @@ public class JwtTokenProvider {
 
     public final String BEARER = "Bearer ";
 
-    public JwtTokenProvider(@Value("${secret.jwt-secret-key}") String JWT_SECRET_KEY, JwtParser jwtParser) {
+    private final UserDetailsService userDetailsService;
+
+    public JwtTokenProvider(@Value("${secret.jwt-secret-key}") String JWT_SECRET_KEY,
+                            UserDetailsService userDetailsService,
+                            JwtParser jwtParser) {
         this.jwtParser = jwtParser;
+        this.userDetailsService = userDetailsService;
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(JWT_SECRET_KEY));
     }
 
@@ -89,18 +96,13 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         String username = jwtParser.parseSub(token);
-        Long userId = Long.parseLong(username);
-        String role = jwtParser.parseRole(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-        List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(role);
+        if (!userDetails.isEnabled()) {
+            throw new UserException(BaseResponseStatus.INACTIVE_USER);
+        }
 
-        UserDetails authMember = AuthMember.builder()
-                .id(userId)
-                .username(username)
-                .authorities(authorities)
-                .build();
-
-        return new UsernamePasswordAuthenticationToken(authMember, "", authorities);
+        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 
 }
