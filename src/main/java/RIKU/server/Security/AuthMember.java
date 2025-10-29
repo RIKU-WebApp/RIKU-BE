@@ -22,6 +22,8 @@ public class AuthMember implements UserDetails {
 
     private final List<GrantedAuthority> authorities;
 
+    private final boolean enabled;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.unmodifiableList(authorities);
@@ -54,7 +56,7 @@ public class AuthMember implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 
     public boolean isAdmin() {
@@ -62,14 +64,15 @@ public class AuthMember implements UserDetails {
                 .anyMatch(auth -> auth.getAuthority().equals(UserRole.ADMIN.getRole()));
     }
 
-    private AuthMember(Long id, String username, String password, List<GrantedAuthority> authorities) {
+    private AuthMember(Long id, String username, String password, List<GrantedAuthority> authorities, boolean enabled) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.authorities = authorities;
+        this.enabled = enabled;
     }
 
-    public static AuthMember of(Long id, String username, String password, List<GrantedAuthority> authorities) {
-        return new AuthMember(id, username, password, authorities);
+    public static AuthMember of(Long id, String username, String password, List<GrantedAuthority> authorities, boolean enabled) {
+        return new AuthMember(id, username, password, authorities, enabled);
     }
 }

@@ -48,6 +48,7 @@ public enum BaseResponseStatus {
     METHOD_ARGUMENT_TYPE_MISMATCH(false, 2022, "Request Parameter나 Path Variable의 유형이 불일치합니다."),
     PROFILE_IMAGE_UPLOAD_FAILED(false, 2023, "프로필 이미지 업로드에 실패하였습니다."),
     ALREADY_ATTENDED_TODAY(false, 2024, "이미 오늘 출석했습니다."),
+    INACTIVE_USER(false, 2025, "비활성화 유저입니다."),
 
     // PostException
     POST_NOT_FOUND(false, 3001, "존재하지 않는 게시글입니다."),
