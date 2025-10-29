@@ -30,6 +30,10 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
 
         UserDetails loginMember = service.loadUserByUsername(studentId);
 
+        if (!loginMember.isEnabled()) {
+            throw new UserException(BaseResponseStatus.INACTIVE_USER);
+        }
+
         if (!bCryptPasswordEncoder.matches(password, loginMember.getPassword())) {
             throw new UserException(BaseResponseStatus.INVALID_PASSWORD);
         }
