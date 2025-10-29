@@ -3,7 +3,6 @@ package RIKU.server.Service;
 import RIKU.server.Dto.User.Request.LoginUserRequest;
 import RIKU.server.Dto.User.Response.LoginUserResponse;
 import RIKU.server.Dto.User.Response.UpdateUserRoleResponse;
-import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Entity.User.UserRole;
 import RIKU.server.Repository.UserRepository;
@@ -33,14 +32,6 @@ public class AuthService {
 
     @Transactional
     public LoginUserResponse login(LoginUserRequest request) {
-        // 유저 조회
-        User user = userRepository.findByStudentId(request.getStudentId())
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-        if (user.getStatus() != BaseStatus.ACTIVE) {
-            throw new UserException(BaseResponseStatus.INACTIVE_USER);
-        }
-
         //Spring Security 사용자 인증
         Authentication authenticationToken = new UsernamePasswordAuthenticationToken(request.getStudentId(), request.getPassword());
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);

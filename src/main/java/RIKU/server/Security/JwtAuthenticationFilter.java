@@ -25,6 +25,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = resolveToken(request);
 
+        log.debug("Request URI: " + request.getRequestURI());
+        log.debug("Token resolved: " + token);
+
         /**
          * @Breif 토큰 검증 후 Spring Security Context에 인증 정보 담음
          * @Condition 토큰 값이 존재하고, 검증 되었으면 실행
@@ -32,8 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 Authentication authentication = jwtTokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Authentication set in SecurityContextHolder: " + authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);log.debug("Authentication set in SecurityContextHolder: " + authentication);
             } else {
                 log.debug("No valid token found or token validation failed.");
             }

@@ -61,8 +61,7 @@ public class ParticipantService {
 
         // 5. 날짜 검증
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime openFrom = post.getDate().minusMinutes(10);
-        if (now.isBefore(openFrom)) {
+        if (post.getDate().isAfter(now)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_TIME);
         }
 

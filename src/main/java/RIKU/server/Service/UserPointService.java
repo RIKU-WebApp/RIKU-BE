@@ -27,16 +27,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class UserPointService {
-
-    private static final Set<Long> EXCLUDED_USER_IDS = Set.of(6L, 15L); // 회장 부회장
 
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
@@ -87,9 +83,7 @@ public class UserPointService {
                 .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         // 2. 전체 사용자 조회
-        List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE).stream()
-                .filter(u -> !EXCLUDED_USER_IDS.contains(u.getId()))
-                .toList();
+        List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE);
 
         // 3. utc 시간 변경
         LocalDateTime startUtc = DateTimeUtils.startOfDayUtc(request.getStartDate());
@@ -116,10 +110,8 @@ public class UserPointService {
 
     private ReadUserRankingResponse calculateUserRankAndTop20(User user, LocalDateTime fromUtc) {
 
-        // 전체 사용자 조회 후 제외 대상 제거
-        List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE).stream()
-                .filter(u -> !EXCLUDED_USER_IDS.contains(u.getId()))
-                .toList();
+        // 전체 사용자 조회
+        List<User> users = userRepository.findByStatus(BaseStatus.ACTIVE);
 
         // 유저별 포인트 총합 계산 후 정렬
         List<ReadUserPointResponse> userPointList = users.stream()
@@ -132,11 +124,6 @@ public class UserPointService {
     }
 
     private ReadUserRankingResponse processRanking(List<ReadUserPointResponse> userPointList, Long userId) {
-        if(EXCLUDED_USER_IDS.contains(userId)) {
-            List<ReadUserPointResponse> top20 = userPointList.stream().limit(20).toList();
-            return ReadUserRankingResponse.of(top20, -1, null);
-        }
-
         // 공동 순위 처리
         int rank = 1;      // 현재 순위
         int prevPoints = -1;  // 이전 유저의 포인트 값

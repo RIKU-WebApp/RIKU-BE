@@ -1,6 +1,5 @@
 package RIKU.server.Security;
 
-import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.User.User;
 import RIKU.server.Repository.UserRepository;
 import RIKU.server.Util.BaseResponseStatus;
@@ -24,13 +23,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String studentId) throws UsernameNotFoundException {
+        log.info("UserDetailsServiceImpl 진입");
         User user = userRepository.findByStudentId(studentId).orElseThrow(() ->
                 new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
         List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(user.getUserRole().getRole());
 
-        boolean enabled = user.getStatus() == BaseStatus.ACTIVE;
-
-        return AuthMember.of(user.getId(), user.getStudentId(), user.getPassword(), authorities, enabled);
+        return AuthMember.of(user.getId(), user.getStudentId(), user.getPassword(), authorities);
     }
 }

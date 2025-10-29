@@ -23,14 +23,12 @@ public class AuthenticationProviderImpl implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        log.info("AuthenticationProviderImpl 진입");
+
         String studentId = authentication.getName(); // 학번
         String password = (String) authentication.getCredentials();
 
         UserDetails loginMember = service.loadUserByUsername(studentId);
-
-        if (!loginMember.isEnabled()) {
-            throw new UserException(BaseResponseStatus.INACTIVE_USER);
-        }
 
         if (!bCryptPasswordEncoder.matches(password, loginMember.getPassword())) {
             throw new UserException(BaseResponseStatus.INVALID_PASSWORD);
