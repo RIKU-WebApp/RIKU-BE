@@ -1,7 +1,11 @@
 package RIKU.server.Security;
 
+import RIKU.server.Entity.Base.BaseStatus;
+import RIKU.server.Entity.User.User;
+import RIKU.server.Repository.UserRepository;
 import RIKU.server.Util.BaseResponseStatus;
 import RIKU.server.Util.Exception.CustomJwtException;
+import RIKU.server.Util.Exception.Domain.UserException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -31,12 +35,12 @@ public class JwtTokenProvider {
 
     private final Key key;
 
-    private final JwtParser jwtParser;
+    private final UserRepository userRepository;
 
-    public final String BEARER = "Bearer ";
+    public static final String BEARER = "Bearer ";
 
-    public JwtTokenProvider(@Value("${secret.jwt-secret-key}") String JWT_SECRET_KEY, JwtParser jwtParser) {
-        this.jwtParser = jwtParser;
+    public JwtTokenProvider(@Value("${secret.jwt-secret-key}") String JWT_SECRET_KEY, UserRepository userRepository) {
+        this.userRepository = userRepository;
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(JWT_SECRET_KEY));
     }
 
@@ -44,16 +48,16 @@ public class JwtTokenProvider {
         AuthMember authMember = (AuthMember) authentication.getPrincipal();
 
         String accessToken = Jwts.builder()
-                .setSubject(authentication.getName())
-                .claim("sub", String.valueOf(authMember.getId()))
+                .setSubject(String.valueOf(authMember.getId()))
+                .claim("sid", authMember.getUsername())
                 .claim("role", authMember.getAuthorities().iterator().next().getAuthority())
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_ACCESS_EXPIRED_IN))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
 
         String refreshToken = Jwts.builder()
-                .setSubject(authentication.getName())
-                .claim("sub", String.valueOf(authMember.getId()))
+                .setSubject(String.valueOf(authMember.getId()))
+                .claim("sid", authMember.getUsername())
                 .claim("role", authMember.getAuthorities().iterator().next().getAuthority())
                 .setExpiration(new Date(System.currentTimeMillis() + JWT_REFRESH_EXPIRED_IN))
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -88,16 +92,26 @@ public class JwtTokenProvider {
     }
 
     public Authentication getAuthentication(String token) {
-        String username = jwtParser.parseSub(token);
-        Long userId = Long.parseLong(username);
-        String role = jwtParser.parseRole(token);
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key).build()
+                .parseClaimsJws(token).getBody();
 
-        List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(role);
+        Long userId = Long.parseLong(claims.getSubject());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        if (user.getStatus() != BaseStatus.ACTIVE) {
+            throw new UserException(BaseResponseStatus.INACTIVE_USER);
+        }
+
+        List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList(user.getUserRole().getRole());
 
         UserDetails authMember = AuthMember.builder()
-                .id(userId)
-                .username(username)
+                .id(user.getId())
+                .username(user.getStudentId())
                 .authorities(authorities)
+                .status(user.getStatus())
                 .build();
 
         return new UsernamePasswordAuthenticationToken(authMember, "", authorities);
