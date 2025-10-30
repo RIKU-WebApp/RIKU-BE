@@ -1,5 +1,6 @@
 package RIKU.server.Security;
 
+import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.User.UserRole;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,6 +22,9 @@ public class AuthMember implements UserDetails {
     private final String password;
 
     private final List<GrantedAuthority> authorities;
+
+    private final BaseStatus status;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -54,7 +58,7 @@ public class AuthMember implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return status == BaseStatus.ACTIVE;
     }
 
     public boolean isAdmin() {
@@ -62,14 +66,15 @@ public class AuthMember implements UserDetails {
                 .anyMatch(auth -> auth.getAuthority().equals(UserRole.ADMIN.getRole()));
     }
 
-    private AuthMember(Long id, String username, String password, List<GrantedAuthority> authorities) {
+    private AuthMember(Long id, String username, String password, List<GrantedAuthority> authorities, BaseStatus status) {
         this.id = id;
         this.username = username;
         this.password = password;
         this.authorities = authorities;
+        this.status = status;
     }
 
-    public static AuthMember of(Long id, String username, String password, List<GrantedAuthority> authorities) {
-        return new AuthMember(id, username, password, authorities);
+    public static AuthMember of(Long id, String username, String password, List<GrantedAuthority> authorities, BaseStatus status) {
+        return new AuthMember(id, username, password, authorities, status);
     }
 }
