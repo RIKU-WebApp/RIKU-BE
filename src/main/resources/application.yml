@@ -6,9 +6,6 @@ spring:
       "prod": "prodDB, prodS3, prodSecret"
 ---
 
-server:
-  port: 8080
-
 spring:
   servlet:
     multipart:
