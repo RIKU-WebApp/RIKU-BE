@@ -85,7 +85,8 @@ public class SecurityConfig {
                                                 "http://localhost:5174", "https://localhost:5174",
                                                 "https://www.riku.run", "https://riku.run",
                                                 "https://test.riku.run", "https://riku-server.shop",
-                                                "https://test.riku-server.shop"));
+                                                "https://test.riku-server.shop", "https://riku-server.store",
+                                                "https://test.riku-server.store"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         configuration.addAllowedHeader("*");
         configuration.setExposedHeaders(List.of("Location","Authorization","ETag"));
