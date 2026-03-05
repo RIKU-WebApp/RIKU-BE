@@ -23,10 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.text.Collator;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 @Service
@@ -36,6 +37,7 @@ import java.util.Set;
 public class UserPointService {
 
     private static final Set<Long> EXCLUDED_USER_IDS = Set.of(10L, 29L); // 회장 부회장
+    private static final Collator KOREAN_COLLATOR = Collator.getInstance(Locale.KOREAN);
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
@@ -107,7 +109,7 @@ public class UserPointService {
                     return ReadUserPointResponse.of(u, total);
                         } )
                 .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
-                        .thenComparing(ReadUserPointResponse::getUserName))
+                        .thenComparing(ReadUserPointResponse::getUserName, KOREAN_COLLATOR))
                 .toList();
         return processRanking(userPointList, authMember.getId());
     }
@@ -123,7 +125,7 @@ public class UserPointService {
         List<ReadUserPointResponse> userPointList = users.stream()
                 .map(u -> ReadUserPointResponse.of(u, userPointRepository.sumPointsByUserSince(u, fromUtc)))
                 .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
-                        .thenComparing(ReadUserPointResponse::getUserName))
+                        .thenComparing(ReadUserPointResponse::getUserName, KOREAN_COLLATOR))
                 .toList();
 
         return processRanking(userPointList, user.getId());

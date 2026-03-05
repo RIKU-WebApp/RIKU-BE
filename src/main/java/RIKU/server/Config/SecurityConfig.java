@@ -2,12 +2,8 @@ package RIKU.server.Config;
 
 import RIKU.server.Security.JwtAuthenticationFilter;
 import RIKU.server.Security.JwtTokenProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,7 +18,6 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter;
 
 import java.util.List;
 
@@ -81,12 +76,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "https://localhost:5173",
-                                                "http://localhost:5174", "https://localhost:5174",
-                                                "https://www.riku.run", "https://riku.run",
-                                                "https://test.riku.run", "https://riku-server.shop",
-                                                "https://test.riku-server.shop", "https://riku-server.store",
-                                                "https://test.riku-server.store"));
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:5173", "http://localhost:5174",
+                "https://localhost:5173", "https://localhost:5174",
+                "https://riku.run",
+                "https://*.riku.run",
+                "https://riku-server.store",
+                "https://*.riku-server.store"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         configuration.addAllowedHeader("*");
         configuration.setExposedHeaders(List.of("Location","Authorization","ETag"));
