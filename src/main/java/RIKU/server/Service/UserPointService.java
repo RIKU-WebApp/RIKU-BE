@@ -35,7 +35,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserPointService {
 
-    private static final Set<Long> EXCLUDED_USER_IDS = Set.of(6L, 15L); // 회장 부회장
+    private static final Set<Long> EXCLUDED_USER_IDS = Set.of(10L, 29L); // 회장 부회장
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
