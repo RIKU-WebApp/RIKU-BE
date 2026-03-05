@@ -22,4 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 페이서 조회
     List<User> findByIsPacer(Boolean isPacer);
+
+    // 이름으로 조회
+    List<User> findByNameContainingIgnoreCaseOrderByNameAscIdAsc(String name);
 }

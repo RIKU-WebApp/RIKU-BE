@@ -4,6 +4,7 @@ import RIKU.server.Dto.User.Request.AuthorizePacerRequest;
 import RIKU.server.Dto.User.Request.UpdateUsersRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
+import RIKU.server.Dto.User.Response.SearchAdminUsersResponse;
 import RIKU.server.Security.AuthMember;
 import RIKU.server.Service.AdminService;
 import RIKU.server.Util.BaseResponse;
@@ -38,6 +39,19 @@ public class AdminController {
     @GetMapping("/admin")
     public BaseResponse<List<ReadUsersResponse>> getUsers(@AuthenticationPrincipal AuthMember authMember) {
         List<ReadUsersResponse> response = adminService.getUsers(authMember);
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "운영진 이름 검색 부원 조회", description = """
+            
+            운영진 페이지에서 이름으로 부원을 검색합니다. (운영진 권한)
+            
+            """)
+    @GetMapping("/admin/user/search")
+    public BaseResponse<List<SearchAdminUsersResponse>> searchUsersByName(
+            @AuthenticationPrincipal AuthMember authMember,
+            @RequestParam String name) {
+        List<SearchAdminUsersResponse> response = adminService.searchUsersByName(authMember, name);
         return new BaseResponse<>(response);
     }
 

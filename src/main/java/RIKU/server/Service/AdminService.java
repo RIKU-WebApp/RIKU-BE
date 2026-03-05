@@ -4,6 +4,7 @@ import RIKU.server.Config.SeasonProvider;
 import RIKU.server.Dto.User.Request.AuthorizePacerRequest;
 import RIKU.server.Dto.User.Response.ReadPacersResponse;
 import RIKU.server.Dto.User.Response.ReadUsersResponse;
+import RIKU.server.Dto.User.Response.SearchAdminUsersResponse;
 import RIKU.server.Dto.User.Request.UpdateUsersRequest;
 import RIKU.server.Entity.Base.BaseStatus;
 import RIKU.server.Entity.Participant.ParticipantStatus;
@@ -24,6 +25,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +53,20 @@ public class AdminService {
                     int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
                     return ReadUsersResponse.of(user, totalPoints, participationCount);
                 })
+                .collect(Collectors.toList());
+    }
+
+    public List<SearchAdminUsersResponse> searchUsersByName(AuthMember authMember, String name) {
+        if (!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+        if (Objects.isNull(name) || name.isBlank()) {
+            throw new UserException(BaseResponseStatus.EMPTY_REQUEST_PARAMETER);
+        }
+
+        return userRepository.findByNameContainingIgnoreCaseOrderByNameAscIdAsc(name.trim())
+                .stream()
+                .map(SearchAdminUsersResponse::of)
                 .collect(Collectors.toList());
     }
 
