@@ -28,6 +28,7 @@ import java.text.Collator;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -109,7 +110,8 @@ public class UserPointService {
                     return ReadUserPointResponse.of(u, total);
                         } )
                 .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
-                        .thenComparing(ReadUserPointResponse::getUserName, KOREAN_COLLATOR))
+                        .thenComparing((a, b) -> compareUserNameForRanking(a.getUserName(), b.getUserName()))
+                        .thenComparing(ReadUserPointResponse::getUserId))
                 .toList();
         return processRanking(userPointList, authMember.getId());
     }
@@ -125,7 +127,8 @@ public class UserPointService {
         List<ReadUserPointResponse> userPointList = users.stream()
                 .map(u -> ReadUserPointResponse.of(u, userPointRepository.sumPointsByUserSince(u, fromUtc)))
                 .sorted(Comparator.comparingInt(ReadUserPointResponse::getTotalPoints).reversed()
-                        .thenComparing(ReadUserPointResponse::getUserName, KOREAN_COLLATOR))
+                        .thenComparing((a, b) -> compareUserNameForRanking(a.getUserName(), b.getUserName()))
+                        .thenComparing(ReadUserPointResponse::getUserId))
                 .toList();
 
         return processRanking(userPointList, user.getId());
@@ -177,5 +180,28 @@ public class UserPointService {
             case REMOVE -> "차감";
             default -> "기타";
         };
+    }
+
+    private int compareUserNameForRanking(String left, String right) {
+        String l = Objects.toString(left, "").trim();
+        String r = Objects.toString(right, "").trim();
+
+        int lCategory = nameCategory(l);
+        int rCategory = nameCategory(r);
+        if (lCategory != rCategory) {
+            return Integer.compare(lCategory, rCategory);
+        }
+        return KOREAN_COLLATOR.compare(l, r);
+    }
+
+    private int nameCategory(String name) {
+        if (name.isEmpty()) {
+            return 2;
+        }
+        return isHangul(name.charAt(0)) ? 0 : 1;
+    }
+
+    private boolean isHangul(char ch) {
+        return (ch >= '\uAC00' && ch <= '\uD7A3') || (ch >= '\u3131' && ch <= '\u318E');
     }
 }
