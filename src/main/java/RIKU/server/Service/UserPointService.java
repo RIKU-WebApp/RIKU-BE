@@ -37,7 +37,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserPointService {
 
-    private static final Set<Long> EXCLUDED_USER_IDS = Set.of(10L, 29L); // 회장 부회장
+    private static final Set<Long> EXCLUDED_USER_IDS = Set.of(10L, 29L, 6L, 79L); // 회장, 부회장, 운영진
     private static final Collator KOREAN_COLLATOR = Collator.getInstance(Locale.KOREAN);
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
