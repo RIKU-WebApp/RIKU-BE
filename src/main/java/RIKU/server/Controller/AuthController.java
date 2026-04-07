@@ -1,6 +1,7 @@
 package RIKU.server.Controller;
 
 import RIKU.server.Dto.User.Request.LoginUserRequest;
+import RIKU.server.Dto.User.Request.RefreshTokenRequest;
 import RIKU.server.Dto.User.Response.LoginUserResponse;
 import RIKU.server.Dto.User.Response.UpdateUserRoleResponse;
 import RIKU.server.Entity.User.UserRole;
@@ -36,6 +37,32 @@ public class AuthController {
         LoginUserResponse response = authService.login(request);
 
         return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "토큰 재발급", description = """
+
+            Refresh Token으로 새로운 Access Token과 Refresh Token을 발급합니다.
+
+            """)
+    @PostMapping("/reissue")
+    public BaseResponse<LoginUserResponse> reissue(@Validated @RequestBody RefreshTokenRequest request, BindingResult bindingResult) {
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
+        LoginUserResponse response = authService.reissue(request);
+        return new BaseResponse<>(response);
+    }
+
+    @Operation(summary = "로그아웃", description = """
+
+            로그아웃을 진행합니다.
+
+            """)
+    @PostMapping("/logout")
+    public BaseResponse<Void> logout(@Validated @RequestBody RefreshTokenRequest request, BindingResult bindingResult) {
+        if (bindingResult.hasFieldErrors()) throw new FieldValidationException(bindingResult);
+
+        authService.logout(request);
+        return new BaseResponse<>(BaseResponseStatus.SUCCESS);
     }
 
     @Operation(summary = "유저 등급 변경", description = """
