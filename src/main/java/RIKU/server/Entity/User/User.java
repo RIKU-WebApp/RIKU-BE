@@ -42,6 +42,9 @@ public class User extends BaseEntity {
     @Column(name = "is_pacer")
     private Boolean isPacer;
 
+    @Column(name = "refresh_token", length = 512)
+    private String refreshToken;
+
     private User(String studentId, String password, String name, String college, String major, String phone, UserRole userRole, Boolean isPacer) {
         this.studentId = studentId;
         this.password = password;
@@ -70,4 +73,6 @@ public class User extends BaseEntity {
     }
 
     public void updatePassword(String password) { this.password = password; }
+
+    public void updateRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
 }

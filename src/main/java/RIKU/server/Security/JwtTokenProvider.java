@@ -91,6 +91,19 @@ public class JwtTokenProvider {
         }
     }
 
+    public Long validateRefreshTokenAndGetUserId(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(key).build()
+                    .parseClaimsJws(token).getBody();
+            return Long.parseLong(claims.getSubject());
+        } catch (ExpiredJwtException e) {
+            throw new CustomJwtException(BaseResponseStatus.EXPIRED_REFRESH_TOKEN);
+        } catch (UnsupportedJwtException | MalformedJwtException | SignatureException | IllegalArgumentException e) {
+            throw new CustomJwtException(BaseResponseStatus.INVALID_REFRESH_TOKEN);
+        }
+    }
+
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key).build()
