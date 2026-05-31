@@ -1,11 +1,11 @@
-package RIKU.server.Security;
+package RIKU.server.security;
 
-import RIKU.server.Entity.Base.BaseStatus;
-import RIKU.server.Entity.User.User;
-import RIKU.server.Repository.UserRepository;
-import RIKU.server.Util.BaseResponseStatus;
-import RIKU.server.Util.Exception.CustomJwtException;
-import RIKU.server.Util.Exception.Domain.UserException;
+import RIKU.server.global.entity.BaseStatus;
+import RIKU.server.domains.user.entity.User;
+import RIKU.server.domains.user.repository.UserRepository;
+import RIKU.server.global.response.BaseResponseStatus;
+import RIKU.server.global.exception.CustomJwtException;
+import RIKU.server.domains.user.exception.UserException;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;

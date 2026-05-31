@@ -1,7 +1,7 @@
-package RIKU.server.Security;
+package RIKU.server.security;
 
-import RIKU.server.Entity.Base.BaseStatus;
-import RIKU.server.Entity.User.UserRole;
+import RIKU.server.global.entity.BaseStatus;
+import RIKU.server.domains.user.entity.UserRole;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;

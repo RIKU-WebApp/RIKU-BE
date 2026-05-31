@@ -1,4 +1,4 @@
-package RIKU.server.Security;
+package RIKU.server.security;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
