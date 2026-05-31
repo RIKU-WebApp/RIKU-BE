@@ -1,7 +1,7 @@
-package RIKU.server.Config;
+package RIKU.server.config;
 
-import RIKU.server.Security.JwtAuthenticationFilter;
-import RIKU.server.Security.JwtTokenProvider;
+import RIKU.server.security.JwtAuthenticationFilter;
+import RIKU.server.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
