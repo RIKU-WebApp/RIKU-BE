@@ -3,6 +3,8 @@ package RIKU.server.Config;
 import RIKU.server.Security.JwtAuthenticationFilter;
 import RIKU.server.Security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
@@ -58,6 +60,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> {
                     authorize
+                        .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")

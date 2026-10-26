@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:riku-test;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+cloud:
+  aws:
+    credentials:
+      access-key: test-only
+      secret-key: test-only
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+secret:
+  jwt-secret-key: dGVzdC1vbmx5LWtleS1ub3QtdmFsaWQtaW4tYW55LWRlcGxveWVkLWVudmlyb25tZW50LTEyMzQ1Njc4OTA=
+  jwt-access-expired-in: 7200000
+  jwt-refresh-expired-in: 5184000000
+storage:
+  s3:
+    base-prefix: test/
