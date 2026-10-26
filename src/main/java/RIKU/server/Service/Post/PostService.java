@@ -33,6 +33,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static RIKU.server.Util.DateTimeUtils.*;
@@ -124,6 +128,12 @@ public class PostService {
             validateDate(request); // ← 날짜 유효성 검사
         }
 
+        // Validate the complete replacement list before changing files in S3.
+        if (request.getPacers() != null &&
+                (postType == PostType.REGULAR || postType == PostType.TRAINING)) {
+            updatePacers(post, request.getPacers());
+        }
+
         // 6. 공통 필드 처리
         String title = request.getTitle() != null ? request.getTitle() : post.getTitle();
         String location = request.getLocation() != null ? request.getLocation() : post.getLocation();
@@ -138,7 +148,7 @@ public class PostService {
 
         // 8. 러닝 유형별 분기 처리
         switch (postType) {
-            case REGULAR -> updateRegularPost(post, request);
+            case REGULAR -> {}
             case TRAINING -> updateTrainingPost(post, request);
             case EVENT -> updateEventPost(post, request);
             case FLASH -> {}
@@ -179,17 +189,7 @@ public class PostService {
         postRepository.delete(post);
     }
 
-    private void updateRegularPost(Post post, UpdatePostRequest request) {
-        if (request.getPacers() != null) {
-            updatePacers(post, request.getPacers());
-        }
-    }
-
     private void updateTrainingPost(Post post, UpdatePostRequest request) {
-        if (request.getPacers() != null) {
-            updatePacers(post, request.getPacers());
-        }
-
         // trainingType 수정
         if (request.getTrainingType() != null) {
             TrainingPost trainingPost = trainingPostRepository.findByPost(post)
@@ -331,63 +331,58 @@ public class PostService {
     }
 
     private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests) {
-        // 1. 기존 페이서 수 확인
-        int pacerCount = pacerRepository.countByPost(post);
-
-        // 2. 업데이트 페이서 수 검증
-        if(pacerRequests.size() != pacerCount) {
+        List<Pacer> existingPacers = pacerRepository.findByPost(post);
+        if (pacerRequests.size() != existingPacers.size()) {
             throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
         }
-
-        // 3. 작성자가 페이서 리스트에 포함되어 있는지 확인
-        boolean isCreatorInPacerList = pacerRequests.stream()
-                .anyMatch(p -> p.getPacerId().equals(post.getPostCreator().getId()));
-
-        if (!isCreatorInPacerList) {
+        Set<Long> requestedIds = new HashSet<>();
+        Map<Long, User> users = new HashMap<>();
+        for (UpdatePacerRequest request : pacerRequests) {
+            if (request == null || request.getPacerId() == null || request.getPacerId() <= 0 ||
+                    request.getGroup() == null || request.getGroup().isBlank() ||
+                    request.getPace() == null || request.getPace().isBlank() ||
+                    request.getDistance() == null || request.getDistance().isBlank()) {
+                throw new PostException(BaseResponseStatus.INVALID_FIELD);
+            }
+            if (!requestedIds.add(request.getPacerId())) {
+                throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
+            }
+            User user = userRepository.findById(request.getPacerId())
+                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+            if (user.getStatus() != BaseStatus.ACTIVE) {
+                throw new UserException(BaseResponseStatus.INACTIVE_USER);
+            }
+            if (!Boolean.TRUE.equals(user.getIsPacer())) {
+                throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+            }
+            users.put(user.getId(), user);
+        }
+        if (!requestedIds.contains(post.getPostCreator().getId())) {
             throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
         }
+        Map<Long, Pacer> pacersByUser = existingPacers.stream()
+                .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
+        Map<Long, Participant> participantsByUser = participantRepository.findByPost(post).stream()
+                .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
 
-        // 3. 기존 페이서였던 참여자 삭제
-        List<Long> pacerIds = pacerRepository.findByPost(post).stream()
-                .map(p -> p.getUser().getId())
-                .toList();
-
-        List<Participant> participantsToDelete = participantRepository.findByPost(post).stream()
-                .filter(p -> pacerIds.contains(p.getUser().getId()))
-                .toList();
-        participantRepository.deleteAll(participantsToDelete);
-
-        // 4. 기존 페이서 삭제
-        pacerRepository.deleteByPost(post);
-
-        // 5. 새 페이서 등록
-        List<Pacer> pacers = pacerRequests.stream()
-                .map(pacer -> {
-                    User user = userRepository.findById(pacer.getPacerId())
-                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-                    if (!user.getIsPacer()) {
-                        throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-                    }
-                    return pacer.toEntity(user, post);
-                })
-                .collect(Collectors.toList());
-
-        pacerRepository.saveAll(pacers);
-
-        // 6. 새 페이서 참여자 등록
-        List<Long> existingParticipantIds = participantRepository.findByPost(post)
-                .stream()
-                .map(p -> p.getUser().getId())
-                .toList();
-
-        List<Participant> participants = pacerRequests.stream()
-                .filter(p -> !existingParticipantIds.contains(p.getPacerId()))
-                .map(p -> {
-                    User user = userRepository.findById(p.getPacerId())
-                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-                    return Participant.createWithGroup(post, user, p.getGroup());
-                })
-                .collect(Collectors.toList());
-        participantRepository.saveAll(participants);
+        // Removing the pacer role does not cancel participation or erase attendance.
+        pacerRepository.deleteAll(existingPacers.stream()
+                .filter(p -> !requestedIds.contains(p.getUser().getId())).toList());
+        for (UpdatePacerRequest request : pacerRequests) {
+            User user = users.get(request.getPacerId());
+            Pacer pacer = pacersByUser.get(user.getId());
+            if (pacer == null) {
+                pacerRepository.save(request.toEntity(user, post));
+            } else {
+                pacer.updateDetails(request.getGroup(), request.getPace(), request.getDistance());
+            }
+            Participant participant = participantsByUser.get(user.getId());
+            if (participant == null) {
+                participantRepository.save(Participant.createWithGroup(post, user, request.getGroup()));
+            } else {
+                // Keep identity, createdAt and attendance, including promoted participants.
+                participant.updateGroup(request.getGroup());
+            }
+        }
     }
 }

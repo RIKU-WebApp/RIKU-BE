@@ -5,12 +5,32 @@ spring:
 server:
   address: 127.0.0.1
   port: 8081
+  shutdown: graceful
+
+management:
+  server:
+    address: 127.0.0.1
+    port: 9091
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
 
 ---
 spring:
   config:
     activate:
       on-profile: "devDB"
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
 
   datasource:
     url: ${DATASOURCE_URL_DEV}

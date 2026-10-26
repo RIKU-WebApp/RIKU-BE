@@ -46,4 +46,10 @@ public class Pacer extends BaseEntity {
     public static Pacer create (User user, Post post, String group, String pace, String distance) {
         return new Pacer(user, post, group, pace, distance);
     }
+
+    public void updateDetails(String group, String pace, String distance) {
+        this.group = group;
+        this.pace = pace;
+        this.distance = distance;
+    }
 }
