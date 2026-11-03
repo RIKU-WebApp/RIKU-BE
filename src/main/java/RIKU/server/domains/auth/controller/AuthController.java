@@ -38,25 +38,6 @@ public class AuthController {
         return new BaseResponse<>(response);
     }
 
-    @Operation(summary = "유저 등급 변경", description = """
-            
-            유저의 등급을 변경합니다.(테스트용)
-            
-            """)
-    @PatchMapping("/{userId}/role")
-    public BaseResponse<UpdateUserRoleResponse> updateUserRole(
-            @PathVariable Long userId,
-            @RequestParam String userRole) {
-        try {
-            UserRole newRole = UserRole.valueOf(userRole.trim().toUpperCase());
-            UpdateUserRoleResponse response = authService.updateUserRole(userId, newRole);
-
-            return new BaseResponse<>(response);
-        } catch (IllegalArgumentException e) {
-            throw new UserException(BaseResponseStatus.INVALID_USER_ROLE);
-        }
-    }
-
     @Operation(summary = "학번 중복 확인", description = """
             
             회원가입 시, 유저가 입력한 학번을 중복 확인 합니다.
