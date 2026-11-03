@@ -3,6 +3,8 @@ package RIKU.server.config;
 import RIKU.server.security.JwtAuthenticationFilter;
 import RIKU.server.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
@@ -58,6 +60,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> {
                     authorize
+                        .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/*/role").denyAll()
                         .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup").permitAll()

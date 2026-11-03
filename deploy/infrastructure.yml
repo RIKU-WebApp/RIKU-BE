@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: RIKU artifact delivery and restricted GitHub OIDC deployment to an existing EC2 instance
+Parameters:
+  ApplicationInstanceId:
+    Type: AWS::EC2::Instance::Id
+  GitHubRepository:
+    Type: String
+    Default: RIKU-WebApp/RIKU-BE
+    AllowedPattern: '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+'
+  GitHubOidcProviderArn:
+    Type: String
+    Description: Existing IAM OIDC provider for https://token.actions.githubusercontent.com (audience sts.amazonaws.com)
+    AllowedPattern: 'arn:aws:iam::[0-9]{12}:oidc-provider/token.actions.githubusercontent.com'
+Resources:
+  Artifacts:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireArtifacts
+            Status: Enabled
+            ExpirationInDays: 30
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+  ArtifactPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Artifacts
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource: [!GetAtt Artifacts.Arn, !Sub '${Artifacts.Arn}/*']
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ReadReleaseArtifacts
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${Artifacts.Arn}/releases/*'
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref InstanceRole]
+  ProductionDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Deploy a checksummed production JAR using the installed root-owned script
+        parameters:
+          ArtifactKey:
+            type: String
+            allowedPattern: '^releases/prod/[0-9a-f]{40}/[0-9]+-[0-9]+/app\.jar$'
+          Sha256:
+            type: String
+            allowedPattern: '^[0-9a-f]{64}$'
+        mainSteps:
+          - action: aws:runShellScript
+            name: deploy
+            inputs:
+              timeoutSeconds: '900'
+              runCommand:
+                - "/usr/local/sbin/riku-deploy prod '{{ ArtifactKey }}' '{{ Sha256 }}'"
+  DevelopmentDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Command
+      Content:
+        schemaVersion: '2.2'
+        description: Deploy a checksummed development JAR using the installed root-owned script
+        parameters:
+          ArtifactKey:
+            type: String
+            allowedPattern: '^releases/dev/[0-9a-f]{40}/[0-9]+-[0-9]+/app\.jar$'
+          Sha256:
+            type: String
+            allowedPattern: '^[0-9a-f]{64}$'
+        mainSteps:
+          - action: aws:runShellScript
+            name: deploy
+            inputs:
+              timeoutSeconds: '900'
+              runCommand:
+                - "/usr/local/sbin/riku-deploy dev '{{ ArtifactKey }}' '{{ Sha256 }}'"
+  ProductionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepository}:environment:production'
+      Policies:
+        - PolicyName: ProductionReleaseOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${Artifacts.Arn}/releases/prod/*'
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:document/${ProductionDocument}'
+                  - !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${ApplicationInstanceId}'
+              - Effect: Allow
+                Action: ssm:GetCommandInvocation
+                Resource: '*'
+  DevelopmentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref GitHubOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub: !Sub 'repo:${GitHubRepository}:environment:development'
+      Policies:
+        - PolicyName: DevelopmentReleaseOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${Artifacts.Arn}/releases/dev/*'
+              - Effect: Allow
+                Action: ssm:SendCommand
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:document/${DevelopmentDocument}'
+                  - !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${ApplicationInstanceId}'
+              - Effect: Allow
+                Action: ssm:GetCommandInvocation
+                Resource: '*'
+Outputs:
+  ArtifactBucket:
+    Value: !Ref Artifacts
+  InstanceProfileName:
+    Value: !Ref InstanceProfile
+  ProductionRoleArn:
+    Value: !GetAtt ProductionRole.Arn
+  DevelopmentRoleArn:
+    Value: !GetAtt DevelopmentRole.Arn
+  ProductionDocumentName:
+    Value: !Ref ProductionDocument
+  DevelopmentDocumentName:
+    Value: !Ref DevelopmentDocument
