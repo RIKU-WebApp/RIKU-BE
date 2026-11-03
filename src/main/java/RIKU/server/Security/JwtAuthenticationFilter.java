@@ -1,8 +1,8 @@
-package RIKU.server.Security;
+package RIKU.server.security;
 
-import RIKU.server.Util.BaseResponse;
-import RIKU.server.Util.Exception.CustomJwtException;
-import RIKU.server.Util.Exception.Domain.UserException;
+import RIKU.server.global.response.BaseResponse;
+import RIKU.server.global.exception.CustomJwtException;
+import RIKU.server.domains.user.exception.UserException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
