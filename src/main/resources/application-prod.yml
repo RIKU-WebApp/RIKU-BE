@@ -55,6 +55,7 @@ spring:
       on-profile: "prodSecret"
 
 secret:
+  jwt-issuer: riku-prod
   jwt-secret-key: ${JWT_SECRET_KEY}
   jwt-access-expired-in: 7200000  # 2h
   jwt-refresh-expired-in: 5184000000  # 60d

@@ -59,13 +59,19 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> {
                     authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/user/*/role").denyAll()
+                        .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/user/check-id").permitAll()
+                        .requestMatchers("/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         .requestMatchers("/admin/**", "/pacer/**").hasRole("ADMIN")
                         .requestMatchers("/pacers/**").hasAnyRole("ADMIN", "MEMBER");
 
                     authorize.anyRequest().authenticated();
                 })
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint((request, response, error) -> response.sendError(401))
+                        .accessDeniedHandler((request, response, error) -> response.sendError(403)))
                 .headers(headers -> {
                     headers.frameOptions(frameOptions -> frameOptions.disable());
                 })

@@ -54,6 +54,7 @@ spring:
 
 secret:
 
+  jwt-issuer: riku-dev
   jwt-secret-key: ${JWT_SECRET_KEY}
   jwt-access-expired-in: 7200000
   jwt-refresh-expired-in: 5184000000
