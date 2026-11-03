@@ -1,7 +1,7 @@
-package RIKU.server.Config;
+package RIKU.server.config;
 
-import RIKU.server.Security.JwtAuthenticationFilter;
-import RIKU.server.Security.JwtTokenProvider;
+import RIKU.server.security.JwtAuthenticationFilter;
+import RIKU.server.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.health.HealthEndpoint;
@@ -62,13 +62,19 @@ public class SecurityConfig {
                     authorize
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/user/**", "/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/user/*/role").denyAll()
+                        .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/user/check-id").permitAll()
+                        .requestMatchers("/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         .requestMatchers("/admin/**", "/pacer/**").hasRole("ADMIN")
                         .requestMatchers("/pacers/**").hasAnyRole("ADMIN", "MEMBER");
 
                     authorize.anyRequest().authenticated();
                 })
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint((request, response, error) -> response.sendError(401))
+                        .accessDeniedHandler((request, response, error) -> response.sendError(403)))
                 .headers(headers -> {
                     headers.frameOptions(frameOptions -> frameOptions.disable());
                 })

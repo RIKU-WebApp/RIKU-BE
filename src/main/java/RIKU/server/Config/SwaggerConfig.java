@@ -1,4 +1,4 @@
-package RIKU.server.Config;
+package RIKU.server.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.servers.Server;

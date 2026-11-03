@@ -1,9 +1,9 @@
-package RIKU.server.Security;
+package RIKU.server.security;
 
-import RIKU.server.Entity.User.User;
-import RIKU.server.Repository.UserRepository;
-import RIKU.server.Util.BaseResponseStatus;
-import RIKU.server.Util.Exception.Domain.UserException;
+import RIKU.server.domains.user.entity.User;
+import RIKU.server.domains.user.repository.UserRepository;
+import RIKU.server.global.response.BaseResponseStatus;
+import RIKU.server.domains.user.exception.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.GrantedAuthority;

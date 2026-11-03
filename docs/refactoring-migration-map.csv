@@ -1,0 +1,128 @@
+현재 위치,추천 변경 위치,도메인,이유,위험도
+Controller/AuthController.java,domains/auth/controller/AuthController.java,auth,로그인/ID 중복 확인/API 인증 흐름,중
+Service/AuthService.java,domains/auth/service/AuthService.java,auth,JWT 발급과 인증 서비스,중
+Dto/User/Request/LoginUserRequest.java,domains/auth/dto/request/LoginUserRequest.java,auth,로그인 전용 DTO,낮음
+Dto/User/Response/LoginUserResponse.java,domains/auth/dto/response/LoginUserResponse.java,auth,로그인 응답 DTO,낮음
+Dto/User/Response/UpdateUserRoleResponse.java,domains/auth/dto/response/UpdateUserRoleResponse.java,auth/admin,현재 AuthService에 있으나 실제로는 권한 변경 API,중
+Security/AuthMember.java,security/AuthMember.java,security,인증 Principal,중
+Security/AuthenticationProviderImpl.java,security/AuthenticationProviderImpl.java,security,로그인 인증 Provider,중
+Security/JwtAuthenticationFilter.java,security/JwtAuthenticationFilter.java,security,JWT 인증 필터,중
+Security/JwtInfo.java,security/JwtInfo.java,security,JWT 응답 값 객체,낮음
+Security/JwtTokenProvider.java,security/JwtTokenProvider.java,security,JWT 생성/검증,중
+Security/UserDetailsServiceImpl.java,security/UserDetailsServiceImpl.java,security,Spring Security 사용자 조회,중
+Config/SecurityConfig.java,config/SecurityConfig.java,config/security,전역 보안 설정,중
+Config/SwaggerConfig.java,config/SwaggerConfig.java,config,Swagger/OpenAPI 설정,낮음
+Controller/UserController.java,domains/user/controller/UserController.java,user,회원가입/프로필/출석 체크 API,중
+Service/UserService.java,domains/user/service/UserService.java,user,사용자 프로필과 일일 출석 처리,중
+Repository/UserRepository.java,domains/user/repository/UserRepository.java,user,사용자 저장소,중
+Entity/User/User.java,domains/user/entity/User.java,user,사용자 엔티티,중
+Entity/User/UserRole.java,domains/user/entity/UserRole.java,user,사용자 권한 enum,중
+Dto/User/Request/SignUpUserRequest.java,domains/user/dto/request/SignUpUserRequest.java,user,회원가입 DTO,낮음
+Dto/User/Request/UpdateProfileRequest.java,domains/user/dto/request/UpdateProfileRequest.java,user,프로필 수정 DTO,낮음
+Dto/User/Response/ReadUserProfileResponse.java,domains/user/dto/response/ReadUserProfileResponse.java,user,프로필 응답 DTO,낮음
+Dto/User/Response/ReadUserProfileDetailResponse.java,domains/user/dto/response/ReadUserProfileDetailResponse.java,user,프로필 상세 응답 DTO,낮음
+Dto/User/Response/ReadUserInfoResponse.java,domains/user/dto/response/ReadUserInfoResponse.java,user,여러 도메인에서 쓰는 사용자 요약 DTO,중
+Controller/AdminController.java,domains/admin/controller/AdminController.java,admin,운영진 API,중
+Service/AdminService.java,domains/admin/service/AdminService.java,admin,운영진 사용자/페이서 관리,중
+Dto/User/Request/AuthorizePacerRequest.java,domains/admin/dto/request/AuthorizePacerRequest.java,admin,운영진 전용 페이서 권한 DTO,낮음
+Dto/User/Request/UpdateUsersRequest.java,domains/admin/dto/request/UpdateUsersRequest.java,admin,운영진 사용자 수정 DTO,낮음
+Dto/User/Response/ReadUsersResponse.java,domains/admin/dto/response/ReadUsersResponse.java,admin,운영진 사용자 목록 응답,낮음
+Dto/User/Response/SearchAdminUsersResponse.java,domains/admin/dto/response/SearchAdminUsersResponse.java,admin,운영진 사용자 검색 응답,낮음
+Dto/User/Response/ReadPacersResponse.java,domains/admin/dto/response/ReadPacersResponse.java,admin/pacer,운영진/작성자용 페이서 목록 응답,낮음
+Controller/Post/PostController.java,domains/run/post/controller/PostController.java,run.post,게시글 공통 API,중
+Controller/Post/RegularPostController.java,domains/run/post/controller/RegularPostController.java,run.post,정규런 게시글 API,중
+Controller/Post/TrainingPostController.java,domains/run/post/controller/TrainingPostController.java,run.post,훈련 게시글 API,중
+Controller/Post/EventPostController.java,domains/run/post/controller/EventPostController.java,run.post,행사 게시글 API,중
+Controller/Post/FlashPostController.java,domains/run/post/controller/FlashPostController.java,run.post,번개 게시글 API,중
+Service/Post/PostService.java,domains/run/post/service/PostService.java,run.post,게시글 목록/수정/삭제/페이서 재배정,중
+Service/Post/RegularPostService.java,domains/run/post/service/RegularPostService.java,run.post,정규런 게시글 생성/상세,중
+Service/Post/TrainingPostService.java,domains/run/post/service/TrainingPostService.java,run.post,훈련 게시글 생성/상세,중
+Service/Post/EventPostService.java,domains/run/post/service/EventPostService.java,run.post,행사 게시글 생성/상세,중
+Service/Post/FlashPostService.java,domains/run/post/service/FlashPostService.java,run.post,번개 게시글 생성/상세,중
+Repository/PostRepository.java,domains/run/post/repository/PostRepository.java,run.post,공통 게시글 저장소,중
+Repository/RegularPostRepository.java,domains/run/post/repository/RegularPostRepository.java,run.post,정규런 저장소,중
+Repository/TrainingPostRepository.java,domains/run/post/repository/TrainingPostRepository.java,run.post,훈련 저장소,중
+Repository/EventPostRepository.java,domains/run/post/repository/EventPostRepository.java,run.post,행사 저장소,중
+Repository/FlashPostRepository.java,domains/run/post/repository/FlashPostRepository.java,run.post,번개 저장소,중
+Repository/AttachmentRepository.java,domains/run/post/repository/AttachmentRepository.java,run.post,게시글 첨부파일 저장소,중
+Entity/Board/Post/Post.java,domains/run/post/entity/Post.java,run.post,공통 게시글 엔티티,중
+Entity/Board/Post/RegularPost.java,domains/run/post/entity/RegularPost.java,run.post,정규런 엔티티,중
+Entity/Board/Post/TrainingPost.java,domains/run/post/entity/TrainingPost.java,run.post,훈련 엔티티,중
+Entity/Board/Post/EventPost.java,domains/run/post/entity/EventPost.java,run.post,행사 엔티티,중
+Entity/Board/Post/FlashPost.java,domains/run/post/entity/FlashPost.java,run.post,번개 엔티티,중
+Entity/Board/Post/PostType.java,domains/run/post/entity/PostType.java,run.post,게시글 타입 enum,중
+Entity/Board/PostStatus.java,domains/run/post/entity/PostStatus.java,run.post,게시글 상태 enum,중
+Entity/Board/Attachment.java,domains/run/post/entity/Attachment.java,run.post,게시글 첨부파일 엔티티,중
+Dto/Post/Request/CreateRegularPostRequest.java,domains/run/post/dto/request/CreateRegularPostRequest.java,run.post,정규런 생성 DTO,낮음
+Dto/Post/Request/CreateTrainingPostRequest.java,domains/run/post/dto/request/CreateTrainingPostRequest.java,run.post,훈련 생성 DTO,낮음
+Dto/Post/Request/CreateEventPostRequest.java,domains/run/post/dto/request/CreateEventPostRequest.java,run.post,행사 생성 DTO,낮음
+Dto/Post/Request/CreateFlashPostRequest.java,domains/run/post/dto/request/CreateFlashPostRequest.java,run.post,번개 생성 DTO,낮음
+Dto/Post/Request/UpdatePostRequest.java,domains/run/post/dto/request/UpdatePostRequest.java,run.post,게시글 수정 DTO,낮음
+Dto/Post/Response/ReadPostListResponse.java,domains/run/post/dto/response/ReadPostListResponse.java,run.post,게시글 목록 응답,낮음
+Dto/Post/Response/ReadPostPreviewResponse.java,domains/run/post/dto/response/ReadPostPreviewResponse.java,run.post,게시글 미리보기 응답,낮음
+Dto/Post/Response/ReadRegularPostDetailResponse.java,domains/run/post/dto/response/ReadRegularPostDetailResponse.java,run.post,정규런 상세 응답,낮음
+Dto/Post/Response/ReadTrainingPostDetailResponse.java,domains/run/post/dto/response/ReadTrainingPostDetailResponse.java,run.post,훈련 상세 응답,낮음
+Dto/Post/Response/ReadEventPostDetailResponse.java,domains/run/post/dto/response/ReadEventPostDetailResponse.java,run.post,행사 상세 응답,낮음
+Dto/Post/Response/ReadFlashPostDetailResponse.java,domains/run/post/dto/response/ReadFlashPostDetailResponse.java,run.post,번개 상세 응답,낮음
+Controller/HomeController.java,domains/run/home/controller/HomeController.java,run.home,런 홈 카드 조회 API,중
+Service/HomeService.java,domains/run/home/service/HomeService.java,run.home,홈 화면용 게시글 조회,중
+Dto/Post/Response/ReadHomeResponse.java,domains/run/home/dto/response/ReadHomeResponse.java,run.home,홈 응답 DTO,낮음
+Dto/Post/Response/ReadHomeCardResponse.java,domains/run/home/dto/response/ReadHomeCardResponse.java,run.home,홈 카드 응답 DTO,낮음
+Controller/ParticipantController.java,domains/run/participant/controller/ParticipantController.java,run.participant,참여/출석 API,중
+Service/ParticipantService.java,domains/run/participant/service/ParticipantService.java,run.participant,참여/출석 비즈니스 로직,중
+Repository/ParticipantRepository.java,domains/run/participant/repository/ParticipantRepository.java,run.participant,참여 저장소,중
+Entity/Participant/Participant.java,domains/run/participant/entity/Participant.java,run.participant,참여 엔티티,중
+Entity/Participant/ParticipantStatus.java,domains/run/participant/entity/ParticipantStatus.java,run.participant,참여 상태 enum,중
+Dto/Participant/Request/AttendParticipantRequest.java,domains/run/participant/dto/request/AttendParticipantRequest.java,run.participant,출석 요청 DTO,낮음
+Dto/Participant/Request/ManualAttendParticipantRequest.java,domains/run/participant/dto/request/ManualAttendParticipantRequest.java,run.participant,수동 출석 요청 DTO,낮음
+Dto/Participant/Response/GroupParticipantResponse.java,domains/run/participant/dto/response/GroupParticipantResponse.java,run.participant,그룹별 참여자 응답,낮음
+Dto/Participant/Response/ReadParticipantListResponse.java,domains/run/participant/dto/response/ReadParticipantListResponse.java,run.participant,참여자 목록 응답,낮음
+Dto/Participant/Response/UpdateParticipantResponse.java,domains/run/participant/dto/response/UpdateParticipantResponse.java,run.participant,참여 상태 변경 응답,낮음
+Controller/CommentController.java,domains/run/comment/controller/CommentController.java,run.comment,댓글 API,중
+Service/CommentService.java,domains/run/comment/service/CommentService.java,run.comment,댓글 생성/삭제,중
+Repository/CommentRepository.java,domains/run/comment/repository/CommentRepository.java,run.comment,댓글 저장소,중
+Entity/Board/Comment.java,domains/run/comment/entity/Comment.java,run.comment,댓글 엔티티,중
+Dto/Post/Request/CreateCommentRequest.java,domains/run/comment/dto/request/CreateCommentRequest.java,run.comment,댓글 생성 DTO,낮음
+Dto/Post/Response/ReadCommentsResponse.java,domains/run/comment/dto/response/ReadCommentsResponse.java,run.comment,댓글 응답 DTO,낮음
+Entity/Board/Pacer.java,domains/run/pacer/entity/Pacer.java,run.pacer,페이서 배정 엔티티,중
+Repository/PacerRepository.java,domains/run/pacer/repository/PacerRepository.java,run.pacer,페이서 저장소,중
+Dto/Post/Request/CreatePacerRequest.java,domains/run/pacer/dto/request/CreatePacerRequest.java,run.pacer,페이서 생성 DTO,낮음
+Dto/Post/Request/UpdatePacerRequest.java,domains/run/pacer/dto/request/UpdatePacerRequest.java,run.pacer,페이서 수정 DTO,낮음
+Dto/Post/Response/ReadPacersListResponse.java,domains/run/pacer/dto/response/ReadPacersListResponse.java,run.pacer,페이서 목록 응답,낮음
+Dto/Post/Response/ReadPaceGroupResponse.java,domains/run/pacer/dto/response/ReadPaceGroupResponse.java,run.pacer,페이스 그룹 응답,낮음
+Controller/CalendarController.java,domains/calendar/controller/CalendarController.java,calendar,일정 API,중
+Service/CalendarService.java,domains/calendar/service/CalendarService.java,calendar,일/월 일정 조회,중
+Dto/Calendar/Response/ListMonthlyScheduleResponse.java,domains/calendar/dto/response/ListMonthlyScheduleResponse.java,calendar,월별 일정 목록 응답,낮음
+Dto/Calendar/Response/ReadDailyScheduleResponse.java,domains/calendar/dto/response/ReadDailyScheduleResponse.java,calendar,일별 일정 응답,낮음
+Dto/Calendar/Response/ReadMonthlyScheduleResponse.java,domains/calendar/dto/response/ReadMonthlyScheduleResponse.java,calendar,월별 일정 응답,낮음
+Controller/UserPointController.java,domains/point/controller/UserPointController.java,point,포인트/랭킹 API,중
+Service/UserPointService.java,domains/point/service/UserPointService.java,point,포인트/랭킹 계산,중
+Repository/UserPointRepository.java,domains/point/repository/UserPointRepository.java,point,포인트 저장소,중
+Entity/User/UserPoint.java,domains/point/entity/UserPoint.java,point,포인트 엔티티,중
+Entity/User/PointType.java,domains/point/entity/PointType.java,point,포인트 타입 enum,중
+Dto/User/Request/ReadUserEventRankingRequest.java,domains/point/dto/request/ReadUserEventRankingRequest.java,point,이벤트 랭킹 요청 DTO,낮음
+Dto/User/Response/ReadPointListResponse.java,domains/point/dto/response/ReadPointListResponse.java,point,포인트 내역 응답,낮음
+Dto/User/Response/ReadUserParticipationsResponse.java,domains/point/dto/response/ReadUserParticipationsResponse.java,point,참여/포인트 응답,낮음
+Dto/User/Response/ReadUserPointResponse.java,domains/point/dto/response/ReadUserPointResponse.java,point,사용자 포인트 응답,낮음
+Dto/User/Response/ReadUserRankingResponse.java,domains/point/dto/response/ReadUserRankingResponse.java,point,랭킹 응답,낮음
+Config/S3Config.java,infra/storage/S3Config.java,storage,S3 client 설정,중
+Service/S3Uploader.java,infra/storage/S3Uploader.java,storage,S3 업로드/삭제 구현,중
+Config/SeasonProvider.java,domains/season/SeasonProvider.java,season,시즌 시작일 비즈니스 설정,낮음
+Controller/Advice/GlobalRestControllerAdvice.java,global/exception/GlobalRestControllerAdvice.java,global,전역 예외 처리,중
+Controller/Advice/FieldValidationControllerAdvice.java,global/validation/FieldValidationControllerAdvice.java,global,전역 validation 처리,중
+Util/BaseResponse.java,global/response/BaseResponse.java,global,공통 응답 포맷,중
+Util/BaseResponseStatus.java,global/response/BaseResponseStatus.java,global,공통 응답 코드,중
+Dto/Common/FieldErrorsDto.java,global/validation/dto/FieldErrorsDto.java,global,validation error DTO,낮음
+Dto/Common/FieldValidationError.java,global/validation/dto/FieldValidationError.java,global,validation error DTO,낮음
+Entity/Base/BaseEntity.java,global/entity/BaseEntity.java,global,모든 엔티티 공통 base,중
+Entity/Base/BaseStatus.java,global/entity/BaseStatus.java,global,공통 상태 enum,중
+Util/Exception/CustomJwtException.java,global/exception/CustomJwtException.java,global/security,JWT 예외,중
+Util/Exception/Domain/CustomException.java,global/exception/CustomException.java,global,도메인 예외 base,중
+Util/Exception/Domain/UserException.java,domains/user/exception/UserException.java,user,사용자 도메인 예외,중
+Util/Exception/Domain/PostException.java,domains/run/post/exception/PostException.java,run.post,게시글 도메인 예외,중
+Util/Exception/Domain/ParticipantException.java,domains/run/participant/exception/ParticipantException.java,run.participant,참여 도메인 예외,중
+Util/Exception/Validation/FieldValidationException.java,global/validation/FieldValidationException.java,global,validation 예외,낮음
+Util/Exception/Validation/ValidationException.java,global/validation/ValidationException.java,global,validation 예외,낮음
+Util/DateTimeUtils.java,global/util/DateTimeUtils.java,global,시간 변환 유틸,낮음
+Util/ConvertCreatedDate.java,global/util/ConvertCreatedDate.java,global,댓글 생성일 변환,낮음
+Util/AllowedImageFileExtensions.java,infra/storage/AllowedImageFileExtensions.java,storage,현재 사용처 확인 필요,낮음

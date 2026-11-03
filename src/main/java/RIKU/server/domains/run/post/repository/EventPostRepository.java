@@ -1,0 +1,15 @@
+package RIKU.server.domains.run.post.repository;
+
+import RIKU.server.domains.run.post.entity.EventPost;
+import RIKU.server.domains.run.post.entity.Post;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface EventPostRepository extends JpaRepository<EventPost, Long> {
+    Optional<EventPost> findByPost(Post post);
+
+    void deleteByPost(Post post);
+}

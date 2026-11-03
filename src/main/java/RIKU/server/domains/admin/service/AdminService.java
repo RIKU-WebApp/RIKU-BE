@@ -1,0 +1,204 @@
+package RIKU.server.domains.admin.service;
+
+import RIKU.server.domains.season.SeasonProvider;
+import RIKU.server.domains.admin.dto.request.AuthorizePacerRequest;
+import RIKU.server.domains.admin.dto.response.ReadPacersResponse;
+import RIKU.server.domains.admin.dto.response.ReadUsersResponse;
+import RIKU.server.domains.admin.dto.response.SearchAdminUsersResponse;
+import RIKU.server.domains.admin.dto.request.UpdateUsersRequest;
+import RIKU.server.global.entity.BaseStatus;
+import RIKU.server.domains.run.participant.entity.ParticipantStatus;
+import RIKU.server.domains.user.entity.User;
+import RIKU.server.domains.user.entity.UserRole;
+import RIKU.server.domains.run.participant.repository.ParticipantRepository;
+import RIKU.server.domains.point.repository.UserPointRepository;
+import RIKU.server.domains.user.repository.UserRepository;
+import RIKU.server.security.AuthMember;
+import RIKU.server.global.response.BaseResponseStatus;
+import RIKU.server.domains.user.exception.UserException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional(readOnly = true)
+@RequiredArgsConstructor
+public class AdminService {
+
+    private final UserRepository userRepository;
+    private final UserPointRepository userPointRepository;
+    private final ParticipantRepository participantRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final SeasonProvider seasonProvider;
+
+    public List<ReadUsersResponse> getUsers(AuthMember authMember) {
+        // 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        LocalDateTime fromUtc = seasonProvider.seasonStartUtc();
+        return userRepository.findAll()
+                .stream()
+                .map(user -> {
+                    int totalPoints = userPointRepository.sumPointsByUserSince(user, fromUtc);
+                    int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
+                    return ReadUsersResponse.of(user, totalPoints, participationCount);
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<SearchAdminUsersResponse> searchUsersByName(AuthMember authMember, String name) {
+        if (!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+        if (Objects.isNull(name) || name.isBlank()) {
+            throw new UserException(BaseResponseStatus.EMPTY_REQUEST_PARAMETER);
+        }
+
+        return userRepository.findByNameContainingIgnoreCaseOrderByNameAscIdAsc(name.trim())
+                .stream()
+                .map(SearchAdminUsersResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateUsers(AuthMember authMember, List<UpdateUsersRequest> requests) {
+        // 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        requests.forEach(request -> {
+            User user = userRepository.findByStudentId(request.getStudentId())
+                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+            // 회원 등급 수정
+            if (request.getUserRole() != null) {
+                updateUserStatus(user, request.getUserRole());
+            }
+
+            // 페이서 여부 수정
+            if (request.getIsPacer() != null) {
+                user.updatePacer(request.getIsPacer());
+            }
+        });
+    }
+
+    // 페이서 조회
+    public List<ReadPacersResponse> getPacers(AuthMember authMember) {
+        User user = userRepository.findById(authMember.getId())
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+
+        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN ||
+                (user.getUserRole() == UserRole.MEMBER && Boolean.TRUE.equals(user.getIsPacer()));
+        if (!isAuthorized) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        return userRepository.findByIsPacer(Boolean.TRUE)
+                .stream()
+                .map(ReadPacersResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    // 페이서 업데이트
+    @Transactional
+    public void authorizePacer(AuthMember authMember, List<AuthorizePacerRequest> requests) {
+        // 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        requests.forEach(request -> {
+            User user = userRepository.findByStudentId(request.getStudentId())
+                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+            user.updatePacer(request.getIsPacer());
+        });
+    }
+
+    // 임시 비밀번호 발급
+    @Transactional
+    public String resetUserPassword(AuthMember authMember, Long userId) {
+        // 1. 운영진 권한 검증
+        if(!authMember.isAdmin()) {
+            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+        }
+
+        // 2. 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 3. 임시 비밀번호 생성 (8~20자, 영문+숫자+특수문자 포함)
+        String tempPassword = generateTempPassword();
+
+        // 4. 비밀번호 인코딩 후 업데이트
+        String encodedPassword = passwordEncoder.encode(tempPassword);
+        user.updatePassword(encodedPassword);
+
+        return tempPassword;
+    }
+
+    private void updateUserStatus(User user, String userRole) {
+        switch (userRole.toUpperCase()) {
+            case "NEW_MEMBER" -> {
+                user.updateUserRole(UserRole.NEW_MEMBER);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "MEMBER" -> {
+                user.updateUserRole(UserRole.MEMBER);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "ADMIN" -> {
+                user.updateUserRole(UserRole.ADMIN);
+                user.updateStatus(BaseStatus.ACTIVE);
+            }
+            case "INACTIVE" -> {
+                user.updateStatus(BaseStatus.INACTIVE);
+            }
+            default -> throw new IllegalArgumentException("Invalid userRole: " + userRole);
+        }
+    }
+
+    private String generateTempPassword() {
+        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lower = "abcdefghijklmnopqrstuvwxyz";
+        String digits = "0123456789";
+        String special = "!@#$%^&*()_+-=[]{};':\"\\|,.<>/?";
+        String all = upper + lower + digits + special;
+
+        SecureRandom random = new SecureRandom();
+        StringBuilder password = new StringBuilder();
+
+        // 각 조건 최소 1개씩 보장
+        password.append(upper.charAt(random.nextInt(upper.length())));
+        password.append(lower.charAt(random.nextInt(lower.length())));
+        password.append(digits.charAt(random.nextInt(digits.length())));
+        password.append(special.charAt(random.nextInt(special.length())));
+
+        // 나머지 채우기
+        for (int i = 4; i < 10; i++) {
+            password.append(all.charAt(random.nextInt(all.length())));
+        }
+
+        // 셔플
+        List<Character> passwordChars = password.chars()
+                .mapToObj(c -> (char) c)
+                .collect(Collectors.toList());
+        Collections.shuffle(passwordChars);
+
+        return passwordChars.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining());
+    }
+}
