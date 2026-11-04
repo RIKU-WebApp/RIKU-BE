@@ -1,5 +1,7 @@
 package RIKU.server.domains.admin.service;
 
+import RIKU.server.domains.point.ranking.RankingChanged;
+import org.springframework.context.ApplicationEventPublisher;
 import RIKU.server.domains.season.SeasonProvider;
 import RIKU.server.domains.admin.dto.request.AuthorizePacerRequest;
 import RIKU.server.domains.admin.dto.response.ReadPacersResponse;
@@ -11,6 +13,7 @@ import RIKU.server.domains.run.participant.entity.ParticipantStatus;
 import RIKU.server.domains.user.entity.User;
 import RIKU.server.domains.user.entity.UserRole;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
+import RIKU.server.domains.run.participant.repository.UserParticipationCount;
 import RIKU.server.domains.point.repository.UserPointRepository;
 import RIKU.server.domains.user.repository.UserRepository;
 import RIKU.server.security.AuthMember;
@@ -25,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -32,6 +36,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class AdminService {
+
+    private final ApplicationEventPublisher events;
 
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
@@ -46,11 +52,17 @@ public class AdminService {
         }
 
         LocalDateTime fromUtc = seasonProvider.seasonStartUtc();
-        return userRepository.findAll()
+        List<User> users = userRepository.findAll();
+        if (users.isEmpty()) return List.of();
+        Map<Long, Long> points = userPointRepository.sumByUserSince(fromUtc).stream()
+                .collect(Collectors.toMap(row -> row.userId(), row -> row.points()));
+        Map<Long, Long> attendance = participantRepository.countAttendedByUserSince(ParticipantStatus.ATTENDED, fromUtc).stream()
+                .collect(Collectors.toMap(UserParticipationCount::userId, UserParticipationCount::count));
+        return users
                 .stream()
                 .map(user -> {
-                    int totalPoints = userPointRepository.sumPointsByUserSince(user, fromUtc);
-                    int participationCount = participantRepository.countByUserAndParticipantStatusAndCreatedAtGreaterThanEqual(user, ParticipantStatus.ATTENDED, fromUtc);
+                    int totalPoints = Math.toIntExact(points.getOrDefault(user.getId(), 0L));
+                    int participationCount = Math.toIntExact(attendance.getOrDefault(user.getId(), 0L));
                     return ReadUsersResponse.of(user, totalPoints, participationCount);
                 })
                 .collect(Collectors.toList());
@@ -77,20 +89,24 @@ public class AdminService {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
-        requests.forEach(request -> {
+        boolean rankingChanged = false;
+        for (UpdateUsersRequest request : requests) {
             User user = userRepository.findByStudentId(request.getStudentId())
                     .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
 
             // 회원 등급 수정
+            BaseStatus previousStatus = user.getStatus();
             if (request.getUserRole() != null) {
                 updateUserStatus(user, request.getUserRole());
             }
+            rankingChanged |= previousStatus != user.getStatus();
 
             // 페이서 여부 수정
             if (request.getIsPacer() != null) {
                 user.updatePacer(request.getIsPacer());
             }
-        });
+        }
+        if (rankingChanged) events.publishEvent(RankingChanged.members());
     }
 
     // 페이서 조회

@@ -2,6 +2,7 @@ package RIKU.server.domains.run.post.dto.response;
 
 import RIKU.server.domains.run.post.entity.Post;
 import RIKU.server.domains.run.post.entity.PostStatus;
+import RIKU.server.domains.run.post.repository.PostPreviewRow;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -42,5 +43,9 @@ public class ReadPostPreviewResponse {
                 post.getPostStatus(),
                 post.getPostImageUrl()
         );
+    }
+
+    public static ReadPostPreviewResponse of(PostPreviewRow post, int participants) {
+        return new ReadPostPreviewResponse(post.id(), post.title(), post.date(), participants, post.postStatus(), post.postImageUrl());
     }
 }

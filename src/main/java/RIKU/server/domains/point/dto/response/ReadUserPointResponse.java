@@ -29,4 +29,8 @@ public class ReadUserPointResponse {
                 totalPoints
         );
     }
+
+    public static ReadUserPointResponse of(Long userId, String profileImageUrl, String name, int totalPoints) {
+        return new ReadUserPointResponse(userId, profileImageUrl, name, totalPoints);
+    }
 }

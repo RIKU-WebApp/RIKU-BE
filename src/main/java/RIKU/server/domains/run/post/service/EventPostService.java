@@ -6,17 +6,14 @@ import RIKU.server.domains.run.comment.dto.response.ReadCommentsResponse;
 import RIKU.server.domains.run.post.dto.response.ReadEventPostDetailResponse;
 import RIKU.server.domains.user.dto.response.ReadUserInfoResponse;
 import RIKU.server.domains.run.post.entity.Attachment;
-import RIKU.server.domains.run.comment.entity.Comment;
 import RIKU.server.domains.run.post.entity.EventPost;
 import RIKU.server.domains.run.post.entity.Post;
 import RIKU.server.domains.run.participant.entity.Participant;
 import RIKU.server.domains.user.entity.User;
 import RIKU.server.domains.run.post.repository.*;
 import RIKU.server.domains.user.repository.UserRepository;
-import RIKU.server.domains.point.repository.UserPointRepository;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
-import RIKU.server.domains.run.pacer.repository.PacerRepository;
-import RIKU.server.domains.run.comment.repository.CommentRepository;
+import RIKU.server.domains.run.comment.service.CommentQueryService;
 import RIKU.server.security.AuthMember;
 import RIKU.server.infra.storage.S3Uploader;
 import RIKU.server.global.response.BaseResponseStatus;
@@ -45,7 +42,7 @@ public class EventPostService {
     private final UserRepository userRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
-    private final CommentRepository commentRepository;
+    private final CommentQueryService commentQueryService;
     private final S3Uploader s3Uploader;
 
     // 게시글 생성
@@ -100,7 +97,7 @@ public class EventPostService {
                 .orElseThrow(() -> new PostException(BaseResponseStatus.EVENT_POST_NOT_FOUND));
 
         // 2. 참여자 조회
-        List<ReadParticipantListResponse> participants = participantRepository.findByPost(post)
+        List<ReadParticipantListResponse> participants = participantRepository.findWithUserByPost(post)
                 .stream()
                 .map(ReadParticipantListResponse::of)
                 .toList();
@@ -112,11 +109,7 @@ public class EventPostService {
                 .toList();
 
         // 4. 댓글 조회
-        List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
-                .stream()
-                .filter(comment -> comment.getTargetId() == null)
-                .map(this::mapToDto)
-                .toList();
+        List<ReadCommentsResponse> comments = commentQueryService.getComments(postId);
 
         // 5. 게시글 작성자 정보
         ReadUserInfoResponse postCreator = ReadUserInfoResponse.of(post.getPostCreator());
@@ -127,14 +120,6 @@ public class EventPostService {
         ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
 
         return ReadEventPostDetailResponse.of(post, eventPost, participants, postCreator, attachmentUrls, user, comments);
-    }
-
-    private ReadCommentsResponse mapToDto (Comment comment) {
-        List<ReadCommentsResponse> replies = commentRepository.findByTargetId(comment.getId())
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-        return ReadCommentsResponse.of(comment, replies);
     }
 
     private void validate(AuthMember authMember, CreateEventPostRequest request) {
