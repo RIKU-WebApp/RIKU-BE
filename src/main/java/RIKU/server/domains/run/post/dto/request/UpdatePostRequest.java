@@ -17,6 +17,11 @@ import java.util.List;
 @NoArgsConstructor
 public class UpdatePostRequest {
 
+    @jakarta.validation.constraints.Min(1)
+    @jakarta.validation.constraints.Max(1000)
+    private Integer capacity;
+    private boolean clearCapacity;
+
     @Nullable
     private String eventType;
 

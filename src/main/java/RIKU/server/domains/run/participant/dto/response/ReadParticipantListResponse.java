@@ -35,4 +35,8 @@ public class ReadParticipantListResponse {
                 participant.getUser().getIsPacer()
         );
     }
+    public static ReadParticipantListResponse of(Participant participant, boolean isPacerForThisRun) {
+        return new ReadParticipantListResponse(participant.getUser().getId(), participant.getUser().getName(),
+                participant.getUser().getProfileImageUrl(), participant.getParticipantStatus(), isPacerForThisRun);
+    }
 }

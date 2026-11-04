@@ -14,6 +14,10 @@ import java.util.Optional;
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from Post p where p.id = :id")
+    Optional<Post> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
     List<Post> findByStatusAndPostType(BaseStatus baseStatus, PostType postType);
 
     // 해당 날짜 게시글 조회
