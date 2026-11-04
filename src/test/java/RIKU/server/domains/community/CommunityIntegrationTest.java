@@ -31,6 +31,30 @@ class CommunityIntegrationTest {
     @BeforeEach void seed(){member=user(UserRole.MEMBER);other=user(UserRole.MEMBER);admin=user(UserRole.ADMIN);}
     AuthMember user(UserRole role) {var u=User.create(UUID.randomUUID().toString(),"hash","이름","private-college","private-major",UUID.randomUUID().toString());u.updateUserRole(role);users.save(u);return AuthMember.builder().id(u.getId()).username(u.getStudentId()).status(u.getStatus()).authorities(AuthorityUtils.createAuthorityList(role.getRole())).build();}
     String token(AuthMember a){return jwt.createToken(new UsernamePasswordAuthenticationToken(a,null,a.getAuthorities())).getAccessToken();}
+    @Test void feedbackIsPrivateAndOnlyAdminCanRespond() throws Exception {
+        var f=service.submit(member,new CommunityController.FeedbackRequest(Feedback.Category.BUG,"문제","나만의 비공개 내용"));
+        assertEquals(1,service.myFeedback(member,0).getTotalElements());assertEquals(0,service.myFeedback(other,0).getTotalElements());
+        mvc.perform(get("/admin/feedback").header("Authorization",token(member))).andExpect(status().isForbidden());
+        assertThrows(ResponseStatusException.class,()->service.respond(other,f.getId(),new CommunityController.AnswerRequest(Feedback.Status.COMPLETED,"답변")));
+        service.respond(admin,f.getId(),new CommunityController.AnswerRequest(Feedback.Status.COMPLETED,"수정했습니다."));
+        assertEquals("수정했습니다.",service.myFeedback(member,0).getContent().get(0).getAnswer());
+    }
+    @Test void certificatesCanOnlyBeListedReadAndDeletedByOwner() throws Exception {
+        var bytes = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(new java.awt.image.BufferedImage(2,2,java.awt.image.BufferedImage.TYPE_INT_RGB),"jpeg",bytes);
+        var upload=new org.springframework.mock.web.MockMultipartFile("image","run.jpg","image/jpeg",bytes.toByteArray());
+        var response=mvc.perform(multipart("/user/certificates").file(upload).param("title","완주").param("date","2026-01-01")
+            .header("Authorization",token(member))).andExpect(status().isOk()).andReturn().getResponse();
+        long id=mapper.readTree(response.getContentAsString()).path("result").asLong(); assertTrue(id>0);
+        String path="/user/certificates/"+id;
+        mvc.perform(get("/user/certificates").header("Authorization",token(member))).andExpect(jsonPath("$.result[0].id").value(id));
+        mvc.perform(get("/user/certificates").header("Authorization",token(other))).andExpect(status().isOk()).andExpect(jsonPath("$.result").doesNotExist());
+        mvc.perform(get(path+"/image").header("Authorization",token(other))).andExpect(status().isNotFound());
+        mvc.perform(delete(path).header("Authorization",token(other))).andExpect(status().isNotFound());
+        mvc.perform(get(path+"/image").header("Authorization",token(member))).andExpect(status().isOk()).andExpect(content().bytes(bytes.toByteArray()));
+        mvc.perform(delete(path).header("Authorization",token(member))).andExpect(status().isNoContent());
+        mvc.perform(get(path+"/image").header("Authorization",token(member))).andExpect(status().isNotFound());
+    }
     @Test void profileOnlyContainsNameAndBadges() throws Exception {
         var response=mvc.perform(get("/user/"+member.getId()+"/public-profile").header("Authorization",token(other))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         var result=mapper.readTree(response).path("result");assertEquals(Set.of("name","badges"),mapper.convertValue(result,Map.class).keySet());

@@ -32,6 +32,12 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/member-archive.sql
+      continue-on-error: false
+
   datasource:
     url: ${DATASOURCE_URL_PROD}
     username: ${DATASOURCE_USERNAME}
