@@ -1,5 +1,6 @@
 package RIKU.server.domains.run.post.service;
 
+import RIKU.server.domains.run.recruitment.RunWaitlist;
 import RIKU.server.domains.run.pacer.dto.request.UpdatePacerRequest;
 import RIKU.server.domains.run.post.dto.request.UpdatePostRequest;
 import RIKU.server.domains.run.pacer.dto.response.ReadPaceGroupResponse;
@@ -55,6 +56,7 @@ import static RIKU.server.global.util.DateTimeUtils.*;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
+    private final RunWaitlist waitlist;
 
     private final ApplicationEventPublisher events;
     private final PostRepository postRepository;
@@ -116,10 +118,10 @@ public class PostService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
         if (request.getCapacity() != null || request.isClearCapacity()) {
-            if (postType != PostType.REGULAR || (request.getCapacity() != null && request.isClearCapacity())) {
+            if (request.getCapacity() != null && request.isClearCapacity()) {
                 throw new PostException(BaseResponseStatus.INVALID_FIELD);
             }
-            recruitmentService.changeCapacity(post, request.getCapacity());
+            if (postType == PostType.REGULAR) recruitmentService.changeCapacity(post, request.getCapacity());
         }
 
         // 5. 날짜 유효성 검증
@@ -136,6 +138,13 @@ public class PostService {
             }
             updatePacers(post, request.getPacers());
         }
+        if (postType != PostType.REGULAR) {
+            if (request.getCapacity() != null || request.isClearCapacity())
+                waitlist.configure(post, request.getCapacity());
+            else if (postType == PostType.TRAINING && request.getPacers() != null)
+                waitlist.fillVacancies(post);
+        }
+
 
         // 6. 공통 필드 처리
         String title = request.getTitle() != null ? request.getTitle() : post.getTitle();
@@ -175,7 +184,7 @@ public class PostService {
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 관련 엔티티 삭제
-        if (postType == PostType.REGULAR) {
+        if (recruitment.existsById(postId)) {
             enrollments.deleteByPostId(postId);
             recruitment.deleteById(postId);
         }
@@ -382,6 +391,7 @@ public class PostService {
             }
             Participant participant = participantsByUser.get(user.getId());
             if (participant == null) {
+                if (post.getPostType() == PostType.TRAINING) waitlist.checkPacer(post, user.getId());
                 participantRepository.save(Participant.createWithGroup(post, user, request.getGroup()));
             } else {
                 // Keep identity, createdAt and attendance, including promoted participants.

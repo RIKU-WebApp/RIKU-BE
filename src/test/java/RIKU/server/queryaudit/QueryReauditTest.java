@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 /** Current-cost probes: real repositories and flushes, excluding HTTP authentication and async ranking refresh. */
 @DataJpaTest(showSql = false)
 @ActiveProfiles("test")
-@Import({AdminService.class, ParticipantService.class, UserService.class, HomeService.class,
+@Import({RIKU.server.domains.run.recruitment.RunWaitlist.class, AdminService.class, ParticipantService.class, UserService.class, HomeService.class,
         CalendarService.class})
 class QueryReauditTest {
     @Autowired UserRepository users;

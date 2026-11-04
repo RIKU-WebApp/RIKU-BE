@@ -31,6 +31,35 @@ class RecruitmentIntegrationTest {
     @Autowired ParticipantService legacy;
     @Autowired PostRepository posts;
     @Autowired PlatformTransactionManager manager;
+    @Autowired RunWaitlist waitlist;
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.EnumSource(value = RIKU.server.domains.run.post.entity.PostType.class, names = {"FLASH", "TRAINING", "EVENT"})
+    void cancellationAndReentryPreserveWaitlistOrder(RIKU.server.domains.run.post.entity.PostType type) {
+        var post = posts.save(RIKU.server.domains.run.post.entity.Post.create(users.findById(admin.getId()).orElseThrow(),
+                "모집", "공원", LocalDateTime.now(ZoneOffset.UTC).plusDays(1), "안내", null, type));
+        var tx = new TransactionTemplate(manager);
+        tx.executeWithoutResult(status -> waitlist.configure(post, 1));
+        var first = user(UserRole.MEMBER);
+        var second = user(UserRole.MEMBER);
+        var third = user(UserRole.MEMBER);
+        var id = post.getId();
+        var path = type.name().toLowerCase(Locale.ROOT);
+        String group = type == RIKU.server.domains.run.post.entity.PostType.TRAINING ? "A" : null;
+        legacy.joinRun(path, id, group, first);
+        legacy.joinRun(path, id, group, second);
+        legacy.joinRun(path, id, group, third);
+        assertEquals(1, participants.countByPostId(id));
+        assertTrue(waitlist.read(path, id, second.getId()).mine());
+        waitlist.leave(path, id, second.getId());
+        legacy.joinRun(path, id, group, second);
+        legacy.joinRun(path, id, null, first);
+        assertTrue(participants.findByPostIdAndUserId(id, third.getId()).isPresent());
+        assertTrue(waitlist.read(path, id, second.getId()).mine());
+        tx.executeWithoutResult(status -> waitlist.configure(post, null));
+        assertEquals(2, participants.countByPostId(id));
+        assertTrue(waitlist.read(path, id, second.getId()).waiting().isEmpty());
+    }
     AuthMember admin;
     @BeforeEach void setup(){admin=user(UserRole.ADMIN);}
     AuthMember user(UserRole role) {

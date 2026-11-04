@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 
 /** Real old/new repository executions; fixture creation and result inspection are outside counters. */
 @DataJpaTest(showSql=false) @ActiveProfiles("test") @RecordApplicationEvents
-@Import({AdminService.class, ParticipantService.class, LegacyAttendanceOperations.class})
+@Import({RIKU.server.domains.run.recruitment.RunWaitlist.class, AdminService.class, ParticipantService.class, LegacyAttendanceOperations.class})
 class ReadBatchingComparisonTest {
     @Autowired UserRepository users;
     @Autowired PostRepository posts;

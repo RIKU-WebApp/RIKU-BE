@@ -22,6 +22,8 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 public class CreateTrainingPostRequest {
+    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(1000)
+    private Integer capacity;
 
     @NotBlank(message = "훈련 유형은 필수 항목입니다.")
     private String trainingType;

@@ -1,5 +1,6 @@
 package RIKU.server.domains.run.post.service;
 
+import RIKU.server.domains.run.recruitment.RunWaitlist;
 import RIKU.server.domains.run.participant.dto.response.GroupParticipantResponse;
 import RIKU.server.domains.run.participant.dto.response.ReadParticipantListResponse;
 import RIKU.server.domains.run.pacer.dto.request.CreatePacerRequest;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class TrainingPostService {
+    private final RunWaitlist waitlist;
 
     private final PostRepository postRepository;
     private final TrainingPostRepository trainingPostRepository;
@@ -120,6 +122,7 @@ public class TrainingPostService {
                 .collect(Collectors.toList());
         participantRepository.saveAll(participants);
 
+        if (request.getCapacity() != null) waitlist.configure(savedPost, request.getCapacity());
         return trainingPost.getId();
     }
 
