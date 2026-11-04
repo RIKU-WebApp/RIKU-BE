@@ -21,7 +21,9 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CreateTrainingPostRequest {
+public class CreateTrainingPostRequest extends RIKU.server.domains.run.recruitment.GroupSettings {
+    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(1000)
+    private Integer capacity;
 
     @NotBlank(message = "훈련 유형은 필수 항목입니다.")
     private String trainingType;
@@ -36,9 +38,7 @@ public class CreateTrainingPostRequest {
     @NotNull(message = "집합 날짜 및 시간은 필수 항목입니다.")
     private LocalDateTime date;     // 집합 날짜 및 시간
 
-    @NotNull(message = "페이서 정보는 필수 항목입니다.")
-    @Size(min = 1, message = "페이서는 최소 한 명 이상이어야 합니다.")
-    private List<CreatePacerRequest> pacers;
+    private List<CreatePacerRequest> pacers = new java.util.ArrayList<>();
 
     @NotBlank(message = "내용은 필수 항목입니다.")
     private String content;     // 게시글 내용

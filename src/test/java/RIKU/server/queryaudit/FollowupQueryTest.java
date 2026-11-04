@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.*;
         "RIKU.server.queryaudit.FollowupQueryTest$LockObserver")
 @ActiveProfiles("test")
 @RecordApplicationEvents
-@Import({AdminService.class, ParticipantService.class, CalendarService.class})
+@Import({RIKU.server.domains.run.recruitment.RunWaitlist.class, AdminService.class, ParticipantService.class, CalendarService.class})
 class FollowupQueryTest {
     @Autowired EntityManager em;
     @Autowired EntityManagerFactory emf;

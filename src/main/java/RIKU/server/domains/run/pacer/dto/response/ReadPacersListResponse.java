@@ -10,6 +10,7 @@ public class ReadPacersListResponse {
     private String profileImg;
 
     private String pacerName;
+    private Long pacerId;
 
     private String distance;
 
@@ -24,12 +25,14 @@ public class ReadPacersListResponse {
     }
 
     public static ReadPacersListResponse of(Pacer pacer) {
-        return new ReadPacersListResponse(
+        var response = new ReadPacersListResponse(
                 pacer.getGroup(),
                 pacer.getUser().getProfileImageUrl(),
                 pacer.getUser().getName(),
                 pacer.getDistance(),
                 pacer.getPace()
         );
+        response.pacerId = pacer.getUser().getId();
+        return response;
     }
 }

@@ -1,5 +1,6 @@
 package RIKU.server.domains.run.post.service;
 
+import RIKU.server.domains.run.recruitment.RunWaitlist;
 import RIKU.server.domains.run.pacer.dto.request.UpdatePacerRequest;
 import RIKU.server.domains.run.post.dto.request.UpdatePostRequest;
 import RIKU.server.domains.run.pacer.dto.response.ReadPaceGroupResponse;
@@ -55,6 +56,7 @@ import static RIKU.server.global.util.DateTimeUtils.*;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PostService {
+    private final RunWaitlist waitlist;
 
     private final ApplicationEventPublisher events;
     private final PostRepository postRepository;
@@ -116,26 +118,38 @@ public class PostService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
         if (request.getCapacity() != null || request.isClearCapacity()) {
-            if (postType != PostType.REGULAR || (request.getCapacity() != null && request.isClearCapacity())) {
+            if (request.getCapacity() != null && request.isClearCapacity()) {
                 throw new PostException(BaseResponseStatus.INVALID_FIELD);
             }
-            recruitmentService.changeCapacity(post, request.getCapacity());
+
         }
 
+        boolean changeTotal = request.getCapacity() != null || request.isClearCapacity();
+        if (postType == PostType.REGULAR && (changeTotal || request.isReplaceGroups()))
+            recruitmentService.edit(post, changeTotal, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
         // 5. 날짜 유효성 검증
         if (request.getDate() != null) {
             validateDate(request); // ← 날짜 유효성 검사
         }
 
         // Validate the complete replacement list before changing files in S3.
-        if (request.getPacers() != null &&
+        if ((request.getPacers() != null || request.isReplacePacers()) &&
                 (postType == PostType.REGULAR || postType == PostType.TRAINING)) {
             if (postType == PostType.REGULAR && recruitment.existsById(postId)) {
                 throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
                         "페이서는 정규런 신청 명단에서 관리합니다.");
             }
-            updatePacers(post, request.getPacers());
+            boolean groupBased = postType == PostType.TRAINING && (request.isReplaceGroups()
+                    ? !request.getGroupPlans().isEmpty() : waitlist.hasGroups(post));
+            updatePacers(post, request.getPacers() == null ? List.of() : request.getPacers(), request.isReplacePacers(), groupBased);
         }
+        if (postType != PostType.REGULAR) {
+            if (changeTotal || request.isReplaceGroups())
+                waitlist.configure(post, changeTotal, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
+            else if (postType == PostType.TRAINING && (request.isReplacePacers() || request.getPacers() != null))
+                waitlist.fillVacancies(post);
+        }
+
 
         // 6. 공통 필드 처리
         String title = request.getTitle() != null ? request.getTitle() : post.getTitle();
@@ -175,7 +189,7 @@ public class PostService {
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 관련 엔티티 삭제
-        if (postType == PostType.REGULAR) {
+        if (recruitment.existsById(postId)) {
             enrollments.deleteByPostId(postId);
             recruitment.deleteById(postId);
         }
@@ -334,9 +348,9 @@ public class PostService {
         attachmentRepository.saveAll(newAttachments);
     }
 
-    private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests) {
+    private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests, boolean replace, boolean groupBased) {
         List<Pacer> existingPacers = pacerRepository.findByPost(post);
-        if (pacerRequests.size() != existingPacers.size()) {
+        if (!replace && pacerRequests.size() != existingPacers.size()) {
             throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
         }
         Set<Long> requestedIds = new HashSet<>();
@@ -361,7 +375,7 @@ public class PostService {
             }
             users.put(user.getId(), user);
         }
-        if (!requestedIds.contains(post.getPostCreator().getId())) {
+        if (!groupBased && !requestedIds.contains(post.getPostCreator().getId())) {
             throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
         }
         Map<Long, Pacer> pacersByUser = existingPacers.stream()
@@ -382,6 +396,7 @@ public class PostService {
             }
             Participant participant = participantsByUser.get(user.getId());
             if (participant == null) {
+                if (post.getPostType() == PostType.TRAINING) waitlist.checkPacer(post, user.getId());
                 participantRepository.save(Participant.createWithGroup(post, user, request.getGroup()));
             } else {
                 // Keep identity, createdAt and attendance, including promoted participants.

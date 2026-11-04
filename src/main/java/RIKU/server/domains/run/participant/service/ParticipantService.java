@@ -1,5 +1,6 @@
 package RIKU.server.domains.run.participant.service;
 
+import RIKU.server.domains.run.recruitment.RunWaitlist;
 import RIKU.server.domains.point.ranking.RankingChanged;
 import org.springframework.context.ApplicationEventPublisher;
 import RIKU.server.domains.run.participant.dto.request.ManualAttendParticipantRequest;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ParticipantService {
+    private final RunWaitlist waitlist;
 
     private final ApplicationEventPublisher events;
 
@@ -155,7 +157,11 @@ public class ParticipantService {
         // 7. 참여 정보 저장
         if (existing == null) {
             // 기존 참여자 아님 -> 참여하기
-            if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
+            if (postType == PostType.TRAINING && (group == null || group.isBlank()))
+                throw new ParticipantException(BaseResponseStatus.GROUP_REQUIRED);
+            if (postType != PostType.REGULAR && waitlist.enqueueIfFull(post, user, group))
+                return UpdateParticipantResponse.message("대기명단에 등록되었습니다.");
+            if (postType == PostType.REGULAR || postType == PostType.TRAINING || (group != null && !group.isBlank())) {
                 if (group == null || group.isBlank()) {
                     throw new ParticipantException(BaseResponseStatus.GROUP_REQUIRED);
                 }
@@ -172,10 +178,11 @@ public class ParticipantService {
             if (group == null || group.isBlank()) {
                 // 그룹이 없으면 참여 취소
                 participantRepository.delete(existing);
+                if (postType != PostType.REGULAR) waitlist.fillVacancies(post);
                 return UpdateParticipantResponse.message("참여가 취소되었습니다.");
             } else {
                 // 그룹 변경 (정규런, 훈련만 허용)
-                if (postType != PostType.REGULAR && postType != PostType.TRAINING) {
+                if (postType != PostType.REGULAR && postType != PostType.TRAINING && !recruitmentRepository.existsById(postId)) {
                     throw new ParticipantException(BaseResponseStatus.UNAUTHORIZED_POST_TYPE);
                 }
 
@@ -183,7 +190,8 @@ public class ParticipantService {
                     throw new ParticipantException(BaseResponseStatus.ALREADY_ATTENDED);
                 }
 
-                existing.updateGroup(group);
+                if (postType == PostType.REGULAR) existing.updateGroup(group);
+                else waitlist.move(post, existing, group);
                 return UpdateParticipantResponse.of(existing);
             }
         }

@@ -61,7 +61,7 @@ public class RecruitmentService {
         Post post=posts.save(Post.create(creator,request.title(),request.location(),request.date(),request.content(),null,PostType.REGULAR));
         regular.save(RegularPost.create(post));
         recruitment.save(new RunRecruitment(post.getId(),request.capacity(),request.groups().stream()
-                .map(g->new RunRecruitment.GroupPlan(g.name(),g.pace(),g.distanceKm())).toList()));
+                .map(g->new RunRecruitment.GroupPlan(g.name(),g.pace(),g.distanceKm(),g.capacity())).toList()));
         return post.getId();
     }
 
@@ -104,16 +104,20 @@ public class RecruitmentService {
             var participant=participants.findByPostAndUser(post,user);
             if(participant.isPresent() && participant.get().getParticipantStatus()==ParticipantStatus.ATTENDED)
                 throw new ResponseStatusException(CONFLICT,"출석 후에는 그룹을 변경할 수 없습니다.");
+            if (group.equals(e.getGroup())) return read(postId, actor);
+            if (e.getState() == WAITLISTED)
+                throw new ResponseStatusException(CONFLICT, "대기 취소 후 새 그룹에 신청해주세요.");
+            if (!seats(config).groupAvailable(group))
+                throw new ResponseStatusException(CONFLICT, "이동할 그룹의 정원이 찼습니다.");
             e.changeGroup(group);
             participant.ifPresent(p->p.updateGroup(group));
             if(e.getState()==CONFIRMED && role==RunEnrollment.Role.PACER) {
                 pacers.deleteByUserAndPost(user,post); pacers.flush(); addPacer(post,e,config);
             }
+            promote(post, config);
             return read(postId,actor);
         }
-        Integer limit=config.getCapacity();
-        long count=enrollments.countByPostIdAndState(postId,CONFIRMED);
-        var entry=enrollments.save(new RunEnrollment(postId,user,role,group,limit == null || count < limit ? CONFIRMED : WAITLISTED));
+        var entry=enrollments.save(new RunEnrollment(postId,user,role,group,seats(config).available(group) ? CONFIRMED : WAITLISTED));
         if(entry.getState()==CONFIRMED) addParticipant(post,entry,config);
         return read(postId,actor);
     }
@@ -130,30 +134,57 @@ public class RecruitmentService {
         participant.ifPresent(participants::delete);
         if(e.getRole()==RunEnrollment.Role.PACER) pacers.deleteByUserAndPost(e.getUser(),post);
         enrollments.delete(e); enrollments.flush();
-        if(e.getState()==CONFIRMED) {
-            var next=enrollments.findFirstByPostIdAndStateOrderByIdAsc(postId,WAITLISTED);
-            next.ifPresent(n->{n.confirm();addParticipant(post,n,recruitment.findById(postId).orElseThrow());});
-        }
+        if (e.getState() == CONFIRMED) promote(post, recruitment.findById(postId).orElseThrow());
         return read(postId,actor);
     }
 
     // PostService holds the post write lock for the whole edit transaction.
     @Transactional
     public void changeCapacity(Post post, Integer capacity) {
+        edit(post, true, capacity, null);
+    }
+
+    public void edit(Post post, boolean changeTotal, Integer capacity, List<RunRecruitment.GroupPlan> plans) {
         writable(post);
-        var config = recruitment.findById(post.getId())
-                .orElseThrow(() -> new ResponseStatusException(CONFLICT, "모집 설정이 없는 정규런입니다."));
-        long confirmed = enrollments.countByPostIdAndState(post.getId(), CONFIRMED);
-        if (capacity != null && capacity < confirmed) {
-            throw new ResponseStatusException(CONFLICT, "이미 신청한 인원보다 정원을 줄일 수 없습니다.");
+        var config = recruitment.findById(post.getId()).orElseGet(() -> {
+            if (plans == null || plans.isEmpty()) throw new ResponseStatusException(CONFLICT, "그룹을 설정해주세요.");
+            var imported = recruitment.save(new RunRecruitment(post.getId(), null, List.of()));
+            var leaders = new HashSet<>(participants.findPacerUserIdsByPost(post));
+            for (var p : participants.findWithUserByPost(post)) {
+                if (p.getGroup() == null || p.getGroup().isBlank())
+                    throw new ResponseStatusException(CONFLICT, "기존 참가자의 그룹을 먼저 지정해주세요.");
+                enrollments.save(new RunEnrollment(post.getId(), p.getUser(), leaders.contains(p.getUser().getId())
+                        ? RunEnrollment.Role.PACER : RunEnrollment.Role.RUNNER, p.getGroup(), CONFIRMED));
+            }
+            return imported;
+        });
+        if (plans != null) {
+            if (plans.isEmpty()) throw new ResponseStatusException(BAD_REQUEST, "그룹이 하나 이상 필요합니다.");
+            var entries = enrollments.findByPostIdOrderByIdAsc(post.getId());
+            config.replacePlans(plans, entries.stream().map(RunEnrollment::getGroup).toList());
+            for (var pacer : pacers.findByPost(post)) {
+                var p = plan(config, pacer.getGroup());
+                pacer.updateDetails(p.getName(), p.getPace(), p.getDistanceKm().toPlainString());
+            }
         }
-        config.changeCapacity(capacity);
+        if (changeTotal) config.changeCapacity(capacity);
+        promote(post, config);
+    }
+
+    private GroupSeats seats(RunRecruitment config) {
+        var confirmed = enrollments.findByPostIdOrderByIdAsc(config.getPostId()).stream()
+                .filter(e -> e.getState() == CONFIRMED).map(RunEnrollment::getGroup).toList();
+        return new GroupSeats(config, confirmed);
+    }
+
+    private void promote(Post post, RunRecruitment config) {
+        var seats = seats(config);
+        seats.validate();
         for (var entry : enrollments.findByPostIdOrderByIdAsc(post.getId())) {
-            if (capacity != null && confirmed >= capacity) break;
-            if (entry.getState() == WAITLISTED) {
+            if (entry.getState() == WAITLISTED && seats.available(entry.getGroup())) {
                 entry.confirm();
                 addParticipant(post, entry, config);
-                confirmed++;
+                seats.take(entry.getGroup());
             }
         }
     }

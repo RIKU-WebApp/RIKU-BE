@@ -1,5 +1,6 @@
 package RIKU.server.domains.run.post.service;
 
+import RIKU.server.domains.run.recruitment.RunWaitlist;
 import RIKU.server.domains.run.participant.dto.response.ReadParticipantListResponse;
 import RIKU.server.domains.run.post.dto.request.CreateFlashPostRequest;
 import RIKU.server.domains.run.comment.dto.response.ReadCommentsResponse;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class FlashPostService {
+    private final RunWaitlist waitlist;
 
     private final PostRepository postRepository;
     private final FlashPostRepository flashPostRepository;
@@ -77,9 +79,13 @@ public class FlashPostService {
 
         try {
             // 게시글 작성자를 참여자로 추가
-            Participant participant = Participant.create(savedPost, user);
+            Participant participant = request.isReplaceGroups() && !request.getGroupPlans().isEmpty()
+                    ? Participant.createWithGroup(savedPost, user, request.getGroupPlans().get(0).getName())
+                    : Participant.create(savedPost, user);
             participantRepository.save(participant);
 
+            if (request.getCapacity() != null || request.isReplaceGroups())
+                waitlist.configure(savedPost, true, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
             return flashPost.getId();
 
         } catch (Exception e) {

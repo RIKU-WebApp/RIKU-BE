@@ -19,7 +19,9 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CreateFlashPostRequest {
+public class CreateFlashPostRequest extends RIKU.server.domains.run.recruitment.GroupSettings {
+    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(1000)
+    private Integer capacity;
 
     @NotBlank(message = "제목은 필수 항목입니다.")
     @Size(min = 1, message = "내용은 최소 1자 이상이어야 합니다.")

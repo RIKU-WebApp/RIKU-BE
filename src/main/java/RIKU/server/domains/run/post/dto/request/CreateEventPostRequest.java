@@ -19,7 +19,9 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CreateEventPostRequest {
+public class CreateEventPostRequest extends RIKU.server.domains.run.recruitment.GroupSettings {
+    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(1000)
+    private Integer capacity;
 
     @NotBlank(message = "행사 유형은 필수 항목입니다.")
     private String eventType;
