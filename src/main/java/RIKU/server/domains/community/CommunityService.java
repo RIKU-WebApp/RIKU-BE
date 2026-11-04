@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.data.domain.*;
 import static org.springframework.http.HttpStatus.*;
 import java.math.BigDecimal;
 import java.util.*;
@@ -22,6 +23,7 @@ public class CommunityService {
     private final RunRecruitmentRepository recruitment;
     private final PersonalRunRecordRepository records;
     private final BadgeAwardRepository awards;
+    private final FeedbackRepository feedback;
     public record Badge(String code,String name,String description,String source) {}
     public record PublicProfile(String name,List<Badge> badges) {}
     public record MyActivity(BigDecimal verifiedKm,BigDecimal personalKm,List<Badge> badges,List<PersonalRunRecord> records) {}
@@ -68,6 +70,19 @@ public class CommunityService {
         if(!users.existsById(id)) throw new ResponseStatusException(NOT_FOUND,"회원을 찾을 수 없습니다.");
         if(awards.existsByUserIdAndName(id,r.name().trim())) throw new ResponseStatusException(CONFLICT,"이미 수여한 배지입니다.");
         awards.save(new BadgeAward(id,r.name().trim(),r.description(),actor.getId()));
+    }
+    @Transactional public Feedback submit(AuthMember actor,CommunityController.FeedbackRequest r) {
+        return feedback.save(new Feedback(actor.getId(),r.category(),r.title().trim(),r.content().trim()));
+    }
+    public Page<Feedback> myFeedback(AuthMember actor,int page) {
+        return feedback.findByUserIdOrderByIdDesc(actor.getId(),PageRequest.of(Math.max(0,page),20));
+    }
+    public Page<Feedback> adminFeedback(AuthMember actor,int page) {
+        admin(actor); return feedback.findAll(PageRequest.of(Math.max(0,page),20,Sort.by(Sort.Direction.DESC,"id")));
+    }
+    @Transactional public Feedback respond(AuthMember actor,Long id,CommunityController.AnswerRequest r) {
+        admin(actor); var f=feedback.findById(id).orElseThrow(()->new ResponseStatusException(NOT_FOUND,"건의사항을 찾을 수 없습니다."));
+        f.respond(r.status(),r.answer()); return f;
     }
     private void admin(AuthMember actor) { if(!actor.isAdmin()) throw new ResponseStatusException(FORBIDDEN,"관리자 권한이 필요합니다."); }
 }
