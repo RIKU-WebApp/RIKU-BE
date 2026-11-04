@@ -27,15 +27,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class AdminService {
+    private static final int STUDENT_LOOKUP_BATCH_SIZE = 500;
 
     private final ApplicationEventPublisher events;
 
@@ -89,10 +93,10 @@ public class AdminService {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
+        var lookup = studentLookup(requests.stream().filter(Objects::nonNull).map(UpdateUsersRequest::getStudentId).toList());
         boolean rankingChanged = false;
         for (UpdateUsersRequest request : requests) {
-            User user = userRepository.findByStudentId(request.getStudentId())
-                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+            User user = lookup.apply(request.getStudentId());
 
             // 회원 등급 수정
             BaseStatus previousStatus = user.getStatus();
@@ -135,12 +139,32 @@ public class AdminService {
             throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
         }
 
+        var lookup = studentLookup(requests.stream().filter(Objects::nonNull).map(AuthorizePacerRequest::getStudentId).toList());
         requests.forEach(request -> {
-            User user = userRepository.findByStudentId(request.getStudentId())
-                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+            User user = lookup.apply(request.getStudentId());
 
             user.updatePacer(request.getIsPacer());
         });
+    }
+
+    private Function<String, User> studentLookup(List<String> studentIds) {
+        // Repeated mutations rely on the original query's auto-flush and @PreUpdate callbacks.
+        if (studentIds.size() < 2 || new HashSet<>(studentIds).size() != studentIds.size()) {
+            return this::requireStudent;
+        }
+        Map<String, User> byStudentId = new HashMap<>();
+        for (int start = 0; start < studentIds.size(); start += STUDENT_LOOKUP_BATCH_SIZE) {
+            int end = Math.min(start + STUDENT_LOOKUP_BATCH_SIZE, studentIds.size());
+            userRepository.findByStudentIdIn(studentIds.subList(start, end))
+                    .forEach(user -> byStudentId.put(user.getStudentId(), user));
+        }
+        // Preserve error order and the database's equality rules (including collation and nulls).
+        return byStudentId.keySet().containsAll(studentIds) ? byStudentId::get : this::requireStudent;
+    }
+
+    private User requireStudent(String studentId) {
+        return userRepository.findByStudentId(studentId)
+                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
     }
 
     // 임시 비밀번호 발급

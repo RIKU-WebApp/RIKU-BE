@@ -22,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 학번으로 조회
     Optional<User> findByStudentId(String studentId);
 
+    List<User> findByStudentIdIn(List<String> studentIds);
+
     // 상태로 조회
     List<User> findByStatus(BaseStatus status);
 
