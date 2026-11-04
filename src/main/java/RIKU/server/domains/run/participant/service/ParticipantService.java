@@ -4,7 +4,6 @@ import RIKU.server.domains.point.ranking.RankingChanged;
 import org.springframework.context.ApplicationEventPublisher;
 import RIKU.server.domains.run.participant.dto.request.ManualAttendParticipantRequest;
 import RIKU.server.domains.run.participant.dto.response.UpdateParticipantResponse;
-import RIKU.server.domains.run.pacer.entity.Pacer;
 import RIKU.server.domains.run.post.entity.*;
 import RIKU.server.domains.run.post.entity.PostStatus;
 import RIKU.server.domains.run.participant.entity.Participant;
@@ -90,14 +89,7 @@ public class ParticipantService {
                     // 8. 생성자 출석 처리
                     // 정규런/훈련의 경우, 페이서도 출석 처리
                     if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
-                        List<Pacer> pacers = pacerRepository.findByPost(post);
-                        for(Pacer pacer : pacers) {
-                            Participant participant = participantRepository.findByPostIdAndUserId(postId, pacer.getUser().getId())
-                                    .orElse(null);
-                            if (participant != null && participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
-                                participant.attend();
-                            }
-                        }
+                        attendPacers(post);
                     } else if (postType == PostType.FLASH) {
                         // 번개런은 작성자만 출석 처리
                         Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
@@ -109,6 +101,17 @@ public class ParticipantService {
                     }
                     return code;
                 });
+    }
+
+    private void attendPacers(Post post) {
+        var byUser = participantRepository.findPacerParticipants(post).stream()
+                .collect(Collectors.groupingBy(participant -> participant.getUser().getId()));
+        for (Long userId : byUser.keySet()) {
+            Participant participant = requiredParticipant(byUser, userId);
+            if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                participant.attend();
+            }
+        }
     }
 
     // 러닝 참여하기

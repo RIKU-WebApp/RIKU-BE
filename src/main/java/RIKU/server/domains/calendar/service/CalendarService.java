@@ -4,6 +4,7 @@ import RIKU.server.domains.calendar.dto.response.ListMonthlyScheduleResponse;
 import RIKU.server.domains.calendar.dto.response.ReadDailyScheduleResponse;
 import RIKU.server.domains.calendar.dto.response.ReadMonthlyScheduleResponse;
 import RIKU.server.global.entity.BaseStatus;
+import RIKU.server.global.util.DateTimeUtils;
 import RIKU.server.domains.run.post.entity.Post;
 import RIKU.server.domains.user.entity.User;
 import RIKU.server.domains.run.post.repository.PostRepository;
@@ -70,11 +71,11 @@ public class CalendarService {
         LocalDateTime utcEnd = endOfDayUtc(lastDay);
 
         // 4. DB 조회 (UTC 기준)
-        List<Post> posts = postRepository.findByStatusAndDateBetween(BaseStatus.ACTIVE, utcStart, utcEnd);
+        List<LocalDateTime> dates = postRepository.findScheduleDates(BaseStatus.ACTIVE, utcStart, utcEnd);
 
         // 5. 날짜별 그룹핑 (KST 기준)
-        Map<LocalDate, Long> eventCounts = posts.stream()
-                .collect(Collectors.groupingBy(post -> toUserLocalDate(post.getDate()), Collectors.counting()));
+        Map<LocalDate, Long> eventCounts = dates.stream()
+                .collect(Collectors.groupingBy(DateTimeUtils::toUserLocalDate, Collectors.counting()));
 
         // 6. DTO 변환 및 정렬
         List<ReadMonthlyScheduleResponse> schedules = eventCounts.entrySet().stream()

@@ -23,6 +23,10 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
     List<Participant> findByPostIdAndUserIdIn(Long postId, List<Long> userIds);
 
+    @Query("select p from Participant p where p.post = :post and p.user.id in " +
+            "(select pacer.user.id from Pacer pacer where pacer.post = :post)")
+    List<Participant> findPacerParticipants(@Param("post") Post post);
+
     // 특정 유저의 해당 게시글 참여 중복 확인
     Boolean existsByPostAndUser(Post post, User user);
 
