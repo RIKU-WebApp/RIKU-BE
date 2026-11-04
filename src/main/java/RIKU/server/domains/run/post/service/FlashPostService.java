@@ -79,10 +79,13 @@ public class FlashPostService {
 
         try {
             // 게시글 작성자를 참여자로 추가
-            Participant participant = Participant.create(savedPost, user);
+            Participant participant = request.isReplaceGroups() && !request.getGroupPlans().isEmpty()
+                    ? Participant.createWithGroup(savedPost, user, request.getGroupPlans().get(0).getName())
+                    : Participant.create(savedPost, user);
             participantRepository.save(participant);
 
-            if (request.getCapacity() != null) waitlist.configure(savedPost, request.getCapacity());
+            if (request.getCapacity() != null || request.isReplaceGroups())
+                waitlist.configure(savedPost, true, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
             return flashPost.getId();
 
         } catch (Exception e) {

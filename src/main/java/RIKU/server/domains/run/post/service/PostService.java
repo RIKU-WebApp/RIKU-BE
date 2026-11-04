@@ -121,27 +121,32 @@ public class PostService {
             if (request.getCapacity() != null && request.isClearCapacity()) {
                 throw new PostException(BaseResponseStatus.INVALID_FIELD);
             }
-            if (postType == PostType.REGULAR) recruitmentService.changeCapacity(post, request.getCapacity());
+
         }
 
+        boolean changeTotal = request.getCapacity() != null || request.isClearCapacity();
+        if (postType == PostType.REGULAR && (changeTotal || request.isReplaceGroups()))
+            recruitmentService.edit(post, changeTotal, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
         // 5. 날짜 유효성 검증
         if (request.getDate() != null) {
             validateDate(request); // ← 날짜 유효성 검사
         }
 
         // Validate the complete replacement list before changing files in S3.
-        if (request.getPacers() != null &&
+        if ((request.getPacers() != null || request.isReplacePacers()) &&
                 (postType == PostType.REGULAR || postType == PostType.TRAINING)) {
             if (postType == PostType.REGULAR && recruitment.existsById(postId)) {
                 throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
                         "페이서는 정규런 신청 명단에서 관리합니다.");
             }
-            updatePacers(post, request.getPacers());
+            boolean groupBased = postType == PostType.TRAINING && (request.isReplaceGroups()
+                    ? !request.getGroupPlans().isEmpty() : waitlist.hasGroups(post));
+            updatePacers(post, request.getPacers() == null ? List.of() : request.getPacers(), request.isReplacePacers(), groupBased);
         }
         if (postType != PostType.REGULAR) {
-            if (request.getCapacity() != null || request.isClearCapacity())
-                waitlist.configure(post, request.getCapacity());
-            else if (postType == PostType.TRAINING && request.getPacers() != null)
+            if (changeTotal || request.isReplaceGroups())
+                waitlist.configure(post, changeTotal, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
+            else if (postType == PostType.TRAINING && (request.isReplacePacers() || request.getPacers() != null))
                 waitlist.fillVacancies(post);
         }
 
@@ -343,9 +348,9 @@ public class PostService {
         attachmentRepository.saveAll(newAttachments);
     }
 
-    private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests) {
+    private void updatePacers(Post post, List<UpdatePacerRequest> pacerRequests, boolean replace, boolean groupBased) {
         List<Pacer> existingPacers = pacerRepository.findByPost(post);
-        if (pacerRequests.size() != existingPacers.size()) {
+        if (!replace && pacerRequests.size() != existingPacers.size()) {
             throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
         }
         Set<Long> requestedIds = new HashSet<>();
@@ -370,7 +375,7 @@ public class PostService {
             }
             users.put(user.getId(), user);
         }
-        if (!requestedIds.contains(post.getPostCreator().getId())) {
+        if (!groupBased && !requestedIds.contains(post.getPostCreator().getId())) {
             throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
         }
         Map<Long, Pacer> pacersByUser = existingPacers.stream()

@@ -152,6 +152,28 @@ class PacerUpdateIntegrationTest {
         verifyNoInteractions(s3);
     }
 
+    @Test
+    void removingLastTrainingPacerKeepsGroupSeatUntilTheyCancel() {
+        User creator = user(), runner = user();
+        Post post = post(creator, PostType.TRAINING);
+        pacers.save(Pacer.create(creator, post, "A", "6:00", "5"));
+        Participant original = participants.save(Participant.createWithGroup(post, creator, "A"));
+        var group = new RIKU.server.domains.run.recruitment.GroupSettings.Row();
+        group.setName("A"); group.setPace("6:00"); group.setDistanceKm(java.math.BigDecimal.valueOf(5)); group.setCapacity(1);
+        var setup = body(request(creator, "A"));
+        setup.setReplaceGroups(true); setup.setGroupPlans(List.of(group));
+        service.updatePost(auth(creator), "training", post.getId(), setup);
+        attendance.joinRun("training", post.getId(), "A", auth(runner));
+        var clear = new UpdatePostRequest();
+        clear.setReplacePacers(true);
+        service.updatePost(auth(creator), "training", post.getId(), clear);
+        em.flush(); em.clear();
+        assertThat(pacers.findByPost(post)).isEmpty();
+        assertThat(participants.findById(original.getId()).orElseThrow().getGroup()).isEqualTo("A");
+        assertThat(participants.findByPostIdAndUserId(post.getId(),runner.getId())).isEmpty();
+        attendance.joinRun("training",post.getId(),null,auth(creator));
+        assertThat(participants.findByPostIdAndUserId(post.getId(),runner.getId()).orElseThrow().getGroup()).isEqualTo("A");
+    }
     private User user() {
         User u = users.save(User.create("test-" + ++sequence, "unused", "test", "test", "test", null));
         u.updatePacer(true);

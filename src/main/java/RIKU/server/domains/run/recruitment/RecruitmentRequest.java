@@ -13,5 +13,8 @@ public record RecruitmentRequest(
         @NotEmpty @Size(max=20) List<@NotNull @Valid Group> groups) {
     public record Group(@NotBlank @Size(max=20) String name,
                         @NotBlank @Pattern(regexp="[0-9]{1,2}:[0-5][0-9]") String pace,
-                        @NotNull @DecimalMin("0.1") @DecimalMax("200") BigDecimal distanceKm) {}
+                        @NotNull @DecimalMin("0.1") @DecimalMax("200") BigDecimal distanceKm,
+                        @Min(1) @Max(1000) Integer capacity) {
+        public Group(String name, String pace, BigDecimal distanceKm) { this(name, pace, distanceKm, null); }
+    }
 }

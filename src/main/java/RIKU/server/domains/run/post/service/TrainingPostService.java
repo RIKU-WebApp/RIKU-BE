@@ -122,7 +122,8 @@ public class TrainingPostService {
                 .collect(Collectors.toList());
         participantRepository.saveAll(participants);
 
-        if (request.getCapacity() != null) waitlist.configure(savedPost, request.getCapacity());
+        if (request.getCapacity() != null || request.isReplaceGroups())
+                waitlist.configure(savedPost, true, request.getCapacity(), request.isReplaceGroups() ? request.plans() : null);
         return trainingPost.getId();
     }
 
@@ -214,7 +215,7 @@ public class TrainingPostService {
         boolean isCreatorInPacerList = request.getPacers().stream()
                 .anyMatch(p -> p.getPacerId().equals(authMember.getId()));
 
-        if (!isCreatorInPacerList) {
+        if (!isCreatorInPacerList && !(request.isReplaceGroups() && !request.getGroupPlans().isEmpty())) {
             throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
         }
     }
