@@ -58,6 +58,9 @@ public class PostService {
 
     private final ApplicationEventPublisher events;
     private final PostRepository postRepository;
+    private final RIKU.server.domains.run.recruitment.RecruitmentService recruitmentService;
+    private final RIKU.server.domains.run.recruitment.RunEnrollmentRepository enrollments;
+    private final RIKU.server.domains.run.recruitment.RunRecruitmentRepository recruitment;
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
@@ -112,6 +115,12 @@ public class PostService {
 
         // 4. PostStatus 검증
         validatePostIsOpen(post);
+        if (request.getCapacity() != null || request.isClearCapacity()) {
+            if (postType != PostType.REGULAR || (request.getCapacity() != null && request.isClearCapacity())) {
+                throw new PostException(BaseResponseStatus.INVALID_FIELD);
+            }
+            recruitmentService.changeCapacity(post, request.getCapacity());
+        }
 
         // 5. 날짜 유효성 검증
         if (request.getDate() != null) {
@@ -121,6 +130,10 @@ public class PostService {
         // Validate the complete replacement list before changing files in S3.
         if (request.getPacers() != null &&
                 (postType == PostType.REGULAR || postType == PostType.TRAINING)) {
+            if (postType == PostType.REGULAR && recruitment.existsById(postId)) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                        "페이서는 정규런 신청 명단에서 관리합니다.");
+            }
             updatePacers(post, request.getPacers());
         }
 
@@ -162,6 +175,10 @@ public class PostService {
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 관련 엔티티 삭제
+        if (postType == PostType.REGULAR) {
+            enrollments.deleteByPostId(postId);
+            recruitment.deleteById(postId);
+        }
         var deletedPoints = userPointRepository.deleteByPost(post);
         participantRepository.deleteByPost(post);
         commentRepository.deleteByPost(post);

@@ -14,8 +14,10 @@ public class ReadUserInfoResponse {
     private String userName;
 
     private String userRole;
+    private boolean canApplyAsPacer;
 
-    private ReadUserInfoResponse(Long userId, String userProfileImg, String userName, UserRole userRole) {
+    private ReadUserInfoResponse(Long userId, String userProfileImg, String userName, UserRole userRole, boolean canApplyAsPacer) {
+        this.canApplyAsPacer = canApplyAsPacer;
         this.userId = userId;
         this.userProfileImg = userProfileImg;
         this.userName = userName;
@@ -23,6 +25,6 @@ public class ReadUserInfoResponse {
     }
 
     public static ReadUserInfoResponse of(User user) {
-        return new ReadUserInfoResponse(user.getId(), user.getProfileImageUrl(), user.getName(), user.getUserRole());
+        return new ReadUserInfoResponse(user.getId(), user.getProfileImageUrl(), user.getName(), user.getUserRole(), Boolean.TRUE.equals(user.getIsPacer()));
     }
 }

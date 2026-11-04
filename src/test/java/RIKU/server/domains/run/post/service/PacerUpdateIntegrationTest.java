@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 @DataJpaTest(showSql = false)
 @ActiveProfiles("test")
-@Import({PostService.class, ParticipantService.class})
+@Import({PostService.class, ParticipantService.class, RIKU.server.domains.run.recruitment.RecruitmentService.class})
 class PacerUpdateIntegrationTest {
     @Autowired PostService service;
     @Autowired ParticipantService attendance;

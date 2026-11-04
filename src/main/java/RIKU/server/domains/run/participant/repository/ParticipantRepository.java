@@ -16,6 +16,11 @@ import java.util.Optional;
 
 @Repository
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
+    @EntityGraph(attributePaths = "post")
+    @Query("select p from Participant p where p.user.id=:userId and p.participantStatus=:attendance and p.post.postStatus=:closed and p.post.status=:active")
+    List<Participant> findAttendedForBadges(@Param("userId") Long userId,@Param("attendance") ParticipantStatus attendance,
+            @Param("closed") RIKU.server.domains.run.post.entity.PostStatus closed,@Param("active") RIKU.server.global.entity.BaseStatus active);
+
     @Query("select new RIKU.server.domains.run.participant.repository.UserParticipationCount(p.user.id, count(p)) " +
             "from Participant p where p.participantStatus = :status and p.createdAt >= :fromUtc group by p.user.id")
     List<UserParticipationCount> countAttendedByUserSince(@Param("status") ParticipantStatus status,

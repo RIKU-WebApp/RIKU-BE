@@ -2,8 +2,6 @@ package RIKU.server.domains.run.post.service;
 
 import RIKU.server.domains.run.participant.dto.response.GroupParticipantResponse;
 import RIKU.server.domains.run.participant.dto.response.ReadParticipantListResponse;
-import RIKU.server.domains.run.pacer.dto.request.CreatePacerRequest;
-import RIKU.server.domains.run.post.dto.request.CreateRegularPostRequest;
 import RIKU.server.domains.run.comment.dto.response.ReadCommentsResponse;
 import RIKU.server.domains.run.pacer.dto.response.ReadPacersListResponse;
 import RIKU.server.domains.run.post.dto.response.ReadRegularPostDetailResponse;
@@ -11,17 +9,14 @@ import RIKU.server.domains.user.dto.response.ReadUserInfoResponse;
 import RIKU.server.domains.run.post.entity.Attachment;
 import RIKU.server.domains.run.pacer.entity.Pacer;
 import RIKU.server.domains.run.post.entity.Post;
-import RIKU.server.domains.run.post.entity.RegularPost;
 import RIKU.server.domains.run.participant.entity.Participant;
 import RIKU.server.domains.user.entity.User;
-import RIKU.server.domains.user.entity.UserRole;
 import RIKU.server.domains.run.post.repository.*;
 import RIKU.server.domains.user.repository.UserRepository;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
 import RIKU.server.domains.run.pacer.repository.PacerRepository;
 import RIKU.server.domains.run.comment.service.CommentQueryService;
 import RIKU.server.security.AuthMember;
-import RIKU.server.infra.storage.S3Uploader;
 import RIKU.server.global.response.BaseResponseStatus;
 import RIKU.server.domains.run.participant.exception.ParticipantException;
 import RIKU.server.domains.run.post.exception.PostException;
@@ -30,10 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,84 +36,11 @@ import java.util.stream.Collectors;
 public class RegularPostService {
 
     private final PostRepository postRepository;
-    private final RegularPostRepository regularPostRepository;
     private final UserRepository userRepository;
     private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
     private final CommentQueryService commentQueryService;
-    private final S3Uploader s3Uploader;
-
-    // 게시글 생성
-    @Transactional
-    public Long createPost (AuthMember authMember, CreateRegularPostRequest request) {
-        // 1. validate(권한 및 날짜 확인)
-        validate(authMember, request);
-
-        // 2. 게시글 작성자 조회
-        User user = userRepository.findById(authMember.getId())
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-        // 3. 중복 글 검사
-        if (postRepository.findByPostCreatorIdAndTitleAndDate(user.getId(), request.getTitle(), request.getDate()).isPresent()) {
-            throw new PostException(BaseResponseStatus.DUPLICATE_POST);
-        }
-
-        // 4. S3에 게시글 이미지 업로드
-        String postImageUrl = uploadSingleImage(request.getPostImage(), "postImg");
-
-        // 5. Post 엔티티 생성 및 저장
-        Post post = request.toPostEntity(user, postImageUrl);
-        Post savedPost = postRepository.save(post);
-
-        // 6. 페이서 중복 검증
-        List<CreatePacerRequest> pacerRequests = request.getPacers();
-        List<Long> pacerIds = pacerRequests.stream()
-                .map(CreatePacerRequest::getPacerId)
-                .toList();
-
-        Set<Long> uniquePacerIds = new HashSet<>(pacerIds);
-        if (uniquePacerIds.size() < pacerIds.size()) {
-            throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
-        }
-
-        // 7. Pacer 엔티티 생성 및 저장
-        List<Pacer> pacers = request.getPacers().stream()
-                .map(pacer -> {
-                    User pacerUser = userRepository.findById(pacer.getPacerId())
-                                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-                    // 해당 유저가 페이서인지
-                    if (!pacerUser.getIsPacer()) {
-                        throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-                    }
-
-                    return pacer.toEntity(pacerUser, savedPost);
-                })
-                .collect(Collectors.toList());
-        pacerRepository.saveAll(pacers);
-
-        // 8. S3에 첨부파일 이미지 업로드 및 저장
-        List<Attachment> attachments = uploadMultipleImages(savedPost, request.getAttachments(), "attachmentImg");
-        attachmentRepository.saveAll(attachments);
-
-        // 9. RegularPost 엔티티 생성 및 저장
-        RegularPost regularPost = request.toRegularPostEntity(savedPost);
-        regularPostRepository.save(regularPost);
-
-        // 10. 페이서 목록 지정된 그룹에 따라 참여자로 추가
-        List<Participant> participants = request.getPacers().stream()
-                .map(p -> {
-                    User pacerUser = userRepository.findById(p.getPacerId())
-                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-                   return Participant.createWithGroup(savedPost, pacerUser, p.getGroup());
-                })
-                .collect(Collectors.toList());
-        participantRepository.saveAll(participants);
-
-        return regularPost.getId();
-    }
 
     // 게시글 상세 조회
     public ReadRegularPostDetailResponse getPostDetail(Long postId, AuthMember authMember) {
@@ -147,7 +66,7 @@ public class RegularPostService {
                 .collect(Collectors.groupingBy(
                         Participant::getGroup,
                         Collectors.collectingAndThen(
-                                Collectors.mapping(ReadParticipantListResponse::of, Collectors.toList()),
+                                Collectors.mapping(p -> ReadParticipantListResponse.of(p, pacerIds.contains(p.getUser().getId())), Collectors.toList()),
                                 list -> list.stream()
                                         .sorted((p1, p2) ->  {
                                             boolean p1IsPacer = pacerIds.contains(p1.getUserId());
@@ -187,58 +106,4 @@ public class RegularPostService {
         return ReadRegularPostDetailResponse.of(post, postCreator, user, groupedParticipants, pacers, attachmentUrls, comments);
     }
 
-    private void validate(AuthMember authMember, CreateRegularPostRequest request) {
-        // 1. 작성자가 운영진이거나 페이서인지
-        User user = userRepository.findById(authMember.getId())
-                .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-        boolean isAuthorized = user.getUserRole() == UserRole.ADMIN ||
-                (user.getUserRole() == UserRole.MEMBER && Boolean.TRUE.equals(user.getIsPacer()));
-        if (!isAuthorized) {
-            throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-        }
-
-
-        // 2. date가 미래인지
-        LocalDateTime now = LocalDateTime.now();
-        if (request.getDate().isBefore(now)) {
-            throw new PostException(BaseResponseStatus.INVALID_DATE_AND_TIME);
-        }
-
-        // 3. 작성자가 페이서 리스트에 포함되어 있는 지 확인
-        boolean isCreatorInPacerList = request.getPacers().stream()
-                .anyMatch(p -> p.getPacerId().equals(authMember.getId()));
-
-        if (!isCreatorInPacerList) {
-            throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
-        }
-    }
-
-    private String uploadSingleImage(MultipartFile image, String dirName) {
-        if(image != null && !image.isEmpty()) {
-            try {
-                return s3Uploader.upload(image, dirName); // S3에 이미지 업로드
-            } catch (IOException e) {
-                log.error("File upload failed: {}", image.getOriginalFilename(), e);
-                throw new PostException(BaseResponseStatus.POST_IMAGE_UPLOAD_FAILED);
-            }
-        }
-        return null;
-    }
-
-    private List<Attachment> uploadMultipleImages(Post post, List<MultipartFile> images, String dirName) {
-        List<Attachment> attachments = new ArrayList<>();
-        if (images != null && !images.isEmpty()) {
-            for (MultipartFile file : images) {
-                String attachmentUrl = null;
-                try {
-                    attachmentUrl = s3Uploader.upload(file, dirName);
-                } catch (IOException e) {
-                    throw new PostException(BaseResponseStatus.ATTACHMENT_UPLOAD_FAILED);
-                }
-                attachments.add(Attachment.create(post, attachmentUrl));
-            }
-        }
-        return attachments;
-    }
 }

@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest(showSql = false)
 @ActiveProfiles("test")
-@Import({PostService.class, CommentQueryService.class, FlashPostService.class, RegularPostService.class,
+@Import({RIKU.server.domains.run.recruitment.RecruitmentService.class, PostService.class, CommentQueryService.class, FlashPostService.class, RegularPostService.class,
         TrainingPostService.class, EventPostService.class})
 class PostQueryPerformanceTest {
     @Autowired UserRepository users;
