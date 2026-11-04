@@ -24,7 +24,10 @@ import RIKU.server.domains.run.comment.repository.CommentRepository;
 import RIKU.server.security.AuthMember;
 import RIKU.server.infra.storage.S3Uploader;
 import RIKU.server.global.response.BaseResponseStatus;
-import RIKU.server.global.util.DateTimeUtils;
+import RIKU.server.domains.point.ranking.RankingChanged;
+import RIKU.server.domains.run.participant.repository.PostParticipantCount;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import RIKU.server.domains.run.post.exception.PostException;
 import RIKU.server.domains.user.exception.UserException;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +39,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.time.LocalDate;
+import java.util.stream.Stream;
 import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +56,7 @@ import static RIKU.server.global.util.DateTimeUtils.*;
 @Transactional(readOnly = true)
 public class PostService {
 
+    private final ApplicationEventPublisher events;
     private final PostRepository postRepository;
     private final RIKU.server.domains.run.recruitment.RecruitmentService recruitmentService;
     private final RIKU.server.domains.run.recruitment.RunEnrollmentRepository enrollments;
@@ -79,40 +84,20 @@ public class PostService {
             throw new IllegalArgumentException("잘못된 runType입니다: " + runType);
         }
 
-        // 2. DB에서 ACTIVE인 해당 postType의 모든 게시글 조회
-        List<Post> posts = postRepository.findByStatusAndPostType(BaseStatus.ACTIVE, postType);
+        LocalDate today = LocalDate.now(getDefaultZone());
+        LocalDateTime start = startOfDayUtc(today);
+        LocalDateTime tomorrow = startOfDayUtc(today.plusDays(1));
+        var todayRows = postRepository.findTodayPreviews(BaseStatus.ACTIVE, postType, start, tomorrow, PostStatus.NOW);
+        var upcomingRows = postRepository.findUpcomingPreviews(BaseStatus.ACTIVE, postType, tomorrow);
+        var pastRows = postRepository.findPastPreviews(BaseStatus.ACTIVE, postType, PostStatus.CLOSED, start, PageRequest.of(0, 6));
+        var ids = Stream.of(todayRows, upcomingRows, pastRows).flatMap(List::stream).map(PostPreviewRow::id).toList();
+        Map<Long, Long> counts = ids.isEmpty() ? Map.of() : participantRepository.countByPostIds(ids).stream()
+                .collect(Collectors.toMap(PostParticipantCount::postId, PostParticipantCount::count));
+        return ReadPostListResponse.of(previews(todayRows, counts), previews(upcomingRows, counts), previews(pastRows, counts));
+    }
 
-        // 3. 현재 시간 및 내일 0시 (KST 기준)
-        LocalDateTime now = nowKST();
-        LocalDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay(getDefaultZone()).toLocalDateTime();
-
-        // 4. 게시글 분류
-        // 오늘의 러닝 (오늘 날짜, NOW 우선 -> 날짜순 정렬)
-        List<ReadPostPreviewResponse> todayRuns = posts.stream()
-                .filter(post -> isToday(post.getDate()))
-                .sorted(Comparator
-                        .comparing((Post post) -> post.getPostStatus() != PostStatus.NOW)
-                        .thenComparing(Post::getDate))
-                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
-                .collect(Collectors.toList());
-
-        // 예정된 러닝 (오늘 이후, 가장 빠른 날짜순 정렬, 취소됨 포함)
-        List<ReadPostPreviewResponse> upcomingRuns = posts.stream()
-                .filter(post -> toUserZonedTime(post.getDate()).toLocalDateTime().isAfter(tomorrow.minusNanos(1)))
-                .sorted(Comparator.comparing(Post::getDate))
-                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
-                .collect(Collectors.toList());
-
-        // 지난 러닝 (오늘 이전, 마감된 러닝만)
-        List<ReadPostPreviewResponse> pastRuns = posts.stream()
-                .filter(post -> toUserLocalDate(post.getDate()).isBefore(now.toLocalDate()))
-                .filter(post -> post.getPostStatus() == PostStatus.CLOSED)
-                .sorted(Comparator.comparing(Post::getDate).reversed())
-                .limit(6)
-                .map(post -> ReadPostPreviewResponse.of(post, countParticipants(post.getId())))
-                .collect(Collectors.toList());
-
-        return ReadPostListResponse.of(todayRuns, upcomingRuns, pastRuns);
+    private List<ReadPostPreviewResponse> previews(List<PostPreviewRow> rows, Map<Long, Long> counts) {
+        return rows.stream().map(row -> ReadPostPreviewResponse.of(row, Math.toIntExact(counts.getOrDefault(row.id(), 0L)))).toList();
     }
 
     // 게시글 수정하기
@@ -194,7 +179,7 @@ public class PostService {
             enrollments.deleteByPostId(postId);
             recruitment.deleteById(postId);
         }
-        userPointRepository.deleteByPost(post);
+        var deletedPoints = userPointRepository.deleteByPost(post);
         participantRepository.deleteByPost(post);
         commentRepository.deleteByPost(post);
         pacerRepository.deleteByPost(post);
@@ -209,6 +194,7 @@ public class PostService {
             case FLASH -> flashPostRepository.deleteByPost(post);
         }
         postRepository.delete(post);
+        if (!deletedPoints.isEmpty()) events.publishEvent(RankingChanged.points(deletedPoints));
     }
 
     private void updateTrainingPost(Post post, UpdatePostRequest request) {
@@ -301,10 +287,6 @@ public class PostService {
         if (!post.getPostStatus().equals(PostStatus.NOW)) {
             throw new PostException(BaseResponseStatus.INVALID_POST_STATUS);
         }
-    }
-
-    private int countParticipants(Long postId) {
-        return participantRepository.countByPostId(postId);
     }
 
     private String updateSingleImage(MultipartFile image, String originUrl, String dirName) {

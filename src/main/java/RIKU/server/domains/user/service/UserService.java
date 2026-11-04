@@ -1,5 +1,7 @@
 package RIKU.server.domains.user.service;
 
+import RIKU.server.domains.point.ranking.RankingChanged;
+import org.springframework.context.ApplicationEventPublisher;
 import RIKU.server.infra.storage.S3Uploader;
 
 import RIKU.server.domains.season.SeasonProvider;
@@ -29,12 +31,15 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class UserService {
+
+    private final ApplicationEventPublisher events;
 
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
@@ -53,7 +58,9 @@ public class UserService {
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = request.toEntity(request, encodedPassword);
 
-        return userRepository.save(user).getId();
+        Long userId = userRepository.save(user).getId();
+        events.publishEvent(RankingChanged.members());
+        return userId;
     }
 
     // 마이페이지 조회
@@ -133,7 +140,9 @@ public class UserService {
         }
 
         // 프로필 업데이트
+        boolean rankingChanged = !Objects.equals(user.getProfileImageUrl(), profileImageUrl);
         user.updateProfile(phone, password, profileImageUrl);
+        if (rankingChanged) events.publishEvent(RankingChanged.members());
     }
 
     // 출석하기
@@ -156,5 +165,6 @@ public class UserService {
         // 3. 출석 포인트 1점 적립
         UserPoint userPoint = UserPoint.create(user, 1, "오늘의 출석", PointType.ADD_ATTENDANCE);
         userPointRepository.save(userPoint);
+        events.publishEvent(RankingChanged.points(List.of(userPoint)));
     }
 }

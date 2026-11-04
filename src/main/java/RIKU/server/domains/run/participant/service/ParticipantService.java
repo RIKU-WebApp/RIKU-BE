@@ -1,8 +1,9 @@
 package RIKU.server.domains.run.participant.service;
 
+import RIKU.server.domains.point.ranking.RankingChanged;
+import org.springframework.context.ApplicationEventPublisher;
 import RIKU.server.domains.run.participant.dto.request.ManualAttendParticipantRequest;
 import RIKU.server.domains.run.participant.dto.response.UpdateParticipantResponse;
-import RIKU.server.domains.run.pacer.entity.Pacer;
 import RIKU.server.domains.run.post.entity.*;
 import RIKU.server.domains.run.post.entity.PostStatus;
 import RIKU.server.domains.run.participant.entity.Participant;
@@ -26,13 +27,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ParticipantService {
+
+    private final ApplicationEventPublisher events;
 
     private final PostRepository postRepository;
     private final FlashPostRepository flashPostRepository;
@@ -72,14 +80,18 @@ public class ParticipantService {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_TIME);
         }
 
-        if (postType == PostType.REGULAR && recruitmentRepository.existsById(postId)) {
-            participantRepository.findByPostIdAndUserId(postId, authMember.getId())
+        Optional<String> existingCode;
+        if (postType == PostType.REGULAR) {
+            var details = regularPostRepository.findCodeAndOrganizer(postId, authMember.getId());
+            details.map(RegularPostRepository.CodeAndOrganizer::getOrganizer)
                     .filter(participant -> participant.getParticipantStatus() == ParticipantStatus.PENDING)
                     .ifPresent(Participant::attend);
+            existingCode = details.map(RegularPostRepository.CodeAndOrganizer::getCode);
+        } else {
+            existingCode = getExistingAttendanceCode(post, postType);
         }
 
-        // 6. 기존 출석 코드가 존재하면 반환
-        return getExistingAttendanceCode(post, postType)
+        return existingCode
                 .orElseGet(() -> {
                     // 7. 출석 코드 생성 및 저장
                     String code = generateAttendanceCode();
@@ -88,14 +100,7 @@ public class ParticipantService {
                     // 8. 생성자 출석 처리
                     // 정규런/훈련의 경우, 페이서도 출석 처리
                     if (postType == PostType.REGULAR || postType == PostType.TRAINING) {
-                        List<Pacer> pacers = pacerRepository.findByPost(post);
-                        for(Pacer pacer : pacers) {
-                            Participant participant = participantRepository.findByPostIdAndUserId(postId, pacer.getUser().getId())
-                                    .orElse(null);
-                            if (participant != null && participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
-                                participant.attend();
-                            }
-                        }
+                        attendPacers(post);
                     } else if (postType == PostType.FLASH) {
                         // 번개런은 작성자만 출석 처리
                         Participant participant = participantRepository.findByPostIdAndUserId(postId, authMember.getId())
@@ -107,6 +112,17 @@ public class ParticipantService {
                     }
                     return code;
                 });
+    }
+
+    private void attendPacers(Post post) {
+        var byUser = participantRepository.findPacerParticipants(post).stream()
+                .collect(Collectors.groupingBy(participant -> participant.getUser().getId()));
+        for (Long userId : byUser.keySet()) {
+            Participant participant = requiredParticipant(byUser, userId);
+            if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
+                participant.attend();
+            }
+        }
     }
 
     // 러닝 참여하기
@@ -247,6 +263,7 @@ public class ParticipantService {
         // 6. 결석자 처리 및 출석 포인트 일괄 지급
         List<Participant> participants = participantRepository.findByPost(post);
 
+        List<UserPoint> changedPoints = new ArrayList<>();
         for (Participant participant : participants) {
             if (participant.getParticipantStatus() == ParticipantStatus.ATTENDED) {
                 // 번개런 생성자는 출석 포인트 지급 제외
@@ -254,10 +271,10 @@ public class ParticipantService {
 
                 if (!isFlashCreator) {
                     switch (postType) {
-                        case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post);
-                        case FLASH -> savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
-                        case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post);
-                        case EVENT -> savePoint(participant.getUser(), 8, "행사 참여", PointType.ADD_EVENT_JOIN, post);
+                        case REGULAR -> changedPoints.add(savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post));
+                        case FLASH -> changedPoints.add(savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post));
+                        case TRAINING -> changedPoints.add(savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post));
+                        case EVENT -> changedPoints.add(savePoint(participant.getUser(), 8, "행사 참여", PointType.ADD_EVENT_JOIN, post));
                     }
                 }
             } else {
@@ -273,9 +290,10 @@ public class ParticipantService {
                                     !participant.getUser().getId().equals(post.getPostCreator().getId()));
 
             if (hasOtherAttendee) {
-                savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
+                changedPoints.add(savePoint(post.getPostCreator(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post));
             }
         }
+        if (!changedPoints.isEmpty()) events.publishEvent(RankingChanged.points(changedPoints));
     }
 
     // 수동 출석 처리
@@ -302,9 +320,12 @@ public class ParticipantService {
         }
 
         // 5. 출석 처리
+        var byUser = loadParticipants(postId, requests);
+        Set<Long> processed = new HashSet<>();
         requests.forEach(request -> {
-            Participant participant = participantRepository.findByPostIdAndUserId(postId, request.getUserId())
-                    .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+            // Repeated IDs retain sequential updates and lifecycle callbacks.
+            if (!processed.add(request.getUserId())) participantRepository.flush();
+            Participant participant = requiredParticipant(byUser, request.getUserId());
 
             if (request.getIsAttend()) {
                 participant.updateParticipantStatus(ParticipantStatus.ATTENDED);
@@ -332,9 +353,17 @@ public class ParticipantService {
         }
 
         // 5. 출석 처리
+        var byUser = loadParticipants(postId, requests);
+        List<Long> userIds = requests.stream().map(ManualAttendParticipantRequest::getUserId).distinct().toList();
+        Map<Long, List<UserPoint>> pointsByUser = userIds.isEmpty() ? new java.util.HashMap<>()
+                : userPointRepository.findByPostIdAndUserIdIn(postId, userIds).stream()
+                .collect(Collectors.groupingBy(point -> point.getUser().getId()));
+        Set<Long> processed = new HashSet<>();
+        List<UserPoint> changedPoints = new ArrayList<>();
         for (ManualAttendParticipantRequest request : requests) {
-            Participant participant = participantRepository.findByPostIdAndUserId(postId, request.getUserId())
-                    .orElseThrow(() -> new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED));
+            // Flush a preceding deletion before an IDENTITY insert for the same (user, post).
+            if (!processed.add(request.getUserId())) participantRepository.flush();
+            Participant participant = requiredParticipant(byUser, request.getUserId());
 
             boolean attend = Boolean.TRUE.equals(request.getIsAttend());
             boolean isCreator = participant.getUser().getId().equals(post.getPostCreator().getId());
@@ -343,32 +372,48 @@ public class ParticipantService {
                 if (participant.getParticipantStatus() != ParticipantStatus.ATTENDED) {
                     participant.updateParticipantStatus(ParticipantStatus.ATTENDED);
                 }
-                if(!userPointRepository.existsByUserIdAndPostId(request.getUserId(), postId)) {
+                if(!pointsByUser.containsKey(request.getUserId())) {
                     try {
-                        switch (postType) {
+                        UserPoint awarded = switch (postType) {
                             case REGULAR -> savePoint(participant.getUser(), 10, "정규런 참여", PointType.ADD_REGULAR_JOIN, post);
                             case TRAINING -> savePoint(participant.getUser(), 8, "훈련 참여", PointType.ADD_TRAINING_JOIN, post);
                             case EVENT -> savePoint(participant.getUser(), 8, "행사 참여", PointType.ADD_EVENT_JOIN, post);
-                            case FLASH -> {
-                                if (isCreator) {
-                                    savePoint(participant.getUser(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post);
-                                } else {
-                                    savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
-                                }
-                            }
-                        }
+                            case FLASH -> isCreator
+                                    ? savePoint(participant.getUser(), 7, "번개런 생성", PointType.ADD_FLASH_CREATE, post)
+                                    : savePoint(participant.getUser(), 5, "번개런 참여", PointType.ADD_FLASH_JOIN, post);
+                        };
+                        changedPoints.add(awarded);
+                        pointsByUser.put(request.getUserId(), List.of(awarded));
                     } catch (org.springframework.dao.DataIntegrityViolationException ignore) {}
                 }
             } else {
                 if (participant.getParticipantStatus() != ParticipantStatus.ABSENT) {
                     participant.updateParticipantStatus(ParticipantStatus.ABSENT);
                 }
-                if (userPointRepository.existsByUserIdAndPostId(request.getUserId(), postId)) {
-                    userPointRepository.deleteByUserIdAndPostId(request.getUserId(), postId);
+                List<UserPoint> removed = pointsByUser.remove(request.getUserId());
+                if (removed != null) {
+                    // Managed entity removal, preserving per-row deletes and JPA callbacks.
+                    userPointRepository.deleteAll(removed);
+                    changedPoints.addAll(removed);
                 }
             }
         }
 
+        if (!changedPoints.isEmpty()) events.publishEvent(RankingChanged.points(changedPoints));
+    }
+
+    private Map<Long, List<Participant>> loadParticipants(Long postId, List<ManualAttendParticipantRequest> requests) {
+        if (requests.isEmpty()) return Map.of();
+        List<Long> userIds = requests.stream().map(ManualAttendParticipantRequest::getUserId).distinct().toList();
+        return participantRepository.findByPostIdAndUserIdIn(postId, userIds).stream()
+                .collect(Collectors.groupingBy(participant -> participant.getUser().getId()));
+    }
+
+    private Participant requiredParticipant(Map<Long, List<Participant>> byUser, Long userId) {
+        List<Participant> matches = byUser.get(userId);
+        if (matches == null || matches.isEmpty()) throw new ParticipantException(BaseResponseStatus.NOT_PARTICIPATED);
+        if (matches.size() != 1) throw new org.springframework.dao.IncorrectResultSizeDataAccessException(1, matches.size());
+        return matches.get(0);
     }
 
     private PostType validatePostType(String runType, PostType postType) {
@@ -432,9 +477,9 @@ public class ParticipantService {
         }
     }
 
-    private void savePoint(User user, int point, String description, PointType pointType, Post post) {
+    private UserPoint savePoint(User user, int point, String description, PointType pointType, Post post) {
         UserPoint userPoint = UserPoint.createWithPost(user, point, description, pointType, post);
-        userPointRepository.save(userPoint);
+        return userPointRepository.save(userPoint);
     }
 
     private void validatePostIsOpen(Post post) {

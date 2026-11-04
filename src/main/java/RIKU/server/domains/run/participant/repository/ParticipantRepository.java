@@ -10,7 +10,6 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,9 +21,16 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     List<Participant> findAttendedForBadges(@Param("userId") Long userId,@Param("attendance") ParticipantStatus attendance,
             @Param("closed") RIKU.server.domains.run.post.entity.PostStatus closed,@Param("active") RIKU.server.global.entity.BaseStatus active);
 
-    @EntityGraph(attributePaths = "user")
-    @Query("select p from Participant p where p.post = :post order by p.id")
-    List<Participant> findWithUserByPost(@Param("post") Post post);
+    @Query("select new RIKU.server.domains.run.participant.repository.UserParticipationCount(p.user.id, count(p)) " +
+            "from Participant p where p.participantStatus = :status and p.createdAt >= :fromUtc group by p.user.id")
+    List<UserParticipationCount> countAttendedByUserSince(@Param("status") ParticipantStatus status,
+                                                        @Param("fromUtc") LocalDateTime fromUtc);
+
+    List<Participant> findByPostIdAndUserIdIn(Long postId, List<Long> userIds);
+
+    @Query("select p from Participant p where p.post = :post and p.user.id in " +
+            "(select pacer.user.id from Pacer pacer where pacer.post = :post)")
+    List<Participant> findPacerParticipants(@Param("post") Post post);
 
     // 특정 유저의 해당 게시글 참여 중복 확인
     Boolean existsByPostAndUser(Post post, User user);
@@ -37,6 +43,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
 
     // 특정 게시글의 모든 참여자 리스트 조회
     List<Participant> findByPost(Post post);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("select p from Participant p where p.post = :post order by p.id")
+    List<Participant> findWithUserByPost(@Param("post") Post post);
+
+    @Query("select new RIKU.server.domains.run.participant.repository.PostParticipantCount(p.post.id, count(p)) " +
+            "from Participant p where p.post.id in :postIds group by p.post.id")
+    List<PostParticipantCount> countByPostIds(@Param("postIds") List<Long> postIds);
 
     // 특정 postId에 대한 참여자 수 조회
     @Query("SELECT COUNT(p) FROM Participant p WHERE p.post.id = :postId")

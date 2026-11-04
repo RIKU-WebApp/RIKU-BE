@@ -7,7 +7,6 @@ import RIKU.server.domains.run.pacer.dto.response.ReadPacersListResponse;
 import RIKU.server.domains.run.post.dto.response.ReadRegularPostDetailResponse;
 import RIKU.server.domains.user.dto.response.ReadUserInfoResponse;
 import RIKU.server.domains.run.post.entity.Attachment;
-import RIKU.server.domains.run.comment.entity.Comment;
 import RIKU.server.domains.run.pacer.entity.Pacer;
 import RIKU.server.domains.run.post.entity.Post;
 import RIKU.server.domains.run.participant.entity.Participant;
@@ -16,7 +15,7 @@ import RIKU.server.domains.run.post.repository.*;
 import RIKU.server.domains.user.repository.UserRepository;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
 import RIKU.server.domains.run.pacer.repository.PacerRepository;
-import RIKU.server.domains.run.comment.repository.CommentRepository;
+import RIKU.server.domains.run.comment.service.CommentQueryService;
 import RIKU.server.security.AuthMember;
 import RIKU.server.global.response.BaseResponseStatus;
 import RIKU.server.domains.run.participant.exception.ParticipantException;
@@ -41,7 +40,7 @@ public class RegularPostService {
     private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
     private final AttachmentRepository attachmentRepository;
-    private final CommentRepository commentRepository;
+    private final CommentQueryService commentQueryService;
 
     // 게시글 상세 조회
     public ReadRegularPostDetailResponse getPostDetail(Long postId, AuthMember authMember) {
@@ -50,14 +49,14 @@ public class RegularPostService {
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. 페이서 조회
-        List<Pacer> pacerEntities = pacerRepository.findByPost(post);
+        List<Pacer> pacerEntities = pacerRepository.findWithUserByPost(post);
 
         List<Long> pacerIds = pacerEntities.stream()
                 .map(pacer -> pacer.getUser().getId())
                 .toList();
 
         // 3. 그룹별 참여자 조회
-        List<Participant> participants = participantRepository.findByPost(post);
+        List<Participant> participants = participantRepository.findWithUserByPost(post);
 
         if (participants.stream().anyMatch(p -> p.getGroup() == null)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_PARTICIPANT_GROUP);
@@ -94,11 +93,7 @@ public class RegularPostService {
                 .toList();
 
         // 6. 댓글 조회
-        List<ReadCommentsResponse> comments = commentRepository.findByPost(post)
-                .stream()
-                .filter(comment -> comment.getTargetId() == null)
-                .map(this::mapToDto)
-                .toList();
+        List<ReadCommentsResponse> comments = commentQueryService.getComments(postId);
 
         // 7. 게시글 작성자 정보
         ReadUserInfoResponse postCreator = ReadUserInfoResponse.of(post.getPostCreator());
@@ -109,14 +104,6 @@ public class RegularPostService {
         ReadUserInfoResponse user = ReadUserInfoResponse.of(userEntity);
 
         return ReadRegularPostDetailResponse.of(post, postCreator, user, groupedParticipants, pacers, attachmentUrls, comments);
-    }
-
-    private ReadCommentsResponse mapToDto (Comment comment) {
-        List<ReadCommentsResponse> replies = commentRepository.findByTargetId(comment.getId())
-                .stream()
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-        return ReadCommentsResponse.of(comment, replies);
     }
 
 }
