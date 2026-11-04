@@ -53,6 +53,8 @@ import static RIKU.server.global.util.DateTimeUtils.*;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final RIKU.server.domains.run.recruitment.RunEnrollmentRepository enrollments;
+    private final RIKU.server.domains.run.recruitment.RunRecruitmentRepository recruitment;
     private final UserRepository userRepository;
     private final UserPointRepository userPointRepository;
     private final ParticipantRepository participantRepository;
@@ -116,7 +118,7 @@ public class PostService {
     @Transactional
     public void updatePost(AuthMember authMember, String runType, Long postId, UpdatePostRequest request) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. 게시글 작성자 검증
@@ -136,6 +138,10 @@ public class PostService {
         // Validate the complete replacement list before changing files in S3.
         if (request.getPacers() != null &&
                 (postType == PostType.REGULAR || postType == PostType.TRAINING)) {
+            if (postType == PostType.REGULAR && recruitment.existsById(postId)) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                        "페이서는 정규런 신청 명단에서 관리합니다.");
+            }
             updatePacers(post, request.getPacers());
         }
 
@@ -165,7 +171,7 @@ public class PostService {
     @Transactional
     public void deletePost(AuthMember authMember, String runType, Long postId) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. 운영진 권한 검증
@@ -177,6 +183,10 @@ public class PostService {
         PostType postType = validatePostType(runType, post.getPostType(), post.getId());
 
         // 4. 관련 엔티티 삭제
+        if (postType == PostType.REGULAR) {
+            enrollments.deleteByPostId(postId);
+            recruitment.deleteById(postId);
+        }
         userPointRepository.deleteByPost(post);
         participantRepository.deleteByPost(post);
         commentRepository.deleteByPost(post);
@@ -215,7 +225,7 @@ public class PostService {
     @Transactional
     public void cancelPost(AuthMember authMember, String runType, Long postId) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증

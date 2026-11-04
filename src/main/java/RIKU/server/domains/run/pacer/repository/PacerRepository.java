@@ -16,6 +16,8 @@ public interface PacerRepository extends JpaRepository<Pacer, Long> {
 
     boolean existsByUserAndPost(User user, Post post);
 
+    void deleteByUserAndPost(User user, Post post);
+
     void deleteByPost(Post post);
 
     @Query("SELECT COUNT(p) FROM Pacer p WHERE p.post = :post")

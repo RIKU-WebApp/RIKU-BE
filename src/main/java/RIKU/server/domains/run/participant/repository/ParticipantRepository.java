@@ -6,6 +6,7 @@ import RIKU.server.domains.run.participant.entity.ParticipantStatus;
 import RIKU.server.domains.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -16,6 +17,15 @@ import java.util.Optional;
 
 @Repository
 public interface ParticipantRepository extends JpaRepository<Participant, Long> {
+    @EntityGraph(attributePaths = "post")
+    @Query("select p from Participant p where p.user.id=:userId and p.participantStatus=:attendance and p.post.postStatus=:closed and p.post.status=:active")
+    List<Participant> findAttendedForBadges(@Param("userId") Long userId,@Param("attendance") ParticipantStatus attendance,
+            @Param("closed") RIKU.server.domains.run.post.entity.PostStatus closed,@Param("active") RIKU.server.global.entity.BaseStatus active);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("select p from Participant p where p.post = :post order by p.id")
+    List<Participant> findWithUserByPost(@Param("post") Post post);
+
     // 특정 유저의 해당 게시글 참여 중복 확인
     Boolean existsByPostAndUser(Post post, User user);
 

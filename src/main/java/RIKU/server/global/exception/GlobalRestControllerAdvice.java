@@ -14,6 +14,11 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 @Slf4j
 @RestControllerAdvice
 public class GlobalRestControllerAdvice {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<?> handleStatus(org.springframework.web.server.ResponseStatusException error) {
+        return ResponseEntity.status(error.getStatusCode()).body(java.util.Map.of(
+                "isSuccess", false, "responseMessage", java.util.Objects.toString(error.getReason(), "요청을 처리할 수 없습니다.")));
+    }
 
     @ExceptionHandler(CustomException.class)
     public BaseResponse<Object> handleCustomException (CustomException e) {

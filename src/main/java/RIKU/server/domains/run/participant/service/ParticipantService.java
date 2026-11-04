@@ -42,13 +42,14 @@ public class ParticipantService {
     private final UserPointRepository userPointRepository;
     private final PacerRepository pacerRepository;
     private final ParticipantRepository participantRepository;
+    private final RIKU.server.domains.run.recruitment.RunRecruitmentRepository recruitmentRepository;
 
 
     // 출석 코드 생성
     @Transactional
     public String createAttendanceCode(String runType, Long postId, AuthMember authMember) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
@@ -69,6 +70,12 @@ public class ParticipantService {
         LocalDateTime openFrom = post.getDate().minusMinutes(10);
         if (now.isBefore(openFrom)) {
             throw new ParticipantException(BaseResponseStatus.INVALID_ATTENDANCE_TIME);
+        }
+
+        if (postType == PostType.REGULAR && recruitmentRepository.existsById(postId)) {
+            participantRepository.findByPostIdAndUserId(postId, authMember.getId())
+                    .filter(participant -> participant.getParticipantStatus() == ParticipantStatus.PENDING)
+                    .ifPresent(Participant::attend);
         }
 
         // 6. 기존 출석 코드가 존재하면 반환
@@ -106,8 +113,13 @@ public class ParticipantService {
     @Transactional
     public UpdateParticipantResponse joinRun(String runType, Long postId, String group, AuthMember authMember) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
+
+        if (post.getPostType() == PostType.REGULAR && recruitmentRepository.existsById(postId)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                    "정규런 신청 화면을 이용해주세요.");
+        }
 
         // 2. 유저 조회
         User user = userRepository.findById(authMember.getId())
@@ -119,7 +131,6 @@ public class ParticipantService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
 
-        // 5. Pacer 검증
         validatePacer(postType, post, user);
 
         // 6. 참여 여부 검증
@@ -166,7 +177,7 @@ public class ParticipantService {
     @Transactional
     public UpdateParticipantResponse attendRun(String runType, Long postId, AuthMember authMember, String inputCode) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. 유저 조회
@@ -183,8 +194,10 @@ public class ParticipantService {
         // 4. PostStatus 검증
         validatePostIsOpen(post);
 
-        // 5. Pacer 검증
-        validatePacer(postType, post, user);
+        // A pacer who joined after the code was issued can check in with that code.
+        if (postType != PostType.REGULAR || !recruitmentRepository.existsById(postId)) {
+            validatePacer(postType, post, user);
+        }
 
         // 6. 출석 코드 조회 및 검증
         Optional<String> storedCode = getExistingAttendanceCode(post, postType);
@@ -214,7 +227,7 @@ public class ParticipantService {
     @Transactional
     public void closeRun(String runType, Long postId, AuthMember authMember) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
@@ -269,7 +282,7 @@ public class ParticipantService {
     @Transactional
     public void manualAttendRun(String runType, Long postId, AuthMember authMember, List<ManualAttendParticipantRequest> requests) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
@@ -279,7 +292,14 @@ public class ParticipantService {
         validatePostIsOpen(post);
 
         // 4. 출석 처리 권한 검증
-        validatePostCreator(post, authMember);
+        if (post.getPostType() == PostType.REGULAR) {
+            if (!authMember.isAdmin()) {
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                        "관리자만 명단을 수정할 수 있습니다.");
+            }
+        } else {
+            validatePostCreator(post, authMember);
+        }
 
         // 5. 출석 처리
         requests.forEach(request -> {
@@ -297,7 +317,7 @@ public class ParticipantService {
     @Transactional
     public void fixAttendRun(String runType, Long postId, AuthMember authMember, List<ManualAttendParticipantRequest> requests) {
         // 1. 게시글 조회
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findForUpdate(postId)
                 .orElseThrow(() -> new PostException(BaseResponseStatus.POST_NOT_FOUND));
 
         // 2. PostType 검증
