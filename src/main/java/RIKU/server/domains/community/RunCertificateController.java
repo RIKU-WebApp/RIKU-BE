@@ -17,6 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RunCertificateController {
     private final RunCertificateRepository certificates;
+    private final BadgeStorage storage;
 
     @GetMapping
     public BaseResponse<List<RunCertificateRepository.Summary>> list(@AuthenticationPrincipal AuthMember member) {
@@ -42,9 +43,11 @@ public class RunCertificateController {
         return ResponseEntity.of(certificates.findImage(id, member.getId()));
     }
 
+    @org.springframework.transaction.annotation.Transactional
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal AuthMember member, @PathVariable Long id) {
-        return certificates.deleteOwned(id, member.getId()) == 1
-                ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+        if(certificates.deleteOwned(id, member.getId()) != 1) return ResponseEntity.notFound().build();
+        storage.rememberCertificate(member.getId());
+        return ResponseEntity.noContent().build();
     }
 }

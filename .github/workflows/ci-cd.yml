@@ -41,6 +41,19 @@ jobs:
 
   test:
     runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0.36
+        env:
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+          MYSQL_DATABASE: riku_badge_test
+          MYSQL_USER: badge_test
+          MYSQL_PASSWORD: isolated-ci-only
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,7 +64,10 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
-      - name: Test against isolated H2 and mocked S3
+      - name: Test against isolated H2, MySQL and mocked S3
+        env:
+          RIKU_BADGE_TEST_PORT: ${{ job.services.mysql.ports[3306] }}
+          RIKU_BADGE_TEST_PASSWORD: isolated-ci-only
         run: bash ./gradlew --no-daemon test
       - name: Test deployment failure and rollback paths
         run: |

@@ -56,9 +56,13 @@ class CommunityIntegrationTest {
         mvc.perform(get(path+"/image").header("Authorization",token(member))).andExpect(status().isNotFound());
     }
     @Test void profileOnlyContainsNameAndBadges() throws Exception {
+        service.record(member,new CommunityController.RecordRequest("private run",LocalDate.now(),BigDecimal.valueOf(100),45));
+        service.award(admin,member.getId(),new CommunityController.AwardRequest("운영진 수여","private note"));
+        mvc.perform(get("/user/"+member.getId()+"/public-profile")).andExpect(status().isUnauthorized());
         var response=mvc.perform(get("/user/"+member.getId()+"/public-profile").header("Authorization",token(other))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        var result=mapper.readTree(response).path("result");assertEquals(Set.of("name","badges"),mapper.convertValue(result,Map.class).keySet());
-        assertFalse(response.contains("private-major"));assertFalse(response.contains("studentId"));assertFalse(response.contains("phone"));
+        var result=mapper.readTree(response).path("result");assertEquals(Set.of("name","badges","medals"),mapper.convertValue(result,Map.class).keySet());
+        assertTrue(result.path("badges").isEmpty());assertTrue(result.path("medals").isEmpty());
+        assertFalse(response.contains("private"));assertFalse(response.contains("studentId"));assertFalse(response.contains("phone"));
     }
     @Test void personalDistanceCreatesDistinctBadgeAndDeletionRecalculates() {
         var r=service.record(member,new CommunityController.RecordRequest("개인 기록",LocalDate.now(),BigDecimal.valueOf(100),600));
@@ -83,7 +87,7 @@ class CommunityIntegrationTest {
         assertThrows(ResponseStatusException.class,()->service.award(member,other.getId(),r));
         service.award(admin,other.getId(),r);
         assertThrows(ResponseStatusException.class,()->service.award(admin,other.getId(),r));
-        assertEquals("ADMIN",service.profile(other.getId()).badges().get(0).source());
+        assertEquals("ADMIN",service.privateActivity(other.getId()).badges().get(0).source());
     }
     @Test void officialBadgesRequireConfirmedAttendanceAndClosedRun() {
         var id=runs.create(admin,new RIKU.server.domains.run.recruitment.RecruitmentRequest("공식 거리", "공원",
