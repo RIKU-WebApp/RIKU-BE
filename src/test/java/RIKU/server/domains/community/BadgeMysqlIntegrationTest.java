@@ -154,12 +154,15 @@ class BadgeMysqlIntegrationTest {
             assertEquals(expected, db.queryForObject(memberSql, Integer.class, 900, cutoff));
         };
         check.accept(2);
-        // Explain the legacy inner ranking directly: MySQL folds the outer MIN before timing its plan.
-        var legacyRanking = oldSql.replace("SELECT MIN(best_rank) FROM", "SELECT best_rank FROM");
+        // Use one transaction/connection to measure actual MySQL handler reads, including temp tables.
         for (int member : List.of(900, 901)) {
-            for (String sql : List.of(legacyRanking, memberSql)) {
-                boolean legacy = sql.equals(legacyRanking);
+            for (String sql : List.of(oldSql, memberSql)) {
+                boolean legacy = sql.equals(oldSql);
                 Object[] params = legacy ? new Object[]{202307,member} : new Object[]{member,cutoff};
+                long before = handlerReads(db);
+                Integer rank = db.queryForObject(sql, Integer.class, params);
+                System.out.printf("MONTH_IO %s member=%d rank=%d handlerReads=%d%n",
+                        legacy ? "old" : "new", member, rank, handlerReads(db) - before);
                 System.out.println("MONTH_PLAN_" + (legacy ? "OLD" : "NEW") + "_" + member + " "
                         + db.queryForObject("EXPLAIN ANALYZE " + sql, String.class, params));
             }
@@ -176,5 +179,12 @@ class BadgeMysqlIntegrationTest {
         check.accept(20);
         db.update("UPDATE users SET status='INACTIVE' WHERE user_id=900");
         check.accept(null);
+    }
+    private long handlerReads(JdbcTemplate db) {
+        return db.query("SHOW SESSION STATUS LIKE 'Handler_read_%'", rs -> {
+            long total = 0;
+            while (rs.next()) total += rs.getLong(2);
+            return total;
+        });
     }
 }
