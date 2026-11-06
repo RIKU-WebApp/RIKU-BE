@@ -33,12 +33,17 @@ public class BadgeProgressController {
     public BaseResponse<Progress> progress(@AuthenticationPrincipal AuthMember actor) {
         YearMonth now=YearMonth.now(ZoneId.of("Asia/Seoul"));
         Integer place=db.queryForObject(monthly,Integer.class,now.getYear()*100+now.getMonthValue(),actor.getId());
-        int checkins = db.queryForObject("SELECT COUNT(DISTINCT CAST(TIMESTAMPADD(HOUR,9,created_at) AS DATE)) FROM user_point WHERE user_id=? AND point_type='ADD_ATTENDANCE'",Integer.class,actor.getId());
-        int certificates = db.queryForObject("SELECT COUNT(DISTINCT date) FROM run_certificate WHERE user_id=?",Integer.class,actor.getId());
-        int hosted = db.queryForObject("""
-                SELECT COUNT(*) FROM post p WHERE p.user_id=? AND p.status='ACTIVE' AND p.post_status='CLOSED'
-                AND EXISTS(SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>p.user_id AND a.participant_status='ATTENDED')
-                """, Integer.class, actor.getId());
+        record Counts(int checkins, int certificates, int hosted) {}
+        var counts = db.queryForObject("""
+                SELECT
+                  (SELECT COUNT(DISTINCT CAST(TIMESTAMPADD(HOUR,9,created_at) AS DATE))
+                   FROM user_point WHERE user_id=? AND point_type='ADD_ATTENDANCE') AS checkins,
+                  (SELECT COUNT(DISTINCT date) FROM run_certificate WHERE user_id=?) AS certificates,
+                  (SELECT COUNT(*) FROM post p WHERE p.user_id=? AND p.status='ACTIVE' AND p.post_status='CLOSED'
+                   AND EXISTS(SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>p.user_id
+                              AND a.participant_status='ATTENDED')) AS hosted
+                """, (rs, n) -> new Counts(rs.getInt("checkins"), rs.getInt("certificates"), rs.getInt("hosted")),
+                actor.getId(), actor.getId(), actor.getId());
         var progress = db.query("""
             SELECT DISTINCT p.post_id, p.post_type, p.date,
                    EXISTS (SELECT 1 FROM pacer x WHERE x.post_id=p.post_id AND x.user_id=a.user_id) AS led
@@ -67,7 +72,7 @@ public class BadgeProgressController {
                     longest = Math.max(longest, chain);
                     last = week;
                 }
-                return new Progress(visits, months.size(), types.size(), leads, weekends, longest, types, hosted, checkins, certificates, seasons.size(), place);
+                return new Progress(visits, months.size(), types.size(), leads, weekends, longest, types, counts.hosted(), counts.checkins(), counts.certificates(), seasons.size(), place);
             }, actor.getId());
         return new BaseResponse<>(progress);
     }

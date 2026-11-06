@@ -75,6 +75,12 @@ class BadgeMysqlIntegrationTest {
             for(int i=100;i<120;i++)db.update("INSERT INTO user_point VALUES(?,?,'ADD_ATTENDANCE','2025-10-15')",i,i==100?1000:1);
             paused.reconcile(); pausedRanks.settle();
         });
+        var actor = org.mockito.Mockito.mock(RIKU.server.security.AuthMember.class);
+        org.mockito.Mockito.when(actor.getId()).thenReturn(100L);
+        var progress = new BadgeProgressController(db).progress(actor).getResult();
+        assertEquals(db.queryForObject("SELECT COUNT(DISTINCT DATE(TIMESTAMPADD(HOUR,9,created_at))) FROM user_point WHERE user_id=100 AND point_type='ADD_ATTENDANCE'", Integer.class), progress.checkins());
+        assertEquals(db.queryForObject("SELECT COUNT(DISTINCT date) FROM run_certificate WHERE user_id=100", Integer.class), progress.certificateDays());
+        assertEquals(db.queryForObject("SELECT COUNT(*) FROM post p WHERE p.user_id=100 AND p.status='ACTIVE' AND p.post_status='CLOSED' AND EXISTS(SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>100 AND a.participant_status='ATTENDED')", Integer.class), progress.hosted());
         assertTrue(paused.grants(100).isEmpty());
         assertTrue(pausedRanks.forMember(100).isEmpty());
         tx.executeWithoutResult(s->{engine.reconcile(); ranks.settle();});
