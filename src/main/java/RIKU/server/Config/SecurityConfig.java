@@ -65,6 +65,7 @@ public class SecurityConfig {
                         .requestMatchers("/user/*/role").denyAll()
                         .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup").permitAll()
                         .requestMatchers(HttpMethod.GET, "/user/check-id").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/public/run-preview/*/*").permitAll()
                         .requestMatchers("/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/run/**", "/calendar/**", "/ranking/**").hasAnyRole("NEW_MEMBER", "MEMBER", "ADMIN")
                         .requestMatchers("/admin/**", "/pacer/**").hasRole("ADMIN")

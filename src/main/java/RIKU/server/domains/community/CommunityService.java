@@ -24,18 +24,36 @@ public class CommunityService {
     private final PersonalRunRecordRepository records;
     private final BadgeAwardRepository awards;
     private final FeedbackRepository feedback;
+    private final RankHonors honors;
+    private final AutomaticBadges automatic;
+    private final BadgeStorage storage;
     public record Badge(String code,String name,String description,String source) {}
-    public record PublicProfile(String name,List<Badge> badges) {}
+    public record PublicProfile(String name,List<Badge> badges,List<RankHonors.Medal> medals) {}
     public record MyActivity(BigDecimal verifiedKm,BigDecimal personalKm,List<Badge> badges,List<PersonalRunRecord> records) {}
 
     public PublicProfile profile(Long id) {
         var user=users.findById(id).filter(u->u.getStatus()==BaseStatus.ACTIVE)
                 .orElseThrow(()->new ResponseStatusException(NOT_FOUND,"회원을 찾을 수 없습니다."));
-        return new PublicProfile(user.getName(),activity(id).badges());
+        return new PublicProfile(user.getName(),automatic.grants(id), honors.issuedForMember(id));
+    }
+    public MyActivity privateActivity(Long id) {
+        if (storage.installed()) return activity(id,true);
+        // Without a ledger the legacy distance is progress, never proof of issuance.
+        var legacy=activity(id,false);
+        return new MyActivity(legacy.verifiedKm(),legacy.personalKm(),
+                legacy.badges().stream().filter(b -> b.source().equals("ADMIN")).toList(),legacy.records());
     }
     public MyActivity activity(Long id) {
+        return activity(id,false);
+    }
+    private MyActivity activity(Long id,boolean ledger) {
         var personal=records.findByUserIdOrderByDateDescIdDesc(id);
         BigDecimal personalKm=personal.stream().map(PersonalRunRecord::getDistanceKm).reduce(BigDecimal.ZERO,BigDecimal::add);
+        if(ledger) {
+            var badges=new ArrayList<>(automatic.grants(id));
+            addManualAwards(id,badges);
+            return new MyActivity(automatic.verifiedKm(id),personalKm,badges,personal);
+        }
         BigDecimal verified=BigDecimal.ZERO;
         var attended=participants.findAttendedForBadges(id,ParticipantStatus.ATTENDED,PostStatus.CLOSED,BaseStatus.ACTIVE);
         var configs=attended.isEmpty() ? List.<RIKU.server.domains.run.recruitment.RunRecruitment>of()
@@ -54,15 +72,21 @@ public class CommunityService {
             if(personalKm.compareTo(BigDecimal.valueOf(km))>=0)
                 badges.add(new Badge("PERSONAL_"+km,km+"km 나의 발자국","직접 입력한 개인 러닝 누적 "+km+"km","PERSONAL"));
         }
-        awards.findByUserIdOrderByIdAsc(id).forEach(a->badges.add(new Badge("AWARD_"+a.getId(),a.getName(),a.getDescription(),"ADMIN")));
+        addManualAwards(id,badges);
         return new MyActivity(verified,personalKm,badges,personal);
     }
+    private void addManualAwards(Long id,List<Badge> badges) {
+        awards.findByUserIdOrderByIdAsc(id).forEach(a->badges.add(new Badge("AWARD_"+a.getId(),a.getName(),a.getDescription(),"ADMIN")));
+    }
     @Transactional public PersonalRunRecord record(AuthMember actor,CommunityController.RecordRequest r) {
+        storage.lockRecordOwner(actor.getId());
         return records.save(new PersonalRunRecord(actor.getId(),r.date(),r.distanceKm(),r.minutes(),r.title().trim()));
     }
     @Transactional public void deleteRecord(AuthMember actor,Long id) {
+        storage.lockRecordOwner(actor.getId());
         var r=records.findById(id).filter(x->x.getUserId().equals(actor.getId()))
                 .orElseThrow(()->new ResponseStatusException(NOT_FOUND,"내 기록을 찾을 수 없습니다."));
+        storage.rememberPersonalKm(actor.getId());
         records.delete(r);
     }
     @Transactional public void award(AuthMember actor,Long id,CommunityController.AwardRequest r) {

@@ -16,6 +16,11 @@ import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    record SharePreview(String title, LocalDateTime date, String location, String postImageUrl) {}
+
+    Optional<SharePreview> findSharePreviewByIdAndPostTypeAndStatusAndPostStatusNot(
+            Long id, PostType postType, BaseStatus status, PostStatus excludedStatus);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Post p where p.id = :id")
     Optional<Post> findForUpdate(@Param("id") Long id);
