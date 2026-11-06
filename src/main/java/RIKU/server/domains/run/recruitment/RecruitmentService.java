@@ -180,17 +180,10 @@ public class RecruitmentService {
     }
 
     private void promote(Post post, RunRecruitment config) {
-        var entries = enrollments.findByPostIdOrderByIdAsc(post.getId());
-        var confirmed = entries.stream().filter(e -> e.getState() == CONFIRMED).map(RunEnrollment::getGroup).toList();
-        var seats = new GroupSeats(config, confirmed);
-        seats.validate();
-        for (var entry : entries) {
-            if (entry.getState() == WAITLISTED && seats.available(entry.getGroup())) {
-                entry.confirm();
-                addParticipant(post, entry, config);
-                seats.take(entry.getGroup());
-            }
-        }
+        seats(config).promote(enrollments, WAITLISTED, entry -> {
+            entry.confirm();
+            addParticipant(post, entry, config);
+        });
     }
 
     private void addParticipant(Post post,RunEnrollment e,RunRecruitment config) {

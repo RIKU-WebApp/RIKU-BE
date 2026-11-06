@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -354,7 +355,13 @@ public class PostService {
             throw new PostException(BaseResponseStatus.INVALID_PACER_COUNT);
         }
         Set<Long> requestedIds = new HashSet<>();
+        var ids = pacerRequests.stream().filter(Objects::nonNull).map(UpdatePacerRequest::getPacerId)
+                .filter(Objects::nonNull).distinct().toList();
         Map<Long, User> users = new HashMap<>();
+        for (int i = 0; i < ids.size(); i += 500) {
+            userRepository.findAllById(ids.subList(i, Math.min(i + 500, ids.size())))
+                    .forEach(user -> users.put(user.getId(), user));
+        }
         for (UpdatePacerRequest request : pacerRequests) {
             if (request == null || request.getPacerId() == null || request.getPacerId() <= 0 ||
                     request.getGroup() == null || request.getGroup().isBlank() ||
@@ -365,15 +372,14 @@ public class PostService {
             if (!requestedIds.add(request.getPacerId())) {
                 throw new PostException(BaseResponseStatus.DUPLICATED_PACER);
             }
-            User user = userRepository.findById(request.getPacerId())
-                    .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
+            User user = users.get(request.getPacerId());
+            if (user == null) throw new UserException(BaseResponseStatus.USER_NOT_FOUND);
             if (user.getStatus() != BaseStatus.ACTIVE) {
                 throw new UserException(BaseResponseStatus.INACTIVE_USER);
             }
             if (!Boolean.TRUE.equals(user.getIsPacer())) {
                 throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
             }
-            users.put(user.getId(), user);
         }
         if (!groupBased && !requestedIds.contains(post.getPostCreator().getId())) {
             throw new PostException(BaseResponseStatus.CREATOR_NOT_IN_PACER_LIST);
@@ -382,6 +388,11 @@ public class PostService {
                 .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
         Map<Long, Participant> participantsByUser = participantRepository.findByPost(post).stream()
                 .collect(Collectors.toMap(p -> p.getUser().getId(), p -> p));
+
+        if (post.getPostType() == PostType.TRAINING) {
+            var newMembers = ids.stream().filter(id -> !participantsByUser.containsKey(id)).toList();
+            waitlist.checkQueuedPacers(post.getId(), newMembers);
+        }
 
         // Removing the pacer role does not cancel participation or erase attendance.
         pacerRepository.deleteAll(existingPacers.stream()
@@ -396,7 +407,6 @@ public class PostService {
             }
             Participant participant = participantsByUser.get(user.getId());
             if (participant == null) {
-                if (post.getPostType() == PostType.TRAINING) waitlist.checkPacer(post, user.getId());
                 participantRepository.save(Participant.createWithGroup(post, user, request.getGroup()));
             } else {
                 // Keep identity, createdAt and attendance, including promoted participants.

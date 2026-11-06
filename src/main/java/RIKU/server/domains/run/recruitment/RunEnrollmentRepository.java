@@ -1,7 +1,28 @@
 package RIKU.server.domains.run.recruitment;
 import org.springframework.data.jpa.repository.*;
 import java.util.*;
+import org.springframework.data.domain.Pageable;
 public interface RunEnrollmentRepository extends JpaRepository<RunEnrollment, Long> {
+    @Query("select e.user.id from RunEnrollment e where e.postId = ?1 and e.user.id in ?2")
+    List<Long> findQueuedMemberIds(Long postId, List<Long> members);
+
+    @EntityGraph(attributePaths = "user")
+    @Query("select e from RunEnrollment e where e.postId = ?1 and (?2 is null or e.state = ?2) " +
+            "and (?3 is null or e.id > ?3) order by e.id")
+    List<RunEnrollment> nextEntries(Long postId, RunEnrollment.State state, Long after, Pageable page);
+
+    interface Candidate {
+        Long getId();
+        String getGroupName();
+    }
+
+    @Query("select e.id as id, e.group as groupName from RunEnrollment e where e.postId = ?1 " +
+            "and (?2 is null or e.state = ?2) and (?3 is null or e.id > ?3) order by e.id")
+    List<Candidate> candidates(Long postId, RunEnrollment.State state, Long after, Pageable page);
+
+    @EntityGraph(attributePaths = "user")
+    List<RunEnrollment> findByIdInOrderByIdAsc(List<Long> ids);
+
     interface RosterRow {
         Long getUserId();
         String getName();

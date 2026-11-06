@@ -95,15 +95,11 @@ public class RunWaitlist {
     public void fillVacancies(Post post) {
         var limit = limits.findById(post.getId());
         if (limit.isEmpty()) return;
-        var seats = seats(post, limit.get());
-        seats.validate();
-        for (var entry : queue.findByPostIdOrderByIdAsc(post.getId())) {
-            if (!seats.available(entry.getGroup())) continue;
+        seats(post, limit.get()).promote(queue, null, entry -> {
             participants.save(entry.getGroup().isBlank() ? Participant.create(post, entry.getUser())
                     : Participant.createWithGroup(post, entry.getUser(), entry.getGroup()));
             queue.delete(entry);
-            seats.take(entry.getGroup());
-        }
+        });
     }
 
     private GroupSeats seats(Post post, RunRecruitment limit) {
@@ -135,8 +131,10 @@ public class RunWaitlist {
         return limits.findById(post.getId()).filter(c -> !c.getGroups().isEmpty()).isPresent();
     }
 
-    public void checkPacer(Post post, Long member) {
-        if (queue.findByPostIdAndUserId(post.getId(), member).isPresent())
-            throw new ResponseStatusException(CONFLICT, "대기 중인 회원은 페이서로 지정할 수 없습니다.");
+    public void checkQueuedPacers(Long postId, List<Long> members) {
+        for (int i = 0; i < members.size(); i += 500) {
+            if (!queue.findQueuedMemberIds(postId, members.subList(i, Math.min(i + 500, members.size()))).isEmpty())
+                throw new ResponseStatusException(CONFLICT, "대기 중인 회원은 페이서로 지정할 수 없습니다.");
+        }
     }
 }
