@@ -70,6 +70,29 @@ class RecruitmentIntegrationTest {
         return service.create(admin,new RecruitmentRequest("선착순 테스트","공원",LocalDateTime.now(ZoneOffset.UTC).plusDays(1),"안내",capacity,
                 List.of(new RecruitmentRequest.Group("A","6:30",BigDecimal.valueOf(5)),new RecruitmentRequest.Group("B","7:00",BigDecimal.valueOf(3)))));
     }
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
+
+    @Test void rosterReadsNamesAndAttendanceWithoutLoadingEveryMember() {
+        Long id = run(1);
+        var first = user(UserRole.MEMBER);
+        service.join(id, first, RUNNER, "A");
+        var waitingIds = new ArrayList<Long>();
+        for (int i = 0; i < 4; i++) {
+            var waiting = user(UserRole.MEMBER);
+            waitingIds.add(waiting.getId());
+            service.join(id, waiting, RUNNER, "A");
+        }
+        var stats = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        var roster = service.read(id, first);
+        assertEquals(4, stats.getPrepareStatementCount());
+        assertEquals(0, stats.getEntityStatistics(User.class.getName()).getLoadCount());
+        assertEquals("PENDING", roster.mine().attendance());
+        assertEquals(first.getId(), roster.confirmed().get(0).userId());
+        assertEquals(waitingIds, roster.waiting().stream().map(RecruitmentService.Entry::userId).toList());
+        assertEquals(List.of(1, 2, 3, 4), roster.waiting().stream().map(RecruitmentService.Entry::waitingNumber).toList());
+    }
+
     @Test void cancellationPromotesAndRejoinGoesToBackOfQueue() {
         Long id=run(1);var first=user(UserRole.MEMBER);var second=user(UserRole.MEMBER);var third=user(UserRole.MEMBER);
         assertEquals("CONFIRMED",service.join(id,first,RUNNER,"A").mine().state());

@@ -34,11 +34,12 @@ public class RunWaitlist {
     @Transactional(readOnly = true)
     public View read(String type, Long id, Long member) {
         checked(posts.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND)), type);
-        var entries = queue.findByPostIdOrderByIdAsc(id);
-        return new View(limits.findById(id).map(RunRecruitment::getCapacity).orElse(null),
-                entries.stream().map(e -> e.getUser().getName()).toList(),
-                entries.stream().anyMatch(e -> e.getUser().getId().equals(member)),
-                limits.findById(id).map(c -> List.copyOf(c.getGroups())).orElse(List.of()));
+        var entries = queue.findRoster(id);
+        var config = limits.findOneByPostId(id);
+        return new View(config.map(RunRecruitment::getCapacity).orElse(null),
+                entries.stream().map(RunEnrollmentRepository.RosterRow::getName).toList(),
+                entries.stream().anyMatch(e -> e.getUserId().equals(member)),
+                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()));
     }
 
     @Transactional
@@ -106,7 +107,7 @@ public class RunWaitlist {
     }
 
     private GroupSeats seats(Post post, RunRecruitment limit) {
-        return new GroupSeats(limit, participants.findByPost(post).stream().map(Participant::getGroup).toList());
+        return new GroupSeats(limit, participants.findOccupiedGroups(post));
     }
 
     private void validateGroup(Post post, RunRecruitment limit, String group) {

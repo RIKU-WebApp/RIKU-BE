@@ -70,20 +70,23 @@ public class RecruitmentService {
                           List<Entry> confirmed,List<Entry> waiting,Entry mine) {}
     public Summary read(Long postId,AuthMember actor) {
         activePost(postId,false);
-        var config=recruitment.findById(postId);
+        return summary(postId, actor, recruitment.findOneByPostId(postId));
+    }
+
+    private Summary summary(Long postId, AuthMember actor, Optional<RunRecruitment> config) {
         if(config.isEmpty()) return new Summary(false,null,List.of(),List.of(),List.of(),null);
-        var attendees=participants.findWithUserByPost(posts.getReferenceById(postId));
+        var attendees=participants.findAttendanceRows(postId);
         Map<Long,String> attendance=new HashMap<>();
-        attendees.forEach(p->attendance.put(p.getUser().getId(),p.getParticipantStatus().name()));
+        attendees.forEach(p->attendance.put(p.getUserId(),p.getAttendance().name()));
         List<Entry> confirmed=new ArrayList<>(),waiting=new ArrayList<>();
 
         Entry mine=null;
-        for(var e:enrollments.findByPostIdOrderByIdAsc(postId)) {
+        for(var e:enrollments.findRoster(postId)) {
             int rank=e.getState()==WAITLISTED?waiting.size()+1:0;
-            var entry=new Entry(e.getUser().getId(),e.getUser().getName(),e.getRole().name(),e.getState().name(),e.getGroup(),rank,
-                    attendance.getOrDefault(e.getUser().getId(),"WAITLISTED"));
+            var entry=new Entry(e.getUserId(),e.getName(),e.getRole().name(),e.getState().name(),e.getGroupName(),rank,
+                    attendance.getOrDefault(e.getUserId(),"WAITLISTED"));
             (e.getState()==CONFIRMED?confirmed:waiting).add(entry);
-            if(e.getUser().getId().equals(actor.getId())) mine=entry;
+            if(e.getUserId().equals(actor.getId())) mine=entry;
         }
         var c=config.get();
         return new Summary(true,c.getCapacity(),List.copyOf(c.getGroups()),confirmed,waiting,mine);
@@ -104,7 +107,7 @@ public class RecruitmentService {
             var participant=participants.findByPostAndUser(post,user);
             if(participant.isPresent() && participant.get().getParticipantStatus()==ParticipantStatus.ATTENDED)
                 throw new ResponseStatusException(CONFLICT,"출석 후에는 그룹을 변경할 수 없습니다.");
-            if (group.equals(e.getGroup())) return read(postId, actor);
+            if (group.equals(e.getGroup())) return summary(postId, actor, Optional.of(config));
             if (e.getState() == WAITLISTED)
                 throw new ResponseStatusException(CONFLICT, "대기 취소 후 새 그룹에 신청해주세요.");
             if (!seats(config).groupAvailable(group))
@@ -115,18 +118,18 @@ public class RecruitmentService {
                 pacers.deleteByUserAndPost(user,post); pacers.flush(); addPacer(post,e,config);
             }
             promote(post, config);
-            return read(postId,actor);
+            return summary(postId, actor, Optional.of(config));
         }
         var entry=enrollments.save(new RunEnrollment(postId,user,role,group,seats(config).available(group) ? CONFIRMED : WAITLISTED));
         if(entry.getState()==CONFIRMED) addParticipant(post,entry,config);
-        return read(postId,actor);
+        return summary(postId, actor, Optional.of(config));
     }
 
     @Transactional
     public Summary cancel(Long postId,AuthMember actor) {
         Post post=activePost(postId,true); writable(post);
         var entry=enrollments.findByPostIdAndUserId(postId,actor.getId());
-        if(entry.isEmpty()) return read(postId,actor);
+        if(entry.isEmpty()) return summary(postId, actor, recruitment.findById(postId));
         var e=entry.get();
         var participant=participants.findByPostAndUser(post,e.getUser());
         if(participant.isPresent() && participant.get().getParticipantStatus()==ParticipantStatus.ATTENDED)
@@ -135,7 +138,7 @@ public class RecruitmentService {
         if(e.getRole()==RunEnrollment.Role.PACER) pacers.deleteByUserAndPost(e.getUser(),post);
         enrollments.delete(e); enrollments.flush();
         if (e.getState() == CONFIRMED) promote(post, recruitment.findById(postId).orElseThrow());
-        return read(postId,actor);
+        return summary(postId, actor, recruitment.findById(postId));
     }
 
     // PostService holds the post write lock for the whole edit transaction.
@@ -172,15 +175,16 @@ public class RecruitmentService {
     }
 
     private GroupSeats seats(RunRecruitment config) {
-        var confirmed = enrollments.findByPostIdOrderByIdAsc(config.getPostId()).stream()
-                .filter(e -> e.getState() == CONFIRMED).map(RunEnrollment::getGroup).toList();
+        var confirmed = enrollments.findOccupiedGroups(config.getPostId(), CONFIRMED);
         return new GroupSeats(config, confirmed);
     }
 
     private void promote(Post post, RunRecruitment config) {
-        var seats = seats(config);
+        var entries = enrollments.findByPostIdOrderByIdAsc(post.getId());
+        var confirmed = entries.stream().filter(e -> e.getState() == CONFIRMED).map(RunEnrollment::getGroup).toList();
+        var seats = new GroupSeats(config, confirmed);
         seats.validate();
-        for (var entry : enrollments.findByPostIdOrderByIdAsc(post.getId())) {
+        for (var entry : entries) {
             if (entry.getState() == WAITLISTED && seats.available(entry.getGroup())) {
                 entry.confirm();
                 addParticipant(post, entry, config);
