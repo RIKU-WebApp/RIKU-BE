@@ -154,10 +154,15 @@ class BadgeMysqlIntegrationTest {
             assertEquals(expected, db.queryForObject(memberSql, Integer.class, 900, cutoff));
         };
         check.accept(2);
-        for (String sql : List.of(oldSql, memberSql)) {
-            Object[] params = sql.equals(oldSql) ? new Object[]{202307,900} : new Object[]{900,cutoff};
-            System.out.println("MONTH_PLAN_" + (sql.equals(oldSql) ? "OLD" : "NEW") + " "
-                    + db.queryForObject("EXPLAIN ANALYZE " + sql, String.class, params));
+        // Explain the legacy inner ranking directly: MySQL folds the outer MIN before timing its plan.
+        var legacyRanking = oldSql.replace("SELECT MIN(best_rank) FROM", "SELECT best_rank FROM");
+        for (int member : List.of(900, 901)) {
+            for (String sql : List.of(legacyRanking, memberSql)) {
+                boolean legacy = sql.equals(legacyRanking);
+                Object[] params = legacy ? new Object[]{202307,member} : new Object[]{member,cutoff};
+                System.out.println("MONTH_PLAN_" + (legacy ? "OLD" : "NEW") + "_" + member + " "
+                        + db.queryForObject("EXPLAIN ANALYZE " + sql, String.class, params));
+            }
         }
         db.update("DELETE FROM user_point WHERE user_id=901 AND point_type='BONUS'");
         check.accept(1); // tie for first
