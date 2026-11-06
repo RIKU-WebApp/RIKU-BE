@@ -81,6 +81,10 @@ class BadgeMysqlIntegrationTest {
         assertEquals(db.queryForObject("SELECT COUNT(DISTINCT DATE(TIMESTAMPADD(HOUR,9,created_at))) FROM user_point WHERE user_id=100 AND point_type='ADD_ATTENDANCE'", Integer.class), progress.checkins());
         assertEquals(db.queryForObject("SELECT COUNT(DISTINCT date) FROM run_certificate WHERE user_id=100", Integer.class), progress.certificateDays());
         assertEquals(db.queryForObject("SELECT COUNT(*) FROM post p WHERE p.user_id=100 AND p.status='ACTIVE' AND p.post_status='CLOSED' AND EXISTS(SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>100 AND a.participant_status='ATTENDED')", Integer.class), progress.hosted());
+        tx.executeWithoutResult(status -> {
+            assertDoesNotThrow(() -> compareMemberMonthAfterCorrections(db));
+            status.setRollbackOnly();
+        });
         assertTrue(paused.grants(100).isEmpty());
         assertTrue(pausedRanks.forMember(100).isEmpty());
         tx.executeWithoutResult(s->{engine.reconcile(); ranks.settle();});
@@ -127,5 +131,45 @@ class BadgeMysqlIntegrationTest {
         var nextTerm=new RankHonors(db,env,LocalDate.of(2026,7,1),on);
         assertTrue(nextTerm.closedPeriods(LocalDate.of(2026,7,1)).contains(
                 new RankHonors.Period("SEMESTER",LocalDate.of(2026,4,1),LocalDate.of(2026,7,1))));
+    }
+
+    private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {
+        String oldSql = "SELECT MIN(best_rank) FROM (" + new ClassPathResource("badges/monthly-ranks.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8).replace("__MONTH_KEY__", "?")
+                + ") ranks WHERE user_id=?";
+        String memberSql = new ClassPathResource("badges/member-monthly-rank.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        // January through June 2023 KST. Only June has points for the test member.
+        var cutoff = java.time.LocalDateTime.of(2023, 6, 30, 15, 0);
+        for (int i = 900; i <= 920; i++) db.update("INSERT INTO users VALUES (?,'ACTIVE')", i);
+        for (int month = 1; month <= 6; month++) {
+            for (int i = 901; i <= 920; i++) {
+                db.update("INSERT INTO user_point VALUES(?,10,'TEST',?)", i, LocalDate.of(2023,month,2));
+            }
+        }
+        db.update("INSERT INTO user_point VALUES(900,10,'TEST','2023-05-31 15:00:00')," +
+                "(900,999,'TEST','2023-06-30 15:00:00'),(901,1,'BONUS','2023-06-01')");
+        java.util.function.Consumer<Integer> check = expected -> {
+            assertEquals(expected, db.queryForObject(oldSql, Integer.class, 202307, 900));
+            assertEquals(expected, db.queryForObject(memberSql, Integer.class, 900, cutoff));
+        };
+        check.accept(2);
+        for (String sql : List.of(oldSql, memberSql)) {
+            Object[] params = sql.equals(oldSql) ? new Object[]{202307,900} : new Object[]{900,cutoff};
+            System.out.println("MONTH_PLAN_" + (sql.equals(oldSql) ? "OLD" : "NEW") + " "
+                    + db.queryForObject("EXPLAIN ANALYZE " + sql, String.class, params));
+        }
+        db.update("DELETE FROM user_point WHERE user_id=901 AND point_type='BONUS'");
+        check.accept(1); // tie for first
+        db.update("UPDATE user_point SET point=-1 WHERE user_id=900 AND created_at='2023-05-31 15:00:00'");
+        check.accept(null);
+        db.update("UPDATE user_point SET point=9 WHERE user_id=900 AND created_at='2023-05-31 15:00:00'");
+        check.accept(21);
+        db.update("UPDATE users SET status='INACTIVE' WHERE user_id IN (919,920)");
+        check.accept(null); // only 19 eligible competitors
+        db.update("UPDATE users SET status='ACTIVE' WHERE user_id=919");
+        check.accept(20);
+        db.update("UPDATE users SET status='INACTIVE' WHERE user_id=900");
+        check.accept(null);
     }
 }

@@ -23,8 +23,7 @@ public class BadgeProgressController {
     private final String monthly;
     public BadgeProgressController(JdbcTemplate db) throws IOException {
         this.db=db;
-        monthly="SELECT MIN(best_rank) FROM ("+new ClassPathResource("badges/monthly-ranks.sql")
-                .getContentAsString(StandardCharsets.UTF_8).replace("__MONTH_KEY__", "?")+") r WHERE user_id=?";
+        monthly = new ClassPathResource("badges/member-monthly-rank.sql").getContentAsString(StandardCharsets.UTF_8);
     }
     public record Progress(int visits, int months, int kinds, int leads, int weekends, int streak,
                            Map<String,Integer> byType, int hosted, int checkins, int certificateDays, int fourSeasons, Integer bestMonthlyRank) {}
@@ -32,7 +31,8 @@ public class BadgeProgressController {
     @GetMapping("/user/activity/badge-progress")
     public BaseResponse<Progress> progress(@AuthenticationPrincipal AuthMember actor) {
         YearMonth now=YearMonth.now(ZoneId.of("Asia/Seoul"));
-        Integer place=db.queryForObject(monthly,Integer.class,now.getYear()*100+now.getMonthValue(),actor.getId());
+        var cutoff = RIKU.server.global.util.DateTimeUtils.startOfDayUtc(now.atDay(1));
+        Integer place = db.queryForObject(monthly, Integer.class, actor.getId(), cutoff);
         record Counts(int checkins, int certificates, int hosted) {}
         var counts = db.queryForObject("""
                 SELECT
