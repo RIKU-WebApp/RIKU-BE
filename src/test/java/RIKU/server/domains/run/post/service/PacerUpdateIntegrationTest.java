@@ -174,6 +174,59 @@ class PacerUpdateIntegrationTest {
         attendance.joinRun("training",post.getId(),null,auth(creator));
         assertThat(participants.findByPostIdAndUserId(post.getId(),runner.getId()).orElseThrow().getGroup()).isEqualTo("A");
     }
+    @Test
+    void bulkTrainingPacerEditPreservesAttendedParticipant() {
+        User creator = user();
+        Post post = post(creator, PostType.TRAINING);
+        var original = participants.save(Participant.createWithGroup(post, creator, "A"));
+        original.attend();
+        var requests = new java.util.ArrayList<UpdatePacerRequest>();
+        requests.add(request(creator, "A"));
+        for (int i = 1; i < 20; i++) requests.add(request(user(), "A"));
+        var edit = body(requests.toArray(UpdatePacerRequest[]::new));
+        edit.setReplacePacers(true);
+        em.flush();
+        em.clear();
+        var stats = em.getEntityManagerFactory().unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        service.updatePost(auth(creator), "training", post.getId(), edit);
+        em.flush();
+        System.out.printf("PACER20 sql=%d loaded=%d inserts=%d updates=%d%n", stats.getPrepareStatementCount(),
+                stats.getEntityLoadCount(), stats.getEntityInsertCount(), stats.getEntityUpdateCount());
+        assertThat(stats.getPrepareStatementCount()).isLessThanOrEqualTo(46);
+        assertThat(stats.getEntityInsertCount()).isEqualTo(39);
+        em.clear();
+        assertThat(pacers.findByPost(post)).hasSize(20);
+        assertThat(participants.findByPost(post)).hasSize(20);
+        assertThat(participants.findById(original.getId()).orElseThrow().getParticipantStatus())
+                .isEqualTo(ParticipantStatus.ATTENDED);
+    }
+
+    @Test
+    void queuedPacerIsRejectedBeforeEarlierAdditionsAreWritten() {
+        User owner = user(), first = user(), waiting = user();
+        Post post = post(owner, PostType.TRAINING);
+        var config = new RIKU.server.domains.run.recruitment.RunRecruitment(post.getId(), 1, List.of());
+        em.persist(config);
+        var existing = participants.save(Participant.createWithGroup(post, owner, "A"));
+        existing.attend();
+        var queued = new RIKU.server.domains.run.recruitment.RunEnrollment(post.getId(), waiting,
+                RIKU.server.domains.run.recruitment.RunEnrollment.Role.RUNNER, "A",
+                RIKU.server.domains.run.recruitment.RunEnrollment.State.WAITLISTED);
+        em.persist(queued);
+        var edit = body(request(owner, "A"), request(first, "B"), request(waiting, "A"));
+        edit.setReplacePacers(true);
+        em.flush();
+        em.clear();
+        assertThatThrownBy(() -> service.updatePost(auth(owner), "training", post.getId(), edit))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("대기 중인 회원");
+        assertThat(pacers.findByPost(post)).isEmpty();
+        assertThat(participants.findByPostIdAndUserId(post.getId(), first.getId())).isEmpty();
+        assertThat(participants.findById(existing.getId()).orElseThrow().getParticipantStatus())
+                .isEqualTo(ParticipantStatus.ATTENDED);
+    }
+
     private User user() {
         User u = users.save(User.create("test-" + ++sequence, "unused", "test", "test", "test", null));
         u.updatePacer(true);

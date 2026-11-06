@@ -52,6 +52,17 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
             "from Participant p where p.post.id in :postIds group by p.post.id")
     List<PostParticipantCount> countByPostIds(@Param("postIds") List<Long> postIds);
 
+    interface AttendanceRow {
+        Long getUserId();
+        ParticipantStatus getAttendance();
+    }
+
+    @Query("select p.user.id as userId, p.participantStatus as attendance from Participant p where p.post.id = :postId order by p.id")
+    List<AttendanceRow> findAttendanceRows(@Param("postId") Long postId);
+
+    @Query("select p.group from Participant p where p.post = :post")
+    List<String> findOccupiedGroups(@Param("post") Post post);
+
     // 특정 postId에 대한 참여자 수 조회
     @Query("SELECT COUNT(p) FROM Participant p WHERE p.post.id = :postId")
     int countByPostId(@Param("postId") Long postId);

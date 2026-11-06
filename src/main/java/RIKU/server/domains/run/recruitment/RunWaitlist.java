@@ -34,11 +34,12 @@ public class RunWaitlist {
     @Transactional(readOnly = true)
     public View read(String type, Long id, Long member) {
         checked(posts.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND)), type);
-        var entries = queue.findByPostIdOrderByIdAsc(id);
-        return new View(limits.findById(id).map(RunRecruitment::getCapacity).orElse(null),
-                entries.stream().map(e -> e.getUser().getName()).toList(),
-                entries.stream().anyMatch(e -> e.getUser().getId().equals(member)),
-                limits.findById(id).map(c -> List.copyOf(c.getGroups())).orElse(List.of()));
+        var entries = queue.findRoster(id);
+        var config = limits.findOneByPostId(id);
+        return new View(config.map(RunRecruitment::getCapacity).orElse(null),
+                entries.stream().map(RunEnrollmentRepository.RosterRow::getName).toList(),
+                entries.stream().anyMatch(e -> e.getUserId().equals(member)),
+                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()));
     }
 
     @Transactional
@@ -94,19 +95,15 @@ public class RunWaitlist {
     public void fillVacancies(Post post) {
         var limit = limits.findById(post.getId());
         if (limit.isEmpty()) return;
-        var seats = seats(post, limit.get());
-        seats.validate();
-        for (var entry : queue.findByPostIdOrderByIdAsc(post.getId())) {
-            if (!seats.available(entry.getGroup())) continue;
+        seats(post, limit.get()).promote(queue, null, entry -> {
             participants.save(entry.getGroup().isBlank() ? Participant.create(post, entry.getUser())
                     : Participant.createWithGroup(post, entry.getUser(), entry.getGroup()));
             queue.delete(entry);
-            seats.take(entry.getGroup());
-        }
+        });
     }
 
     private GroupSeats seats(Post post, RunRecruitment limit) {
-        return new GroupSeats(limit, participants.findByPost(post).stream().map(Participant::getGroup).toList());
+        return new GroupSeats(limit, participants.findOccupiedGroups(post));
     }
 
     private void validateGroup(Post post, RunRecruitment limit, String group) {
@@ -134,8 +131,10 @@ public class RunWaitlist {
         return limits.findById(post.getId()).filter(c -> !c.getGroups().isEmpty()).isPresent();
     }
 
-    public void checkPacer(Post post, Long member) {
-        if (queue.findByPostIdAndUserId(post.getId(), member).isPresent())
-            throw new ResponseStatusException(CONFLICT, "대기 중인 회원은 페이서로 지정할 수 없습니다.");
+    public void checkQueuedPacers(Long postId, List<Long> members) {
+        for (int i = 0; i < members.size(); i += 500) {
+            if (!queue.findQueuedMemberIds(postId, members.subList(i, Math.min(i + 500, members.size()))).isEmpty())
+                throw new ResponseStatusException(CONFLICT, "대기 중인 회원은 페이서로 지정할 수 없습니다.");
+        }
     }
 }

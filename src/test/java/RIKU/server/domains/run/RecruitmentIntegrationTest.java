@@ -23,7 +23,8 @@ import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static RIKU.server.domains.run.recruitment.RunEnrollment.Role.*;
 
-@SpringBootTest @ActiveProfiles("test")
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.session_factory.statement_inspector=" +
+        "RIKU.server.domains.run.RecruitmentIntegrationTest$LockObserver") @ActiveProfiles("test")
 class RecruitmentIntegrationTest {
     @Autowired RecruitmentService service;
     @Autowired UserRepository users;
@@ -70,6 +71,29 @@ class RecruitmentIntegrationTest {
         return service.create(admin,new RecruitmentRequest("선착순 테스트","공원",LocalDateTime.now(ZoneOffset.UTC).plusDays(1),"안내",capacity,
                 List.of(new RecruitmentRequest.Group("A","6:30",BigDecimal.valueOf(5)),new RecruitmentRequest.Group("B","7:00",BigDecimal.valueOf(3)))));
     }
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
+
+    @Test void rosterReadsNamesAndAttendanceWithoutLoadingEveryMember() {
+        Long id = run(1);
+        var first = user(UserRole.MEMBER);
+        service.join(id, first, RUNNER, "A");
+        var waitingIds = new ArrayList<Long>();
+        for (int i = 0; i < 4; i++) {
+            var waiting = user(UserRole.MEMBER);
+            waitingIds.add(waiting.getId());
+            service.join(id, waiting, RUNNER, "A");
+        }
+        var stats = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        var roster = service.read(id, first);
+        assertEquals(4, stats.getPrepareStatementCount());
+        assertEquals(0, stats.getEntityStatistics(User.class.getName()).getLoadCount());
+        assertEquals("PENDING", roster.mine().attendance());
+        assertEquals(first.getId(), roster.confirmed().get(0).userId());
+        assertEquals(waitingIds, roster.waiting().stream().map(RecruitmentService.Entry::userId).toList());
+        assertEquals(List.of(1, 2, 3, 4), roster.waiting().stream().map(RecruitmentService.Entry::waitingNumber).toList());
+    }
+
     @Test void cancellationPromotesAndRejoinGoesToBackOfQueue() {
         Long id=run(1);var first=user(UserRole.MEMBER);var second=user(UserRole.MEMBER);var third=user(UserRole.MEMBER);
         assertEquals("CONFIRMED",service.join(id,first,RUNNER,"A").mine().state());
@@ -186,6 +210,64 @@ class RecruitmentIntegrationTest {
         if (regular) service.cancel(id,a); else legacy.joinRun(path,id,null,a);
         assertTrue(participants.findByPostIdAndUserId(id,aw.getId()).isPresent());
     }
+    @Autowired RunEnrollmentRepository enrollmentRows;
+    public static class LockObserver implements org.hibernate.resource.jdbc.spi.StatementInspector {
+        static final ThreadLocal<CountDownLatch> attempted = new ThreadLocal<>();
+
+        @Override public String inspect(String sql) {
+            var signal = attempted.get();
+            if (signal != null && sql.contains("for update")) signal.countDown();
+            return sql;
+        }
+    }
+
+    @Test void promotionCrossesFullGroupPageUnderPostLock() throws Exception {
+        Long id = run(2);
+        var tx = new TransactionTemplate(manager);
+        tx.executeWithoutResult(t -> service.edit(posts.findForUpdate(id).orElseThrow(), true, 2,
+                List.of(plan("A", 1), plan("B", 1))));
+        var a = user(UserRole.MEMBER);
+        var b = user(UserRole.MEMBER);
+        service.join(id, a, RUNNER, "A");
+        service.join(id, b, RUNNER, "B");
+        tx.executeWithoutResult(t -> {
+            for (int i = 0; i < 65; i++) {
+                var blocked = user(UserRole.MEMBER);
+                enrollmentRows.save(new RunEnrollment(id, users.getReferenceById(blocked.getId()), RUNNER, "A",
+                        RunEnrollment.State.WAITLISTED));
+            }
+        });
+        var next = user(UserRole.MEMBER);
+        var later = user(UserRole.MEMBER);
+        service.join(id, next, RUNNER, "B");
+        service.join(id, later, RUNNER, "B");
+        var pool = Executors.newSingleThreadExecutor();
+        try {
+            var pending = tx.execute(t -> {
+                posts.findForUpdate(id).orElseThrow();
+                var attempted = new CountDownLatch(1);
+                var result = pool.submit(() -> {
+                    LockObserver.attempted.set(attempted);
+                    try {
+                        return service.cancel(id, b);
+                    } finally {
+                        LockObserver.attempted.remove();
+                    }
+                });
+                assertTrue(assertDoesNotThrow(() -> attempted.await(5, TimeUnit.SECONDS)));
+                assertThrows(TimeoutException.class, () -> result.get(100, TimeUnit.MILLISECONDS));
+                return result;
+            });
+            var roster = pending.get(5, TimeUnit.SECONDS);
+            assertEquals(List.of(a.getId(), next.getId()), roster.confirmed().stream()
+                    .map(RecruitmentService.Entry::userId).toList());
+            assertEquals(66, roster.waiting().size());
+            assertEquals(later.getId(), roster.waiting().get(65).userId());
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
     @Test void parallelRequestsDoNotOversell() throws Exception {
         Long id=run(3);List<AuthMember> actors=new ArrayList<>();for(int i=0;i<12;i++)actors.add(user(UserRole.MEMBER));
         var pool=Executors.newFixedThreadPool(6);
