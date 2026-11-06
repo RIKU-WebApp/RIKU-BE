@@ -32,7 +32,7 @@ public class BadgeProgressController {
     public BaseResponse<Progress> progress(@AuthenticationPrincipal AuthMember actor) {
         YearMonth now=YearMonth.now(ZoneId.of("Asia/Seoul"));
         var cutoff = RIKU.server.global.util.DateTimeUtils.startOfDayUtc(now.atDay(1));
-        Integer place = db.queryForObject(monthly, Integer.class, actor.getId(), cutoff);
+        Integer place = db.queryForObject(monthly, Integer.class, cutoff, actor.getId());
         record Counts(int checkins, int certificates, int hosted) {}
         var counts = db.queryForObject("""
                 SELECT

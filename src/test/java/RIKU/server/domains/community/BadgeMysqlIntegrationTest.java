@@ -151,14 +151,14 @@ class BadgeMysqlIntegrationTest {
                 "(900,999,'TEST','2023-06-30 15:00:00'),(901,1,'BONUS','2023-06-01')");
         java.util.function.Consumer<Integer> check = expected -> {
             assertEquals(expected, db.queryForObject(oldSql, Integer.class, 202307, 900));
-            assertEquals(expected, db.queryForObject(memberSql, Integer.class, 900, cutoff));
+            assertEquals(expected, db.queryForObject(memberSql, Integer.class, cutoff, 900));
         };
         check.accept(2);
         // Use one transaction/connection to measure actual MySQL handler reads, including temp tables.
         for (int member : List.of(900, 901)) {
             for (String sql : List.of(oldSql, memberSql)) {
                 boolean legacy = sql.equals(oldSql);
-                Object[] params = legacy ? new Object[]{202307,member} : new Object[]{member,cutoff};
+                Object[] params = legacy ? new Object[]{202307,member} : new Object[]{cutoff,member};
                 long before = handlerReads(db);
                 Integer rank = db.queryForObject(sql, Integer.class, params);
                 System.out.printf("MONTH_IO %s member=%d rank=%d handlerReads=%d%n",
