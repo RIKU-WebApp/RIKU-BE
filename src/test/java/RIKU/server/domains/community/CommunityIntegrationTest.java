@@ -72,6 +72,18 @@ class CommunityIntegrationTest {
         assertThrows(ResponseStatusException.class,()->service.deleteRecord(other,r.getId()));
         service.deleteRecord(member,r.getId());assertTrue(service.activity(member.getId()).badges().isEmpty());
     }
+    @Test void previewIsPrivateAndOnlyReturnsTheFirstThreeManualAwards() throws Exception {
+        for (String name : List.of("첫째","둘째","셋째","넷째"))
+            service.award(admin,member.getId(),new CommunityController.AwardRequest(name,"수여"));
+        var path="/user/activity/badge-preview";
+        mvc.perform(get(path)).andExpect(status().isUnauthorized());
+        mvc.perform(get(path).header("Authorization",token(member))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.badges.length()").value(3))
+                .andExpect(jsonPath("$.result.badges[2].name").value("셋째"))
+                .andExpect(jsonPath("$.result.medalCount").value(0))
+                .andExpect(jsonPath("$.result.records").doesNotExist());
+        assertTrue(service.badgePreview(other.getId()).badges().isEmpty());
+    }
     @Test void badgeAdministrationRequiresAuthenticatedAdmin() throws Exception {
         String path = "/admin/users/" + other.getId() + "/badges";
         String body = mapper.writeValueAsString(Map.of("name", "완주", "description", "정규런 완주"));

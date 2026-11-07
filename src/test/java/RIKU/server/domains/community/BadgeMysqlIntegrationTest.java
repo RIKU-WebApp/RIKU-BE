@@ -116,6 +116,11 @@ class BadgeMysqlIntegrationTest {
         user.updateStatus(RIKU.server.global.entity.BaseStatus.ACTIVE);
         org.mockito.Mockito.when(members.findById(100L)).thenReturn(java.util.Optional.of(user));
         var community=new CommunityService(members,null,null,null,null,null,pausedRanks,paused,off);
+        var preview=community.badgePreview(100L);
+        assertEquals(List.of("visits_50","REGULAR_25","FLASH_25"),preview.badges().stream().map(CommunityService.Badge::code).toList());
+        assertEquals(medals.size(),preview.medalCount());
+        assertEquals(medals.stream().sorted(java.util.Comparator.comparing((RankHonors.Medal m)->!m.kind().equals("SEMESTER"))
+                .thenComparing(RankHonors.Medal::achievedOn,java.util.Comparator.reverseOrder())).limit(3).toList(),preview.medals());
         var profile=community.profile(100L);
         assertEquals("공개 이름",profile.name()); assertEquals(paused.grants(100),profile.badges()); assertEquals(medals,profile.medals());
         user.updateStatus(RIKU.server.global.entity.BaseStatus.INACTIVE);

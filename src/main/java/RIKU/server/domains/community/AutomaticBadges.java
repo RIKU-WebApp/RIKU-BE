@@ -24,6 +24,7 @@ public class AutomaticBadges {
     private final String snapshot, catalog, memberDistance;
     private final BadgeStorage storage;
     private final Map<String, CommunityService.Badge> labels = new LinkedHashMap<>();
+    private final List<List<String>> previewFamilies = new ArrayList<>();
 
     public AutomaticBadges(JdbcTemplate db, ObjectMapper mapper, BadgeStorage storage) throws IOException {
         this.db = db;
@@ -49,14 +50,17 @@ public class AutomaticBadges {
                     tiers.get(5).asText().equals("명예") && levels.path(5).asInt()==1000;
             if(tiers.size()<1 || tiers.size()>(honor?6:5) || tiers.size()!=levels.size()) throw new IllegalArgumentException("Invalid tiers: "+id);
             int i=0;
+            var codes = new ArrayList<String>();
             for(var target : f.required("levels")) {
                 if (!target.isIntegralNumber() || !target.canConvertToInt() || target.asInt() <= (i==0 ? 0 : levels.get(i-1).asInt()))
                     throw new IllegalArgumentException("Invalid threshold: "+id);
                 String code=prefix+"_"+target.intValue();
+                codes.add(code);
                 var badge=new CommunityService.Badge(code,f.required("name").asText()+" "+tiers.get(i++).asText(),
                         f.required("rule").asText()+" — "+(f.has("conditions") ? f.required("conditions").required(i-1).asText() : target.asText()+f.required("unit").asText()),prefix.equals("PERSONAL")?"PERSONAL":"CLUB");
                 if(labels.put(code,badge)!=null) throw new IllegalArgumentException("Duplicate badge "+code);
             }
+            if (!id.equals("monthlyRank")) previewFamilies.add(List.copyOf(codes));
         }
     }
 
@@ -100,6 +104,26 @@ public class AutomaticBadges {
         return db.query("SELECT badge_code,badge_name,badge_rule,badge_source FROM automatic_badge_grant WHERE user_id=?"
                 + (storage.rankingsEnabled() ? "" : " AND badge_code NOT IN ('monthlyRank_1','monthlyRank_2','monthlyRank_3')") + " ORDER BY badge_code",
                 (rs,n)->labels.getOrDefault(rs.getString(1),new CommunityService.Badge(rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4))), id);
+    }
+
+    List<CommunityService.Badge> previewGrants(long id, int limit) {
+        var remaining = new LinkedHashMap<String, CommunityService.Badge>();
+        for (var grant : grants(id)) {
+            if (!grant.code().startsWith("monthlyRank_")) remaining.put(grant.code(), grant);
+        }
+        var result = new ArrayList<CommunityService.Badge>(limit);
+        for (var family : previewFamilies) {
+            CommunityService.Badge highest = null;
+            for (String code : family) {
+                var owned = remaining.remove(code);
+                if (owned != null) highest = owned;
+            }
+            if (highest != null) result.add(highest);
+            if (result.size() == limit) return result;
+        }
+        // Retired grants keep their stored artwork fallback and their original display order.
+        remaining.values().stream().limit(limit - result.size()).forEach(result::add);
+        return result;
     }
 }
 

@@ -22,6 +22,8 @@ public class CommunityController {
     public BaseResponse<?> profile(@PathVariable Long id) { return new BaseResponse<>(service.profile(id)); }
     @GetMapping("/user/activity/badges")
     public BaseResponse<?> activity(@AuthenticationPrincipal AuthMember actor) { return new BaseResponse<>(service.privateActivity(actor.getId())); }
+    @GetMapping("/user/activity/badge-preview")
+    public BaseResponse<?> badgePreview(@AuthenticationPrincipal AuthMember actor) { return new BaseResponse<>(service.badgePreview(actor.getId())); }
     @PostMapping("/user/records")
     public BaseResponse<?> record(@AuthenticationPrincipal AuthMember actor,@Valid @RequestBody RecordRequest request) { return new BaseResponse<>(service.record(actor,request)); }
     @DeleteMapping("/user/records/{id}")
