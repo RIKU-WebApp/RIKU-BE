@@ -34,7 +34,7 @@ public class AutomaticBadges {
         memberDistance=visits.replace("__MEMBER_FILTER__","AND a.user_id=?")+" SELECT COALESCE(SUM(km),0) FROM visits";
         snapshot = new ClassPathResource("badges/eligibility.sql").getContentAsString(StandardCharsets.UTF_8)
                 .replace("__VISITS__",visits.replace("__MEMBER_FILTER__",""))
-                .replace("__MONTHLY_RANKS__", monthly)
+                .replace("__MONTHLY_RANKS__", storage.rankingsEnabled() ? monthly : "SELECT NULL AS user_id, NULL AS best_rank WHERE FALSE")
                 .replace("__RECORD_PEAKS__", new ClassPathResource("badges/record-peaks.sql").getContentAsString(StandardCharsets.UTF_8));
         catalog = new ClassPathResource("badges/series.json").getContentAsString(StandardCharsets.UTF_8);
         var families = new HashSet<String>();
@@ -97,7 +97,8 @@ public class AutomaticBadges {
 
     List<CommunityService.Badge> grants(long id) {
         if (!storage.installed()) return List.of();
-        return db.query("SELECT badge_code,badge_name,badge_rule,badge_source FROM automatic_badge_grant WHERE user_id=? ORDER BY badge_code",
+        return db.query("SELECT badge_code,badge_name,badge_rule,badge_source FROM automatic_badge_grant WHERE user_id=?"
+                + (storage.rankingsEnabled() ? "" : " AND badge_code NOT IN ('monthlyRank_1','monthlyRank_2','monthlyRank_3')") + " ORDER BY badge_code",
                 (rs,n)->labels.getOrDefault(rs.getString(1),new CommunityService.Badge(rs.getString(1),rs.getString(2),rs.getString(3),rs.getString(4))), id);
     }
 }
@@ -113,7 +114,7 @@ class AutomaticBadgeSchedule {
 }
 
 @Service
-@ConditionalOnProperty(name="riku.badges.auto-grant.enabled", havingValue="true")
+@ConditionalOnProperty(name={"riku.badges.auto-grant.enabled","riku.badges.rankings-enabled"}, havingValue="true")
 class RankHonorSchedule {
     private final RankHonors honors;
     RankHonorSchedule(RankHonors honors){this.honors=honors;}

@@ -24,6 +24,7 @@ cloud:
 ---
 riku:
   badges:
+    rankings-enabled: false
     auto-grant:
       enabled: ${RIKU_BADGES_AUTO_GRANT_ENABLED:false}
       delay-ms: ${RIKU_BADGES_AUTO_GRANT_DELAY_MS:300000}

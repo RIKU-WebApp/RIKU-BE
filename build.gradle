@@ -61,3 +61,7 @@ tasks.named('test') {
 	systemProperty 'user.timezone', 'UTC'
 	systemProperty 'com.amazonaws.sdk.disableEc2Metadata', 'true'
 }
+
+tasks.named('processResources') {
+    from('deploy/sql/automatic-badge-grant.mysql.sql') { into 'db' }
+}
