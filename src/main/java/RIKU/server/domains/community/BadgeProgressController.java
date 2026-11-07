@@ -20,9 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class BadgeProgressController {
     private final JdbcTemplate db;
+    private final BadgeStorage storage;
     private final String monthly;
-    public BadgeProgressController(JdbcTemplate db) throws IOException {
+    public BadgeProgressController(JdbcTemplate db, BadgeStorage storage) throws IOException {
         this.db=db;
+        this.storage=storage;
         monthly = new ClassPathResource("badges/member-monthly-rank.sql").getContentAsString(StandardCharsets.UTF_8);
     }
     public record Progress(int visits, int months, int kinds, int leads, int weekends, int streak,
@@ -32,7 +34,7 @@ public class BadgeProgressController {
     public BaseResponse<Progress> progress(@AuthenticationPrincipal AuthMember actor) {
         YearMonth now=YearMonth.now(ZoneId.of("Asia/Seoul"));
         var cutoff = RIKU.server.global.util.DateTimeUtils.startOfDayUtc(now.atDay(1));
-        Integer place = db.queryForObject(monthly, Integer.class, cutoff, actor.getId());
+        Integer place = storage.rankingsEnabled() ? db.queryForObject(monthly, Integer.class, cutoff, actor.getId()) : null;
         record Counts(int checkins, int certificates, int hosted) {}
         var counts = db.queryForObject("""
                 SELECT

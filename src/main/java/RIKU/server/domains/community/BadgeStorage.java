@@ -11,14 +11,17 @@ import java.util.Set;
 
 /** Manual schema installation is independent of the switch that allows issuing awards. */
 @Component
+@org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization
 public class BadgeStorage {
     private final JdbcTemplate db;
-    private final boolean enabled;
+    private final boolean enabled, rankingsEnabled;
     private final Set<String> tables;
 
-    public BadgeStorage(JdbcTemplate db, @Value("${riku.badges.auto-grant.enabled:false}") boolean enabled) {
+    public BadgeStorage(JdbcTemplate db, @Value("${riku.badges.auto-grant.enabled:false}") boolean enabled,
+                        @Value("${riku.badges.rankings-enabled:false}") boolean rankingsEnabled) {
         this.db=db;
         this.enabled=enabled;
+        this.rankingsEnabled=rankingsEnabled;
         tables=db.execute((ConnectionCallback<Set<String>>) c->{
             var names=new HashSet<String>();
             var metadata=c.getMetaData();
@@ -38,6 +41,7 @@ public class BadgeStorage {
                 db.queryForList("SELECT "+projection+" WHERE 1=0");
         }
     }
+    boolean rankingsEnabled(){return rankingsEnabled;}
     boolean enabled(){return enabled;}
     boolean installed(){return tables.contains("automatic_badge_grant");}
     boolean hasRanks(){return tables.containsAll(Set.of("rank_honor","rank_honor_period"));}

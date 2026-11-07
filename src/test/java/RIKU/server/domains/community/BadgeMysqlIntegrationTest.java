@@ -31,8 +31,8 @@ class BadgeMysqlIntegrationTest {
                 "Refusing to run fixtures against a nonempty database");
         var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
         var mapper=new ObjectMapper();
-        assertFalse(new BadgeStorage(db,false).installed());
-        assertThrows(IllegalStateException.class,()->new BadgeStorage(db,true));
+        assertFalse(new BadgeStorage(db,false,true).installed());
+        assertThrows(IllegalStateException.class,()->new BadgeStorage(db,true,true));
         for(String ddl:List.of("users(user_id BIGINT PRIMARY KEY,status VARCHAR(16))",
                 "post(post_id BIGINT PRIMARY KEY,user_id BIGINT,post_type VARCHAR(16),date DATETIME,status VARCHAR(16),post_status VARCHAR(16))",
                 "participant(post_id BIGINT,user_id BIGINT,participant_group VARCHAR(4),participant_status VARCHAR(16))",
@@ -42,8 +42,8 @@ class BadgeMysqlIntegrationTest {
             db.execute("CREATE TABLE "+ddl);
         var migration=new ResourceDatabasePopulator(new FileSystemResource("deploy/sql/automatic-badge-grant.mysql.sql"));
         migration.execute(ds); migration.execute(ds);
-        var off=new BadgeStorage(db,false);
-        var on=new BadgeStorage(db,true);
+        var off=new BadgeStorage(db,false,true);
+        var on=new BadgeStorage(db,true,true);
         var paused=new AutomaticBadges(db,mapper,off);
         var engine=new AutomaticBadges(db,mapper,on);
         var env=new MockEnvironment();
@@ -77,7 +77,7 @@ class BadgeMysqlIntegrationTest {
         });
         var actor = org.mockito.Mockito.mock(RIKU.server.security.AuthMember.class);
         org.mockito.Mockito.when(actor.getId()).thenReturn(100L);
-        var progress = new BadgeProgressController(db).progress(actor).getResult();
+        var progress = new BadgeProgressController(db,on).progress(actor).getResult();
         assertEquals(db.queryForObject("SELECT COUNT(DISTINCT DATE(TIMESTAMPADD(HOUR,9,created_at))) FROM user_point WHERE user_id=100 AND point_type='ADD_ATTENDANCE'", Integer.class), progress.checkins());
         assertEquals(db.queryForObject("SELECT COUNT(DISTINCT date) FROM run_certificate WHERE user_id=100", Integer.class), progress.certificateDays());
         assertEquals(db.queryForObject("SELECT COUNT(*) FROM post p WHERE p.user_id=100 AND p.status='ACTIVE' AND p.post_status='CLOSED' AND EXISTS(SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>100 AND a.participant_status='ATTENDED')", Integer.class), progress.hosted());
@@ -87,6 +87,13 @@ class BadgeMysqlIntegrationTest {
         });
         assertTrue(paused.grants(100).isEmpty());
         assertTrue(pausedRanks.forMember(100).isEmpty());
+        var activityOnly=new BadgeStorage(db,true,false);
+        var firstRelease=new AutomaticBadges(db,mapper,activityOnly);
+        var hiddenRanks=new RankHonors(db,env,LocalDate.of(2026,3,2),activityOnly);
+        tx.executeWithoutResult(s->{firstRelease.reconcile(); hiddenRanks.settle();});
+        assertEquals(74,firstRelease.grants(100).size());
+        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE badge_code LIKE 'monthlyRank%'",Integer.class));
+        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor_period",Integer.class));
         tx.executeWithoutResult(s->{engine.reconcile(); ranks.settle();});
         var expected=new HashSet<String>();
         for(var family:mapper.readTree(new ClassPathResource("badges/series.json").getInputStream())){
@@ -98,6 +105,9 @@ class BadgeMysqlIntegrationTest {
         assertTrue(paused.grants(119).stream().anyMatch(b->b.code().equals("CLUB_10")));
         assertTrue(paused.grants(120).isEmpty());
         assertTrue(paused.grants(121).isEmpty());
+        assertEquals(74,firstRelease.grants(100).size());
+        assertTrue(hiddenRanks.forMember(100).isEmpty());
+        assertTrue(hiddenRanks.issuedForMember(100).isEmpty());
         var medals=pausedRanks.forMember(100);
         assertTrue(medals.stream().anyMatch(m->m.kind().equals("MONTH") && m.place()==1));
         assertTrue(medals.stream().anyMatch(m->m.kind().equals("SEMESTER") && m.place()==1));

@@ -2,6 +2,10 @@ spring:
   config:
     activate:
       on-profile: "prod"
+riku:
+  badges:
+    auto-grant:
+      enabled: ${RIKU_BADGES_AUTO_GRANT_ENABLED:true}
 server:
   address: 127.0.0.1
   port: 8080
@@ -35,7 +39,7 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: classpath:db/member-archive.sql
+      schema-locations: classpath:db/member-archive.sql,classpath:db/automatic-badge-grant.mysql.sql
       continue-on-error: false
 
   datasource:

@@ -13,6 +13,7 @@ class AutomaticBadgesTest {
         org.mockito.Mockito.when(storage.enabled()).thenReturn(true);
         org.mockito.Mockito.when(storage.installed()).thenReturn(true);
         org.mockito.Mockito.when(storage.hasRanks()).thenReturn(true);
+        org.mockito.Mockito.when(storage.rankingsEnabled()).thenReturn(true);
         return storage;
     }
     @Test void podiumsKeepSeparatePeriodMedalsAndFreezeTheirOriginalPlaces() throws Exception {

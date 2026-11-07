@@ -70,7 +70,7 @@ public class RankHonors {
 
     @Transactional
     public void settle() {
-        if(!storage.enabled())return;
+        if(!storage.enabled() || !storage.rankingsEnabled())return;
         var done=new HashSet<>(db.query("SELECT kind,starts_on FROM rank_honor_period WHERE settled=TRUE",
                 (rs,n)->rs.getString(1)+rs.getDate(2)));
         for(var p:closedPeriods(LocalDate.now(SEOUL))) {
@@ -89,6 +89,7 @@ public class RankHonors {
     }
     @Transactional(readOnly=true)
     public List<Medal> forMember(long id) {
+        if(!storage.rankingsEnabled())return List.of();
         if(storage.hasRanks())return issuedForMember(id);
         if(!preview)return List.of();
         var medals=new ArrayList<Medal>();
@@ -98,7 +99,7 @@ public class RankHonors {
         return medals;
     }
     public List<Medal> issuedForMember(long id) {
-        if (!storage.hasRanks()) return List.of();
+        if (!storage.rankingsEnabled() || !storage.hasRanks()) return List.of();
         return db.query("""
                 SELECT h.kind,h.starts_on,p.ends_before,h.place_no FROM rank_honor h
                 JOIN rank_honor_period p ON p.kind=h.kind AND p.starts_on=h.starts_on

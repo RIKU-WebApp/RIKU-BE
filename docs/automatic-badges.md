@@ -1,14 +1,14 @@
 # 서버 배지 지급 운영 절차 (v2.1)
 
-지급은 Spring 서버와 MySQL에서 수행한다. 대화 세션, AI 호출, 회원 JWT, 로그인이나 관리자 API 호출이 필요 없다. 기본값은 OFF다. 이번 검토는 운영 조회와 로컬 쓰기 테스트만 수행했다.
+지급은 Spring 서버와 MySQL에서 수행한다. 대화 세션, AI 호출, 회원 JWT, 로그인이나 관리자 API 호출이 필요 없다. 운영은 일반 활동 배지 16계열 74단계를 기본 지급한다. 다른 환경에서는 기본 OFF다. 월간 개인 최고 및 월간·학기 입상은 발급과 조회를 중지한다.
 
 ## 켜기와 끄기
 
 1. 운영 배포 전에 운영 MySQL 8의 읽기 전용 세션에서 `python tools/badges/member_badge_report.py --sql`이 출력하는 SQL을 실행해 예상치를 보관한다. 여기에는 회원별 내부 ID가 있으므로 결과는 외부 공유하지 않는다.
-2. 실제 도입 시에만 `deploy/sql/automatic-badge-grant.mysql.sql`을 한 번 적용한다. 그 다음 새 서버 버전을 **모든 인스턴스에** 설정과 함께 재시작한다. 앱 시작 시 스키마를 확인한다. ON일 때 필수 지급 테이블이나 잠금 행이 없으면 시작에 실패한다. 기존 기록증·개인 기록·러닝 테이블은 사전에 설치되어 있어야 한다.
+2. prodDB 시작 시 `deploy/sql/automatic-badge-grant.mysql.sql`을 멱등 적용한다. 그 다음 새 서버 버전을 **모든 인스턴스에** 설정과 함께 재시작한다. 앱 시작 시 스키마를 확인한다. ON일 때 필수 지급 테이블이나 잠금 행이 없으면 시작에 실패한다. 기존 기록증·개인 기록·러닝 테이블은 사전에 설치되어 있어야 한다.
 3. **ON**: `RIKU_BADGES_AUTO_GRANT_ENABLED=true`. 첫 회부터 모든 활성 회원의 전체 보관 이력을 집계하며, 이후에는 기본 5분 간격이다. 간격은 `RIKU_BADGES_AUTO_GRANT_DELAY_MS`로 지정한다. 단계별 조건을 모두 평가하므로 최초에 여러 단계를 함께 받을 수 있다.
 4. **OFF**: 같은 변수를 `false`로 바꾸고 모든 지급 서버를 재시작한다. 신규 자동 지급만 멈춘다. 지급 원장과 이미 받은 배지는 유지된다. 다시 켜면 중단 기간에 남은 활동도 재검사한다. OFF 이후에도 저장된 활동을 삭제할 때 복원 근거와 학기 시작일은 유지한다. 아직 스키마를 설치하지 않은 기존 서비스는 종전 조회를 사용한다.
-5. **대조**: 설치 후 `member_badge_report.py --audit-sql`은 읽기 전용 합계 쿼리를 출력한다. 배치 완료 후 `missing_grants`와 `awaiting_settlement`가 0인지 본다. `differs_from_frozen_result`는 사후 정정으로 달라진 이미 확정된 순위다. 필요 시 `--sql --with-ledger` 결과를 mysql --batch로 저장해 `--input <tsv>`로 내부 회원별 보고서를 만든다.
+5. **대조**: 설치 후 `member_badge_report.py --audit-sql`은 읽기 전용 합계 쿼리를 출력한다. 보고서에는 보류한 순위 배지도 포함되므로 활동 배지 검증에서는 monthlyRank 계열과 입상을 제외한다. `differs_from_frozen_result`는 사후 정정으로 달라진 이미 확정된 순위다. 필요 시 `--sql --with-ledger` 결과를 mysql --batch로 저장해 `--input <tsv>`로 내부 회원별 보고서를 만든다.
 
 ## 누락과 중복 처리
 

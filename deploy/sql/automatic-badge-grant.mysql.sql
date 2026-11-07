@@ -1,4 +1,4 @@
--- Deployment preparation only. Not run by Spring or the read-only report.
+-- Idempotent badge schema, applied by the prodDB profile before ledger discovery.
 CREATE TABLE IF NOT EXISTS automatic_badge_grant (
   user_id BIGINT NOT NULL,
   badge_code VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
