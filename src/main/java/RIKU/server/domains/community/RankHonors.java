@@ -26,6 +26,8 @@ public class RankHonors {
     private final boolean preview;
     private final boolean podiumsEnabled;
     private static final LocalDate LAST_RELEASED_TERM = LocalDate.of(2026,8,31);
+    // The old points-season setting was September 1. The official term began August 31.
+    private static final LocalDate LEGACY_AUTUMN_START = LocalDate.of(2026,9,1);
     // Monthly editions run through February. Semester closing dates come from the calendar.
     private static final LocalDate LAST_RELEASED_MONTH = LocalDate.of(2027,2,1);
     public RankHonors(JdbcTemplate db, Environment env, @Value("${season.start-date}") LocalDate currentStart,
@@ -38,7 +40,7 @@ public class RankHonors {
         var history=new ClassPathResource("badges/semester-starts.txt").getContentAsString(StandardCharsets.UTF_8);
         var starts=new TreeSet<LocalDate>();
         history.lines().filter(s->!s.isBlank()).map(LocalDate::parse).forEach(starts::add);
-        starts.add(currentStart);
+        if (!currentStart.equals(LEGACY_AUTUMN_START)) starts.add(currentStart);
         terms=List.copyOf(starts);
         if(storage.hasCalendar()) for(var start:terms)db.update("""
             INSERT INTO badge_semester_start(starts_on) VALUES(?)
@@ -60,7 +62,8 @@ public class RankHonors {
             }
         }
         var calendar=storage.hasCalendar()
-                ? db.query("SELECT starts_on FROM badge_semester_start ORDER BY starts_on",(rs,n)->rs.getDate(1).toLocalDate()) : terms;
+                ? db.query("SELECT starts_on FROM badge_semester_start WHERE starts_on<>? ORDER BY starts_on",
+                        (rs,n)->rs.getDate(1).toLocalDate(),LEGACY_AUTUMN_START) : terms;
         for(int i=1;i<calendar.size();i++) {
             if(!calendar.get(i).isAfter(today) && !calendar.get(i-1).isAfter(LAST_RELEASED_TERM)) periods.add(new Period("SEMESTER",calendar.get(i-1),calendar.get(i)));
         }
