@@ -48,7 +48,7 @@ class AutomaticBadgesTest {
         assertEquals(original,service.forMember(100));
         for (int i=100;i<120;i++) db.update("INSERT INTO user_point VALUES (?,10,'2026-10-31 14:59:59')",i);
         service.settleClosedPeriods(today);
-        var preview=service.previewForMember(100);
+        var preview=service.previewForMember(100,today);
         assertEquals(4,preview.total());
         assertEquals(List.of("SEMESTER","MONTH","MONTH"),preview.medals().stream().map(RankHonors.Medal::kind).toList());
         assertEquals(List.of("2025-09-01","2026-10-01","2026-09-01"),preview.medals().stream().map(m->m.start().toString()).toList());
@@ -58,6 +58,28 @@ class AutomaticBadgesTest {
         var autumn=new RankHonors.Period("SEMESTER",java.time.LocalDate.of(2026,8,31),nextStart);
         assertFalse(calendar.closedPeriods(nextStart.minusDays(1)).contains(autumn));
         assertTrue(calendar.closedPeriods(nextStart).contains(autumn));
+    }
+    @Test void previewPicksBestRecentPlacesBeforeLimitingAndAgesOutOldWinsAtTermStart() throws Exception {
+        var db=new JdbcTemplate(new DriverManagerDataSource("jdbc:h2:mem:display_order;MODE=MySQL;DB_CLOSE_DELAY=-1","sa",""));
+        db.execute("CREATE TABLE rank_honor_period(kind varchar(12),starts_on date,ends_before date,settled boolean)");
+        db.execute("CREATE TABLE rank_honor(kind varchar(12),starts_on date,user_id bigint,place_no int)");
+        var spring=java.time.LocalDate.of(2027,3,2);
+        var honors=new RankHonors(db,new org.springframework.mock.env.MockEnvironment(),spring,enabledStorage());
+        for(var row:List.of("SEMESTER,2025-09-01,2026-03-02,1","MONTH,2026-02-01,2026-03-01,1",
+                "MONTH,2026-03-01,2026-04-01,1","MONTH,2026-08-01,2026-09-01,1",
+                "MONTH,2026-09-01,2026-10-01,2","MONTH,2026-10-01,2026-11-01,3")){
+            var r=row.split(",");
+            db.update("INSERT INTO rank_honor_period VALUES(?,?,?,TRUE)",r[0],r[1],r[2]);
+            db.update("INSERT INTO rank_honor VALUES(?,?,1,?)",r[0],r[1],Integer.valueOf(r[3]));
+        }
+        var first=honors.previewForMember(1,spring.minusDays(1));
+        assertEquals(6,first.total());
+        assertEquals(List.of("2025-09-01","2026-08-01","2026-03-01"),first.medals().stream().map(m->m.start().toString()).toList());
+        var next=honors.previewForMember(1,spring);
+        assertEquals(List.of("2025-09-01","2026-09-01","2026-10-01"),next.medals().stream().map(m->m.start().toString()).toList());
+        db.update("INSERT INTO rank_honor VALUES('MONTH','2026-02-01',2,1),('MONTH','2026-03-01',2,3)");
+        var older=honors.previewForMember(2,spring);
+        assertEquals(List.of(3,1),older.medals().stream().map(RankHonors.Medal::place).toList());
     }
     @Test void monthlyRanksUseClosedKoreanMonthsPositiveScoresAndCompetitionTies() throws Exception {
         var db=new JdbcTemplate(new DriverManagerDataSource("jdbc:h2:mem:monthly_badge;MODE=MySQL;DB_CLOSE_DELAY=-1","sa",""));
