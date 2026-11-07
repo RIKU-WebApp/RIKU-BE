@@ -4,6 +4,7 @@ spring:
       on-profile: "prod"
 riku:
   badges:
+    podiums-enabled: ${RIKU_BADGES_PODIUMS_ENABLED:true}
     auto-grant:
       enabled: ${RIKU_BADGES_AUTO_GRANT_ENABLED:true}
 server:

@@ -28,7 +28,13 @@ class AutomaticBadgesTest {
             db.update("INSERT INTO user_point VALUES (?,?,'2026-03-20 10:00:00')",i,i==100?1:2);
         }
         var service=new RankHonors(db,new org.springframework.mock.env.MockEnvironment(),java.time.LocalDate.of(2026,3,2),enabledStorage());
+        for(int i=100;i<120;i++)
+            db.update("INSERT INTO user_point VALUES (?,100,'2026-09-10 08:00:00')",i);
+        var periods=service.closedPeriods(java.time.LocalDate.of(2027,3,10));
+        assertTrue(periods.contains(new RankHonors.Period("SEMESTER",java.time.LocalDate.of(2026,3,2),java.time.LocalDate.of(2026,8,31))));
+        assertFalse(periods.stream().anyMatch(p->!p.start().isBefore(java.time.LocalDate.of(2026,8,31))));
         service.settle();
+        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor WHERE starts_on>='2026-09-01'",Integer.class));
         var original=service.forMember(100);
         assertEquals(2,original.size());
         assertTrue(original.stream().anyMatch(m->m.kind().equals("MONTH") && m.achievedOn().toString().equals("2026-02-28") && m.place()==1));
