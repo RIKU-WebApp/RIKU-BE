@@ -44,6 +44,14 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     // 특정 게시글의 모든 참여자 리스트 조회
     List<Participant> findByPost(Post post);
 
+    interface GroupCount {
+        String getName();
+        long getUsed();
+    }
+
+    @Query("select coalesce(p.group, '') as name, count(p) as used from Participant p where p.post.id = :id group by p.group")
+    List<GroupCount> countConfirmedByGroup(@Param("id") Long id);
+
     @EntityGraph(attributePaths = "user")
     @Query("select p from Participant p where p.post = :post order by p.id")
     List<Participant> findWithUserByPost(@Param("post") Post post);

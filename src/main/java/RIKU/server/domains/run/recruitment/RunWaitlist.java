@@ -8,6 +8,8 @@ import RIKU.server.domains.run.post.repository.PostRepository;
 import RIKU.server.domains.user.entity.User;
 import RIKU.server.global.entity.BaseStatus;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +25,8 @@ public class RunWaitlist {
     private final RunRecruitmentRepository limits;
     private final RunEnrollmentRepository queue;
 
-    public record View(Integer capacity, List<String> waiting, boolean mine, List<RunRecruitment.GroupPlan> groups) {}
+    public record View(Integer capacity, List<String> waiting, boolean mine,
+                       List<RunRecruitment.GroupPlan> groups, Map<String, Long> usedByGroup) {}
 
     private Post checked(Post post, String type) {
         if (post.getStatus() != BaseStatus.ACTIVE || post.getPostType() == PostType.REGULAR
@@ -36,10 +39,14 @@ public class RunWaitlist {
         checked(posts.findById(id).orElseThrow(() -> new ResponseStatusException(NOT_FOUND)), type);
         var entries = queue.findRoster(id);
         var config = limits.findOneByPostId(id);
+        Map<String, Long> used = new HashMap<>();
+        if (config.isPresent()) {
+            participants.countConfirmedByGroup(id).forEach(row -> used.put(row.getName(), row.getUsed()));
+        }
         return new View(config.map(RunRecruitment::getCapacity).orElse(null),
                 entries.stream().map(RunEnrollmentRepository.RosterRow::getName).toList(),
                 entries.stream().anyMatch(e -> e.getUserId().equals(member)),
-                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()));
+                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()), used);
     }
 
     @Transactional
