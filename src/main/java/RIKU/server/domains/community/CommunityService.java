@@ -30,6 +30,17 @@ public class CommunityService {
     public record Badge(String code,String name,String description,String source) {}
     public record PublicProfile(String name,List<Badge> badges,List<RankHonors.Medal> medals) {}
     public record MyActivity(BigDecimal verifiedKm,BigDecimal personalKm,List<Badge> badges,List<PersonalRunRecord> records) {}
+    public record BadgePreview(List<Badge> badges, List<RankHonors.Medal> medals, int medalCount) {}
+
+    public BadgePreview badgePreview(long id) {
+        var badges = automatic.previewGrants(id, 3);
+        if (badges.size() < 3) {
+            awards.findByUserIdOrderByIdAsc(id, PageRequest.of(0, 3 - badges.size()))
+                    .forEach(award -> badges.add(manualBadge(award)));
+        }
+        var ranks = honors.previewForMember(id);
+        return new BadgePreview(badges, ranks.medals(), ranks.total());
+    }
 
     public PublicProfile profile(Long id) {
         var user=users.findById(id).filter(u->u.getStatus()==BaseStatus.ACTIVE)
@@ -76,7 +87,10 @@ public class CommunityService {
         return new MyActivity(verified,personalKm,badges,personal);
     }
     private void addManualAwards(Long id,List<Badge> badges) {
-        awards.findByUserIdOrderByIdAsc(id).forEach(a->badges.add(new Badge("AWARD_"+a.getId(),a.getName(),a.getDescription(),"ADMIN")));
+        awards.findByUserIdOrderByIdAsc(id).forEach(a->badges.add(manualBadge(a)));
+    }
+    private static Badge manualBadge(BadgeAward award) {
+        return new Badge("AWARD_"+award.getId(),award.getName(),award.getDescription(),"ADMIN");
     }
     @Transactional public PersonalRunRecord record(AuthMember actor,CommunityController.RecordRequest r) {
         storage.lockRecordOwner(actor.getId());

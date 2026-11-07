@@ -32,17 +32,32 @@ class AutomaticBadgesTest {
             db.update("INSERT INTO user_point VALUES (?,100,'2026-09-10 08:00:00')",i);
         var periods=service.closedPeriods(java.time.LocalDate.of(2027,3,10));
         assertTrue(periods.contains(new RankHonors.Period("SEMESTER",java.time.LocalDate.of(2026,3,2),java.time.LocalDate.of(2026,8,31))));
-        assertFalse(periods.stream().anyMatch(p->!p.start().isBefore(java.time.LocalDate.of(2026,8,31))));
-        service.settle();
-        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor WHERE starts_on>='2026-09-01'",Integer.class));
+        assertFalse(periods.stream().anyMatch(p->p.kind().equals("SEMESTER") && p.start().equals(java.time.LocalDate.of(2026,8,31))));
+        assertFalse(periods.stream().anyMatch(p->p.start().isAfter(java.time.LocalDate.of(2027,2,1))));
+        var today = java.time.LocalDate.of(2026,11,7);
+        assertFalse(service.closedPeriods(today).stream().anyMatch(p->p.start().equals(today.withDayOfMonth(1))));
+        service.settleClosedPeriods(today);
+        assertEquals(20,db.queryForObject("SELECT COUNT(*) FROM rank_honor WHERE starts_on='2026-09-01'",Integer.class));
         var original=service.forMember(100);
-        assertEquals(2,original.size());
+        assertEquals(3,original.size());
         assertTrue(original.stream().anyMatch(m->m.kind().equals("MONTH") && m.achievedOn().toString().equals("2026-02-28") && m.place()==1));
         assertTrue(original.stream().anyMatch(m->m.kind().equals("SEMESTER") && m.achievedOn().toString().equals("2026-03-01") && m.place()==1));
         assertEquals(2,service.forMember(101).stream().filter(m->m.place()==1 && m.start().isBefore(java.time.LocalDate.of(2026,3,1))).count());
         db.update("INSERT INTO user_point VALUES (119,999,'2026-02-14 00:00:00')");
-        service.settle();
+        service.settleClosedPeriods(today);
         assertEquals(original,service.forMember(100));
+        for (int i=100;i<120;i++) db.update("INSERT INTO user_point VALUES (?,10,'2026-10-31 14:59:59')",i);
+        service.settleClosedPeriods(today);
+        var preview=service.previewForMember(100);
+        assertEquals(4,preview.total());
+        assertEquals(List.of("SEMESTER","MONTH","MONTH"),preview.medals().stream().map(RankHonors.Medal::kind).toList());
+        assertEquals(List.of("2025-09-01","2026-10-01","2026-09-01"),preview.medals().stream().map(m->m.start().toString()).toList());
+        assertEquals(0,service.previewForMember(999).total());
+        var nextStart=java.time.LocalDate.of(2027,3,2);
+        var calendar=new RankHonors(db,new org.springframework.mock.env.MockEnvironment(),nextStart,enabledStorage());
+        var autumn=new RankHonors.Period("SEMESTER",java.time.LocalDate.of(2026,8,31),nextStart);
+        assertFalse(calendar.closedPeriods(nextStart.minusDays(1)).contains(autumn));
+        assertTrue(calendar.closedPeriods(nextStart).contains(autumn));
     }
     @Test void monthlyRanksUseClosedKoreanMonthsPositiveScoresAndCompetitionTies() throws Exception {
         var db=new JdbcTemplate(new DriverManagerDataSource("jdbc:h2:mem:monthly_badge;MODE=MySQL;DB_CLOSE_DELAY=-1","sa",""));
@@ -80,5 +95,6 @@ class AutomaticBadgesTest {
         assertTrue(engine.grants(2).isEmpty());
         db.update("INSERT INTO automatic_badge_grant(user_id,badge_code,badge_name,badge_rule,badge_source) VALUES (1,'retired_1','지난 배지','기존 조건','CLUB')");
         assertTrue(engine.grants(1).contains(new CommunityService.Badge("retired_1","지난 배지","기존 조건","CLUB")));
+        assertEquals(List.of("visits_5","retired_1"),engine.previewGrants(1,3).stream().map(CommunityService.Badge::code).toList());
     }
 }
