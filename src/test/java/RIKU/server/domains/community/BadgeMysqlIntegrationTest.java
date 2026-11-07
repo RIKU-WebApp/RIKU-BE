@@ -146,6 +146,15 @@ class BadgeMysqlIntegrationTest {
         var nextTerm=new RankHonors(db,env,LocalDate.of(2026,7,1),on);
         assertTrue(nextTerm.closedPeriods(LocalDate.of(2026,7,1)).contains(
                 new RankHonors.Period("SEMESTER",LocalDate.of(2026,4,1),LocalDate.of(2026,7,1))));
+        // Production retained the obsolete points-season date one day after the official start.
+        var autumn = new RankHonors(db,env,LocalDate.of(2026,9,1),on);
+        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM badge_semester_start WHERE starts_on='2026-09-01'",Integer.class));
+        db.update("INSERT INTO badge_semester_start VALUES ('2026-09-01')");
+        tx.executeWithoutResult(s -> autumn.settleClosedPeriods(LocalDate.of(2026,11,7)));
+        assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor_period WHERE kind='SEMESTER' AND starts_on='2026-08-31'",Integer.class));
+        var spring = new RankHonors(db,env,LocalDate.of(2027,3,2),on);
+        assertTrue(spring.closedPeriods(LocalDate.of(2027,3,2)).contains(
+                new RankHonors.Period("SEMESTER",LocalDate.of(2026,8,31),LocalDate.of(2027,3,2))));
     }
 
     private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {
