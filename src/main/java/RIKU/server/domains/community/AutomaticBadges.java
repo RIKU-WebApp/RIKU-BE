@@ -114,7 +114,7 @@ class AutomaticBadgeSchedule {
 }
 
 @Service
-@ConditionalOnProperty(name={"riku.badges.auto-grant.enabled","riku.badges.rankings-enabled"}, havingValue="true")
+@ConditionalOnProperty(name={"riku.badges.auto-grant.enabled","riku.badges.podiums-enabled"}, havingValue="true")
 class RankHonorSchedule {
     private final RankHonors honors;
     RankHonorSchedule(RankHonors honors){this.honors=honors;}

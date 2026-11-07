@@ -24,11 +24,15 @@ public class RankHonors {
     private final List<LocalDate> terms;
     private final BadgeStorage storage;
     private final boolean preview;
+    private final boolean podiumsEnabled;
+    // August is the last eligible monthly edition; the next semester begins August 31.
+    private static final LocalDate NEXT_TERM = LocalDate.of(2026,8,31);
     public RankHonors(JdbcTemplate db, Environment env, @Value("${season.start-date}") LocalDate currentStart,
                       BadgeStorage storage) throws IOException {
         this.db=db;
         podiumSql=new ClassPathResource("badges/rank-podium.sql").getContentAsString(StandardCharsets.UTF_8);
         this.storage=storage;
+        this.podiumsEnabled=env.getProperty("riku.badges.podiums-enabled",Boolean.class,storage.rankingsEnabled());
         this.preview=env.acceptsProfiles(Profiles.of("preview"));
         var history=new ClassPathResource("badges/semester-starts.txt").getContentAsString(StandardCharsets.UTF_8);
         var starts=new TreeSet<LocalDate>();
@@ -49,7 +53,7 @@ public class RankHonors {
         LocalDateTime first=db.queryForObject("SELECT MIN(created_at) FROM user_point", LocalDateTime.class);
         if(first!=null){
             var month=YearMonth.from(first.plusHours(9));
-            while(month.isBefore(YearMonth.from(today))){
+            while(month.isBefore(YearMonth.from(today)) && !month.isAfter(YearMonth.from(NEXT_TERM))){
                 periods.add(new Period("MONTH",month.atDay(1),month.plusMonths(1).atDay(1)));
                 month=month.plusMonths(1);
             }
@@ -57,7 +61,7 @@ public class RankHonors {
         var calendar=storage.hasCalendar()
                 ? db.query("SELECT starts_on FROM badge_semester_start ORDER BY starts_on",(rs,n)->rs.getDate(1).toLocalDate()) : terms;
         for(int i=1;i<calendar.size();i++) {
-            if(!calendar.get(i).isAfter(today)) periods.add(new Period("SEMESTER",calendar.get(i-1),calendar.get(i)));
+            if(!calendar.get(i).isAfter(today) && !calendar.get(i).isAfter(NEXT_TERM)) periods.add(new Period("SEMESTER",calendar.get(i-1),calendar.get(i)));
         }
         periods.sort(Comparator.comparing(Period::endExclusive).thenComparing(Period::kind));
         return periods;
@@ -70,7 +74,7 @@ public class RankHonors {
 
     @Transactional
     public void settle() {
-        if(!storage.enabled() || !storage.rankingsEnabled())return;
+        if(!storage.enabled() || !podiumsEnabled)return;
         var done=new HashSet<>(db.query("SELECT kind,starts_on FROM rank_honor_period WHERE settled=TRUE",
                 (rs,n)->rs.getString(1)+rs.getDate(2)));
         for(var p:closedPeriods(LocalDate.now(SEOUL))) {
@@ -89,7 +93,7 @@ public class RankHonors {
     }
     @Transactional(readOnly=true)
     public List<Medal> forMember(long id) {
-        if(!storage.rankingsEnabled())return List.of();
+        if(!podiumsEnabled)return List.of();
         if(storage.hasRanks())return issuedForMember(id);
         if(!preview)return List.of();
         var medals=new ArrayList<Medal>();
@@ -99,12 +103,12 @@ public class RankHonors {
         return medals;
     }
     public List<Medal> issuedForMember(long id) {
-        if (!storage.rankingsEnabled() || !storage.hasRanks()) return List.of();
+        if (!podiumsEnabled || !storage.hasRanks()) return List.of();
         return db.query("""
                 SELECT h.kind,h.starts_on,p.ends_before,h.place_no FROM rank_honor h
                 JOIN rank_honor_period p ON p.kind=h.kind AND p.starts_on=h.starts_on
-                WHERE h.user_id=? AND p.settled=TRUE ORDER BY p.ends_before DESC,h.kind
-                """,(rs,n)->new Medal(rs.getString(1),rs.getDate(2).toLocalDate(),rs.getDate(3).toLocalDate().minusDays(1),rs.getInt(4)),id);
+                WHERE h.user_id=? AND p.settled=TRUE AND ((h.kind='MONTH' AND h.starts_on<=?) OR (h.kind='SEMESTER' AND p.ends_before<=?)) ORDER BY p.ends_before DESC,h.kind
+                """,(rs,n)->new Medal(rs.getString(1),rs.getDate(2).toLocalDate(),rs.getDate(3).toLocalDate().minusDays(1),rs.getInt(4)),id,NEXT_TERM.withDayOfMonth(1),NEXT_TERM);
     }
 }
 
