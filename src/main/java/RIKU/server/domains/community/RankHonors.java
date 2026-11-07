@@ -41,15 +41,37 @@ public class RankHonors {
         var starts=new TreeSet<LocalDate>();
         history.lines().filter(s->!s.isBlank()).map(LocalDate::parse).forEach(starts::add);
         if (!currentStart.equals(LEGACY_AUTUMN_START)) starts.add(currentStart);
-        terms=List.copyOf(starts);
-        if(storage.hasCalendar()) for(var start:terms)db.update("""
+        if(storage.hasCalendar()) for(var start:starts)db.update("""
             INSERT INTO badge_semester_start(starts_on) VALUES(?)
             ON DUPLICATE KEY UPDATE starts_on=badge_semester_start.starts_on
             """,start);
+        terms=storage.hasCalendar()
+                ? db.query("SELECT starts_on FROM badge_semester_start WHERE starts_on<>? ORDER BY starts_on",
+                        (rs,n)->rs.getDate(1).toLocalDate(),LEGACY_AUTUMN_START)
+                : List.copyOf(starts);
     }
     record Period(String kind, LocalDate start, LocalDate endExclusive) {}
     record Winner(long member, int place) {}
     public record Medal(String kind, LocalDate start, LocalDate achievedOn, int place) {}
+
+    // Compare places only within the current and preceding terms. Monthly editions
+    // belong to their calendar month (March 2026 is spring, August is still spring).
+    private record Window(LocalDate term, LocalDate month) {
+        Comparator<Medal> order() {
+            return Comparator.comparing((Medal m)->!m.kind().equals("SEMESTER"))
+                    .thenComparingInt(m->m.start().isBefore(m.kind().equals("SEMESTER") ? term : month) ? 4 : m.place())
+                    .thenComparing(Medal::achievedOn,Comparator.reverseOrder())
+                    .thenComparing(Medal::start,Comparator.reverseOrder())
+                    .thenComparingInt(Medal::place);
+        }
+    }
+    private Window displayWindow(LocalDate today) {
+        var begun=terms.stream().filter(d->!d.isAfter(today)).toList();
+        var term=begun.isEmpty() ? terms.get(0) : begun.get(Math.max(0,begun.size()-2));
+        var month=term.withDayOfMonth(1);
+        if(term.getDayOfMonth()>15)month=month.plusMonths(1);
+        return new Window(term,month);
+    }
 
     List<Period> closedPeriods(LocalDate today) {
         var periods=new ArrayList<Period>();
@@ -106,7 +128,7 @@ public class RankHonors {
         var medals=new ArrayList<Medal>();
         for(var p:closedPeriods(LocalDate.now(SEOUL)))for(var w:podium(p))if(w.member()==id)
             medals.add(new Medal(p.kind(),p.start(),p.endExclusive().minusDays(1),w.place()));
-        medals.sort(Comparator.comparing(Medal::achievedOn).reversed().thenComparing(Medal::kind));
+        medals.sort(displayWindow(LocalDate.now(SEOUL)).order());
         return medals;
     }
     private static final String VISIBLE_HONORS = """
@@ -119,22 +141,31 @@ public class RankHonors {
         return new Medal(row.getString("kind"), row.getDate("starts_on").toLocalDate(),
                 row.getDate("ends_before").toLocalDate().minusDays(1), row.getInt("place_no"));
     }
+    private static final String DISPLAY_ORDER = """
+            ORDER BY CASE WHEN h.kind='SEMESTER' THEN 0 ELSE 1 END,
+            CASE WHEN (h.kind='SEMESTER' AND h.starts_on>=?) OR (h.kind='MONTH' AND h.starts_on>=?)
+                 THEN h.place_no ELSE 4 END, p.ends_before DESC,h.starts_on DESC,h.place_no
+            """;
     public List<Medal> issuedForMember(long id) {
         if (!podiumsEnabled || !storage.hasRanks()) return List.of();
+        var w=displayWindow(LocalDate.now(SEOUL));
         return db.query("SELECT h.kind,h.starts_on,p.ends_before,h.place_no " + VISIBLE_HONORS
-                + " ORDER BY p.ends_before DESC,h.kind", (rs,n)->readMedal(rs),id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM);
+                + DISPLAY_ORDER, (rs,n)->readMedal(rs),id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM,w.term(),w.month());
     }
     public record Preview(List<Medal> medals, int total) {}
     Preview previewForMember(long id) {
+        return previewForMember(id,LocalDate.now(SEOUL));
+    }
+    Preview previewForMember(long id, LocalDate today) {
         if (!podiumsEnabled) return new Preview(List.of(),0);
+        var w=displayWindow(today);
         if (!storage.hasRanks()) {
             var medals = forMember(id);
-            var first = medals.stream().sorted(Comparator.comparing((Medal m) -> !m.kind().equals("SEMESTER"))
-                    .thenComparing(Medal::achievedOn,Comparator.reverseOrder())).limit(3).toList();
+            var first = medals.stream().sorted(w.order()).limit(3).toList();
             return new Preview(first,medals.size());
         }
         return db.query("SELECT h.kind,h.starts_on,p.ends_before,h.place_no,COUNT(*) OVER() AS total " + VISIBLE_HONORS
-                + " ORDER BY CASE WHEN h.kind='SEMESTER' THEN 0 ELSE 1 END,p.ends_before DESC,h.starts_on DESC,h.place_no LIMIT 3",
+                + DISPLAY_ORDER + " LIMIT 3",
                 rs -> {
                     var medals = new ArrayList<Medal>(3);
                     int total = 0;
@@ -143,7 +174,7 @@ public class RankHonors {
                         medals.add(readMedal(rs));
                     }
                     return new Preview(medals,total);
-                }, id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM);
+                }, id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM,w.term(),w.month());
     }
 }
 
