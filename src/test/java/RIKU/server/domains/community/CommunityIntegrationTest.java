@@ -55,6 +55,22 @@ class CommunityIntegrationTest {
         mvc.perform(delete(path).header("Authorization",token(member))).andExpect(status().isNoContent());
         mvc.perform(get(path+"/image").header("Authorization",token(member))).andExpect(status().isNotFound());
     }
+    @Test void distanceBelongsToTheCertificateAndDoesNotCreditMileage() throws Exception {
+        var image = new org.springframework.mock.web.MockMultipartFile("image","run.jpg","image/jpeg",new byte[]{-1,-40,-1,0});
+        for (String title : List.of("일감호", "다른 디자인")) {
+            mvc.perform(multipart("/user/certificates").file(image).param("title",title).param("date","2026-01-02")
+                    .param("distanceKm","5.25").header("Authorization",token(member))).andExpect(status().isOk());
+        }
+        for (String invalid : List.of("-1", "5.255", "100000")) {
+            mvc.perform(multipart("/user/certificates").file(image).param("title","거리 검증").param("date","2026-01-02")
+                    .param("distanceKm",invalid).header("Authorization",token(member))).andExpect(status().isBadRequest());
+        }
+        mvc.perform(get("/user/certificates").header("Authorization",token(member)))
+                .andExpect(jsonPath("$.result.length()").value(2))
+                .andExpect(jsonPath("$.result[0].distanceKm").value(5.25))
+                .andExpect(jsonPath("$.result[1].distanceKm").value(5.25));
+        assertTrue(service.activity(member.getId()).records().isEmpty());
+    }
     @Test void profileOnlyContainsNameAndBadges() throws Exception {
         service.record(member,new CommunityController.RecordRequest("private run",LocalDate.now(),BigDecimal.valueOf(100),45));
         service.award(admin,member.getId(),new CommunityController.AwardRequest("운영진 수여","private note"));

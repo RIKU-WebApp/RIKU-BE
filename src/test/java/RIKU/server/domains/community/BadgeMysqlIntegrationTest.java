@@ -176,6 +176,13 @@ class BadgeMysqlIntegrationTest {
         var spring = new RankHonors(db,env,LocalDate.of(2027,3,2),on);
         assertTrue(spring.closedPeriods(LocalDate.of(2027,3,2)).contains(
                 new RankHonors.Period("SEMESTER",LocalDate.of(2026,8,31),LocalDate.of(2027,3,2))));
+        // The production initializer must upgrade an existing archive and remain safe on restart.
+        var archive = new ResourceDatabasePopulator(new ClassPathResource("db/member-archive.sql"));
+        archive.execute(ds);
+        assertEquals(1, db.queryForObject("SELECT COUNT(*) FROM run_certificate WHERE user_id=121 AND distance_km IS NULL",Integer.class));
+        db.update("UPDATE run_certificate SET distance_km=5.25 WHERE user_id=121");
+        archive.execute(ds);
+        assertEquals(5.25, db.queryForObject("SELECT distance_km FROM run_certificate WHERE user_id=121",Double.class));
     }
 
     private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {

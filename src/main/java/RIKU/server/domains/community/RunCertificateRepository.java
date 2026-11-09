@@ -11,6 +11,7 @@ interface RunCertificateRepository extends JpaRepository<RunCertificate, Long> {
         Long getId();
         String getTitle();
         LocalDate getDate();
+        java.math.BigDecimal getDistanceKm();
     }
     List<Summary> findByUserIdOrderByIdDesc(Long userId);
 
