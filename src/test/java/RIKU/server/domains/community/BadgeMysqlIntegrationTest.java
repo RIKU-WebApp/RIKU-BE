@@ -138,7 +138,7 @@ class BadgeMysqlIntegrationTest {
         org.mockito.Mockito.when(members.findById(100L)).thenReturn(java.util.Optional.of(user));
         var community=new CommunityService(members,null,null,null,null,null,pausedRanks,paused,off);
         var preview=community.badgePreview(100L);
-        assertEquals(List.of("visits_50","REGULAR_25","FLASH_25"),preview.badges().stream().map(CommunityService.Badge::code).toList());
+        assertEquals(List.of("visits_50","CLUB_1000","REGULAR_25"),preview.badges().stream().map(CommunityService.Badge::code).toList());
         assertEquals(medals.size(),preview.medalCount());
         assertEquals(medals.stream().limit(3).toList(),preview.medals());
         var profile=community.profile(100L);
