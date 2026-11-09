@@ -18,7 +18,6 @@ __VISITS__, days AS (SELECT DISTINCT user_id,DATE_SUB(DATE(local_time),INTERVAL 
  WHERE p.status='ACTIVE' AND p.post_status='CLOSED' AND EXISTS
  (SELECT 1 FROM participant a WHERE a.post_id=p.post_id AND a.user_id<>p.user_id AND a.participant_status='ATTENDED') GROUP BY p.user_id
  UNION ALL SELECT user_id,'verifiedKm',COALESCE(SUM(km),0) FROM visits GROUP BY user_id
- UNION ALL SELECT r.user_id,'personalKm',SUM(r.distance_km) FROM personal_run_record r  GROUP BY r.user_id
  UNION ALL SELECT user_id,'monthlyRank',CASE WHEN best_rank=1 THEN 3 WHEN best_rank<=3 THEN 2 WHEN best_rank<=10 THEN 1 ELSE 0 END FROM monthly_places
  UNION ALL SELECT user_id,'checkins',COUNT(DISTINCT DATE(DATE_ADD(created_at,INTERVAL 9 HOUR))) FROM user_point WHERE point_type='ADD_ATTENDANCE' GROUP BY user_id
  UNION ALL SELECT user_id,'fourSeasons',CASE WHEN COUNT(*)=4 AND MIN(n)>=5 THEN 6 WHEN COUNT(*)=4 AND MIN(n)>=2 THEN 5 ELSE COUNT(*) END FROM season_counts GROUP BY user_id

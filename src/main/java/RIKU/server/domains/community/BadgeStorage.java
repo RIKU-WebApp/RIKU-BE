@@ -51,15 +51,6 @@ public class BadgeStorage {
     void lockRecordOwner(long id){
         if(hasPeaks()) db.queryForObject("SELECT user_id FROM users WHERE user_id=? FOR UPDATE",Long.class,id);
     }
-    // Called before a personal record is deleted, after serializing this member's creates/deletes.
-    void rememberPersonalKm(long id){
-        if(!hasPeaks())return;
-        var km=db.queryForObject("SELECT COALESCE(SUM(distance_km),0) FROM personal_run_record WHERE user_id=?",java.math.BigDecimal.class,id);
-        db.update("""
-            INSERT INTO badge_record_peak(user_id,personal_km) VALUES(?,?)
-            ON DUPLICATE KEY UPDATE personal_km=GREATEST(personal_km,?)
-            """,id,km,km);
-    }
     // Called only after deleting a real certificate owned by the member, in the same transaction.
     void rememberCertificate(long id){
         if(hasPeaks())db.update("""

@@ -64,10 +64,10 @@ class CommunityIntegrationTest {
         assertTrue(result.path("badges").isEmpty());assertTrue(result.path("medals").isEmpty());
         assertFalse(response.contains("private"));assertFalse(response.contains("studentId"));assertFalse(response.contains("phone"));
     }
-    @Test void personalDistanceCreatesDistinctBadgeAndDeletionRecalculates() {
+    @Test void personalDistanceStaysInTheLogWithoutAwardingMileageBadges() {
         var r=service.record(member,new CommunityController.RecordRequest("개인 기록",LocalDate.now(),BigDecimal.valueOf(100),600));
         var a=service.activity(member.getId());assertEquals(0,BigDecimal.valueOf(100).compareTo(a.personalKm()));assertEquals(0,a.verifiedKm().signum());
-        assertTrue(a.badges().stream().anyMatch(b->b.code().equals("PERSONAL_100")));
+        assertFalse(a.badges().stream().anyMatch(b->b.code().startsWith("PERSONAL_")));
         assertFalse(a.badges().stream().anyMatch(b->b.source().equals("CLUB")));
         assertThrows(ResponseStatusException.class,()->service.deleteRecord(other,r.getId()));
         service.deleteRecord(member,r.getId());assertTrue(service.activity(member.getId()).badges().isEmpty());
