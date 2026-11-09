@@ -28,7 +28,7 @@ public class BadgeProgressController {
         monthly = new ClassPathResource("badges/member-monthly-rank.sql").getContentAsString(StandardCharsets.UTF_8);
     }
     public record Progress(int visits, int months, int kinds, int leads, int weekends, int streak,
-                           Map<String,Integer> byType, int hosted, int checkins, int certificateDays, int fourSeasons, Integer bestMonthlyRank) {}
+                           Map<String,Integer> byType, int hosted, int checkins, int certificateDays, int fourSeasons, Integer bestMonthlyRank, int[] seasonVisits) {}
 
     @GetMapping("/user/activity/badge-progress")
     public BaseResponse<Progress> progress(@AuthenticationPrincipal AuthMember actor) {
@@ -54,7 +54,7 @@ public class BadgeProgressController {
             """, (ResultSetExtractor<Progress>) rows -> {
                 int visits = 0, leads = 0, weekends = 0;
                 Set<YearMonth> months = new HashSet<>();
-                Set<Integer> seasons = new HashSet<>();
+                int[] seasons = new int[4];
                 Map<String,Integer> types = new HashMap<>();
                 Set<LocalDate> weeks = new TreeSet<>();
                 while (rows.next()) {
@@ -63,7 +63,7 @@ public class BadgeProgressController {
                     types.merge(rows.getString("post_type"), 1, Integer::sum);
                     var day = rows.getObject("date", java.time.LocalDateTime.class).plusHours(9).toLocalDate();
                     months.add(YearMonth.from(day));
-                    seasons.add(day.getMonthValue()%12/3);
+                    seasons[day.getMonthValue()%12/3]++;
                     if (day.getDayOfWeek().getValue() >= 6) weekends++;
                     weeks.add(day.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)));
                 }
@@ -74,7 +74,7 @@ public class BadgeProgressController {
                     longest = Math.max(longest, chain);
                     last = week;
                 }
-                return new Progress(visits, months.size(), types.size(), leads, weekends, longest, types, counts.hosted(), counts.checkins(), counts.certificates(), seasons.size(), place);
+                return new Progress(visits, months.size(), types.size(), leads, weekends, longest, types, counts.hosted(), counts.checkins(), counts.certificates(), (int)Arrays.stream(seasons).filter(n -> n>0).count(), place, seasons);
             }, actor.getId());
         return new BaseResponse<>(progress);
     }

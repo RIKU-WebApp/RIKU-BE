@@ -90,8 +90,28 @@ class BadgeMysqlIntegrationTest {
         var activityOnly=new BadgeStorage(db,true,false);
         var firstRelease=new AutomaticBadges(db,mapper,activityOnly);
         var hiddenRanks=new RankHonors(db,env,LocalDate.of(2026,3,2),activityOnly);
+        // Member 102 has enough total visits for both platinum tiers, but lacks an event and a winter visit.
+        tx.executeWithoutResult(status -> {
+            String[] types = {"REGULAR","REGULAR","REGULAR","FLASH","FLASH","FLASH","TRAINING","TRAINING","EVENT","REGULAR"};
+            int[] months = {3,3,3,6,6,6,9,9,9,12};
+            for (int i=0;i<types.length;i++) {
+                db.update("INSERT INTO post VALUES(?,100,?,?,'ACTIVE','CLOSED')",200+i,types[i],LocalDate.of(2025,months[i],1));
+                db.update("INSERT INTO participant VALUES(?,102,'A','ATTENDED')",200+i);
+            }
+            firstRelease.reconcile();
+            var before = firstRelease.grants(102).stream().map(CommunityService.Badge::code).toList();
+            assertTrue(before.containsAll(List.of("kinds_4","fourSeasons_4")));
+            assertFalse(before.contains("kinds_5")); assertFalse(before.contains("fourSeasons_5"));
+            db.update("INSERT INTO post VALUES(210,100,'EVENT','2026-01-05','ACTIVE','CLOSED')");
+            db.update("INSERT INTO participant VALUES(210,102,'A','ATTENDED')");
+            firstRelease.reconcile();
+            var after = firstRelease.grants(102).stream().map(CommunityService.Badge::code).toList();
+            assertTrue(after.containsAll(List.of("kinds_5","fourSeasons_5")));
+            assertFalse(after.contains("kinds_6")); assertFalse(after.contains("fourSeasons_6"));
+            status.setRollbackOnly();
+        });
         tx.executeWithoutResult(s->{firstRelease.reconcile(); hiddenRanks.settle();});
-        assertEquals(74,firstRelease.grants(100).size());
+        assertEquals(78,firstRelease.grants(100).size());
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE badge_code LIKE 'monthlyRank%'",Integer.class));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor_period",Integer.class));
         tx.executeWithoutResult(s->{engine.reconcile(); ranks.settle();});
@@ -99,13 +119,13 @@ class BadgeMysqlIntegrationTest {
         for(var family:mapper.readTree(new ClassPathResource("badges/series.json").getInputStream())){
             for(var goal:family.path("levels"))expected.add(family.path("prefix").asText(family.path("id").asText())+"_"+goal.asInt());
         }
-        assertEquals(77,expected.size());
+        assertEquals(81,expected.size());
         assertEquals(expected,new HashSet<>(paused.grants(100).stream().map(CommunityService.Badge::code).toList()));
         assertEquals(10,engine.verifiedKm(119).intValueExact());
         assertTrue(paused.grants(119).stream().anyMatch(b->b.code().equals("CLUB_10")));
         assertTrue(paused.grants(120).isEmpty());
         assertTrue(paused.grants(121).isEmpty());
-        assertEquals(74,firstRelease.grants(100).size());
+        assertEquals(78,firstRelease.grants(100).size());
         assertTrue(hiddenRanks.forMember(100).isEmpty());
         assertTrue(hiddenRanks.issuedForMember(100).isEmpty());
         var medals=pausedRanks.forMember(100);
