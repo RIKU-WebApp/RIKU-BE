@@ -67,7 +67,7 @@ class BadgeMysqlIntegrationTest {
             db.update("INSERT INTO participant VALUES(0,101,'B','ATTENDED')");
             db.update("INSERT INTO run_recruitment_group VALUES(0,'B',9)");
             db.update("INSERT INTO personal_run_record VALUES(100,1000),(121,10)");
-            off.lockRecordOwner(100); off.rememberPersonalKm(100);
+            db.update("INSERT INTO badge_record_peak(user_id,personal_km) VALUES(100,1000)");
             db.update("DELETE FROM personal_run_record WHERE user_id=100");
             off.rememberCertificate(100);
             for(int i=0;i<250;i++)
@@ -90,22 +90,43 @@ class BadgeMysqlIntegrationTest {
         var activityOnly=new BadgeStorage(db,true,false);
         var firstRelease=new AutomaticBadges(db,mapper,activityOnly);
         var hiddenRanks=new RankHonors(db,env,LocalDate.of(2026,3,2),activityOnly);
+        // Member 102 has enough total visits for both platinum tiers, but lacks an event and a winter visit.
+        tx.executeWithoutResult(status -> {
+            String[] types = {"REGULAR","REGULAR","REGULAR","FLASH","FLASH","FLASH","TRAINING","TRAINING","EVENT","REGULAR"};
+            int[] months = {3,3,3,6,6,6,9,9,9,12};
+            for (int i=0;i<types.length;i++) {
+                db.update("INSERT INTO post VALUES(?,100,?,?,'ACTIVE','CLOSED')",200+i,types[i],LocalDate.of(2025,months[i],1));
+                db.update("INSERT INTO participant VALUES(?,102,'A','ATTENDED')",200+i);
+            }
+            firstRelease.reconcile();
+            var before = firstRelease.grants(102).stream().map(CommunityService.Badge::code).toList();
+            assertTrue(before.containsAll(List.of("kinds_4","fourSeasons_4")));
+            assertFalse(before.contains("kinds_5")); assertFalse(before.contains("fourSeasons_5"));
+            db.update("INSERT INTO post VALUES(210,100,'EVENT','2026-01-05','ACTIVE','CLOSED')");
+            db.update("INSERT INTO participant VALUES(210,102,'A','ATTENDED')");
+            firstRelease.reconcile();
+            var after = firstRelease.grants(102).stream().map(CommunityService.Badge::code).toList();
+            assertTrue(after.containsAll(List.of("kinds_5","fourSeasons_5")));
+            assertFalse(after.contains("kinds_6")); assertFalse(after.contains("fourSeasons_6"));
+            status.setRollbackOnly();
+        });
         tx.executeWithoutResult(s->{firstRelease.reconcile(); hiddenRanks.settle();});
-        assertEquals(74,firstRelease.grants(100).size());
+        assertEquals(72,firstRelease.grants(100).size());
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE badge_code LIKE 'monthlyRank%'",Integer.class));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor_period",Integer.class));
         tx.executeWithoutResult(s->{engine.reconcile(); ranks.settle();});
         var expected=new HashSet<String>();
         for(var family:mapper.readTree(new ClassPathResource("badges/series.json").getInputStream())){
+            if (family.path("id").asText().equals("personalKm")) continue;
             for(var goal:family.path("levels"))expected.add(family.path("prefix").asText(family.path("id").asText())+"_"+goal.asInt());
         }
-        assertEquals(77,expected.size());
+        assertEquals(75,expected.size());
         assertEquals(expected,new HashSet<>(paused.grants(100).stream().map(CommunityService.Badge::code).toList()));
         assertEquals(10,engine.verifiedKm(119).intValueExact());
         assertTrue(paused.grants(119).stream().anyMatch(b->b.code().equals("CLUB_10")));
         assertTrue(paused.grants(120).isEmpty());
         assertTrue(paused.grants(121).isEmpty());
-        assertEquals(74,firstRelease.grants(100).size());
+        assertEquals(72,firstRelease.grants(100).size());
         assertTrue(hiddenRanks.forMember(100).isEmpty());
         assertTrue(hiddenRanks.issuedForMember(100).isEmpty());
         var medals=pausedRanks.forMember(100);
@@ -117,7 +138,7 @@ class BadgeMysqlIntegrationTest {
         org.mockito.Mockito.when(members.findById(100L)).thenReturn(java.util.Optional.of(user));
         var community=new CommunityService(members,null,null,null,null,null,pausedRanks,paused,off);
         var preview=community.badgePreview(100L);
-        assertEquals(List.of("visits_50","REGULAR_25","FLASH_25"),preview.badges().stream().map(CommunityService.Badge::code).toList());
+        assertEquals(List.of("visits_50","CLUB_1000","REGULAR_25"),preview.badges().stream().map(CommunityService.Badge::code).toList());
         assertEquals(medals.size(),preview.medalCount());
         assertEquals(medals.stream().limit(3).toList(),preview.medals());
         var profile=community.profile(100L);
@@ -126,13 +147,14 @@ class BadgeMysqlIntegrationTest {
         assertEquals(404,assertThrows(org.springframework.web.server.ResponseStatusException.class,()->community.profile(100L)).getStatusCode().value());
         var stamp=db.queryForObject("SELECT MIN(granted_at) FROM automatic_badge_grant WHERE user_id=100",java.sql.Timestamp.class);
         db.update("UPDATE users SET status='ACTIVE' WHERE user_id=121");
+        db.update("INSERT INTO run_certificate VALUES(121,'2025-01-05')");
         paused.reconcile(); assertTrue(paused.grants(121).isEmpty());
         // Simulate a transaction failure after all inserts; retry from two workers.
         tx.executeWithoutResult(s->{engine.reconcile();s.setRollbackOnly();});
         assertTrue(paused.grants(121).isEmpty());
         Runnable run=()->tx.executeWithoutResult(s->engine.reconcile());
         CompletableFuture.allOf(CompletableFuture.runAsync(run),CompletableFuture.runAsync(run)).join();
-        assertEquals(List.of("PERSONAL_10"),paused.grants(121).stream().map(CommunityService.Badge::code).toList());
+        assertEquals(List.of("certificateDays_1"),paused.grants(121).stream().map(CommunityService.Badge::code).toList());
         assertEquals(stamp,db.queryForObject("SELECT MIN(granted_at) FROM automatic_badge_grant WHERE user_id=100",java.sql.Timestamp.class));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE user_id=120",Integer.class));
         // A previously undersized month can qualify on a late import; an already-issued podium is immutable.
@@ -154,6 +176,13 @@ class BadgeMysqlIntegrationTest {
         var spring = new RankHonors(db,env,LocalDate.of(2027,3,2),on);
         assertTrue(spring.closedPeriods(LocalDate.of(2027,3,2)).contains(
                 new RankHonors.Period("SEMESTER",LocalDate.of(2026,8,31),LocalDate.of(2027,3,2))));
+        // The production initializer must upgrade an existing archive and remain safe on restart.
+        var archive = new ResourceDatabasePopulator(new ClassPathResource("db/member-archive.sql"));
+        archive.execute(ds);
+        assertEquals(1, db.queryForObject("SELECT COUNT(*) FROM run_certificate WHERE user_id=121 AND distance_km IS NULL",Integer.class));
+        db.update("UPDATE run_certificate SET distance_km=5.25 WHERE user_id=121");
+        archive.execute(ds);
+        assertEquals(5.25, db.queryForObject("SELECT distance_km FROM run_certificate WHERE user_id=121",Double.class));
     }
 
     private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {

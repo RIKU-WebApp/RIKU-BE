@@ -39,7 +39,10 @@ public class AutomaticBadges {
                 .replace("__RECORD_PEAKS__", new ClassPathResource("badges/record-peaks.sql").getContentAsString(StandardCharsets.UTF_8));
         catalog = new ClassPathResource("badges/series.json").getContentAsString(StandardCharsets.UTF_8);
         var families = new HashSet<String>();
-        for (var f : mapper.readTree(catalog)) {
+        var ordered = new ArrayList<com.fasterxml.jackson.databind.JsonNode>();
+        mapper.readTree(catalog).forEach(ordered::add);
+        ordered.sort(Comparator.comparingInt(family -> family.path("profileOrder").asInt(Integer.MAX_VALUE)));
+        for (var f : ordered) {
             String id = f.required("id").asText();
             String prefix = f.path("prefix").asText(id);
             if (!METRICS.contains(id) || !families.add(id) || !prefix.matches("[A-Za-z][A-Za-z0-9]{0,31}"))

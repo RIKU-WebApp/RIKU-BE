@@ -80,8 +80,6 @@ public class CommunityService {
         for(int km:new int[]{10,50,100,300,500,1000}) {
             if(verified.compareTo(BigDecimal.valueOf(km))>=0)
                 badges.add(new Badge("CLUB_"+km,km+"km 함께 달리기","출석이 확인된 공식 러닝 누적 "+km+"km","CLUB"));
-            if(personalKm.compareTo(BigDecimal.valueOf(km))>=0)
-                badges.add(new Badge("PERSONAL_"+km,km+"km 나의 발자국","직접 입력한 개인 러닝 누적 "+km+"km","PERSONAL"));
         }
         addManualAwards(id,badges);
         return new MyActivity(verified,personalKm,badges,personal);
@@ -100,7 +98,6 @@ public class CommunityService {
         storage.lockRecordOwner(actor.getId());
         var r=records.findById(id).filter(x->x.getUserId().equals(actor.getId()))
                 .orElseThrow(()->new ResponseStatusException(NOT_FOUND,"내 기록을 찾을 수 없습니다."));
-        storage.rememberPersonalKm(actor.getId());
         records.delete(r);
     }
     @Transactional public void award(AuthMember actor,Long id,CommunityController.AwardRequest r) {

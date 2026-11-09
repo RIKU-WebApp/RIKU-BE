@@ -3,6 +3,7 @@ package RIKU.server.domains.community;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -17,13 +18,16 @@ public class RunCertificate {
     private String title;
     @Column(nullable = false)
     private LocalDate date;
+    @Column(name = "distance_km", precision = 7, scale = 2)
+    private BigDecimal distanceKm;
     @Lob @Column(nullable = false, columnDefinition = "MEDIUMBLOB")
     private byte[] image;
 
-    RunCertificate(Long userId, String title, LocalDate date, byte[] image) {
+    RunCertificate(Long userId, String title, LocalDate date, BigDecimal distanceKm, byte[] image) {
         this.userId = userId;
         this.title = title;
         this.date = date;
+        this.distanceKm = distanceKm;
         this.image = image;
     }
     Long id() { return id; }
