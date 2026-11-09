@@ -28,6 +28,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final RIKU.server.domains.user.service.LocalRunTest localRunTest;
 
     @Operation(summary = "회원가입", description = """
             
@@ -59,6 +60,7 @@ public class UserController {
             throw new IllegalArgumentException("날짜를 입력해주세요.");
         }
         ReadUserProfileResponse response = userService.getProfile(authMember, date);
+        response.setLocalRunTestOrigin(localRunTest.originFor(response.getStudentId()));
         return new BaseResponse<>(response);
     }
 
