@@ -183,6 +183,12 @@ class BadgeMysqlIntegrationTest {
         db.update("UPDATE run_certificate SET distance_km=5.25 WHERE user_id=121");
         archive.execute(ds);
         assertEquals(5.25, db.queryForObject("SELECT distance_km FROM run_certificate WHERE user_id=121",Double.class));
+        var imageFit = new ResourceDatabasePopulator(new ClassPathResource("db/regular-run-image-fit.sql"));
+        imageFit.execute(ds);
+        assertEquals(0, db.queryForObject("SELECT COUNT(show_full_image) FROM post", Integer.class));
+        assertEquals(1, db.update("UPDATE post SET show_full_image=TRUE WHERE post_id=105"));
+        imageFit.execute(ds);
+        assertEquals(true, db.queryForObject("SELECT show_full_image FROM post WHERE post_id=105", Boolean.class));
     }
 
     private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {

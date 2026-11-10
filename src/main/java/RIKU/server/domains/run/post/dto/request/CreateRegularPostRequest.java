@@ -44,8 +44,10 @@ public class CreateRegularPostRequest {
     @Nullable
     private List<MultipartFile> attachments;    // 게시글 첨부파일
 
+    private Boolean showFullImage;
+
     public Post toPostEntity(User user, String postImageUrl) {
-        return Post.create(
+        Post post = Post.create(
                 user,
                 this.getTitle(),
                 this.getLocation(),
@@ -53,6 +55,8 @@ public class CreateRegularPostRequest {
                 this.getContent(),
                 postImageUrl,
                 PostType.REGULAR);
+        post.setShowFullImage(Boolean.TRUE.equals(showFullImage));
+        return post;
     }
 
     public RegularPost toRegularPostEntity(Post post) {

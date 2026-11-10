@@ -160,6 +160,9 @@ public class PostService {
         String postImageUrl = updateSingleImage(request.getPostImage(), post.getPostImageUrl(), "postImg");
 
         post.updatePost(title, location, date, content, postImageUrl);
+        if (postType == PostType.REGULAR && request.getShowFullImage() != null) {
+            post.setShowFullImage(request.getShowFullImage());
+        }
 
         // 7. 첨부파일 처리
         updateMultipleImages(post, request.getAttachments(), "attachmentImg");

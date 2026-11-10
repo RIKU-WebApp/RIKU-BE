@@ -10,7 +10,10 @@ public record RecruitmentRequest(
         @NotNull LocalDateTime date,
         @NotBlank @Size(max=10000) String content,
         @Min(1) @Max(1000) Integer capacity,
-        @NotEmpty @Size(max=20) List<@NotNull @Valid Group> groups) {
+        @NotEmpty @Size(max=20) List<@NotNull @Valid Group> groups, Boolean showFullImage) {
+    public RecruitmentRequest(String title, String location, LocalDateTime date, String content, Integer capacity, List<Group> groups) {
+        this(title, location, date, content, capacity, groups, false);
+    }
     public record Group(@NotBlank @Size(max=20) String name,
                         @NotBlank @Pattern(regexp="[0-9]{1,2}:[0-5][0-9]") String pace,
                         @NotNull @DecimalMin("0.1") @DecimalMax("200") BigDecimal distanceKm,

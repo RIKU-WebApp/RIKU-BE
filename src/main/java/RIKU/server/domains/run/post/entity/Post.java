@@ -72,5 +72,12 @@ public class Post extends BaseEntity {
         this.postImageUrl = postImageUrl;
     }
 
+    @Column(name = "show_full_image")
+    private Boolean showFullImage;
+
+    public void setShowFullImage(Boolean showFullImage) {
+        this.showFullImage = showFullImage;
+    }
+
     public void updatePostStatus(PostStatus status) { this.postStatus = status; }
 }

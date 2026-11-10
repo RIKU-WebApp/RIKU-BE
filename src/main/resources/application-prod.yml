@@ -40,7 +40,7 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: classpath:db/member-archive.sql,classpath:db/automatic-badge-grant.mysql.sql
+      schema-locations: classpath:db/member-archive.sql,classpath:db/automatic-badge-grant.mysql.sql,classpath:db/regular-run-image-fit.sql
       continue-on-error: false
 
   datasource:
