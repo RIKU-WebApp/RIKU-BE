@@ -21,6 +21,7 @@ public class UpdatePostRequest extends RIKU.server.domains.run.recruitment.Group
     @jakarta.validation.constraints.Max(1000)
     private Integer capacity;
     private boolean clearCapacity;
+    private Boolean showFullImage;
 
     @Nullable
     private String eventType;

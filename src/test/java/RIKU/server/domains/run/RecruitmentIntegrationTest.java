@@ -4,6 +4,9 @@ import RIKU.server.domains.run.recruitment.*;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
 import RIKU.server.domains.run.participant.service.ParticipantService;
 import RIKU.server.domains.run.post.repository.PostRepository;
+import RIKU.server.domains.run.post.dto.request.UpdatePostRequest;
+import RIKU.server.domains.run.post.service.PostService;
+import RIKU.server.domains.run.post.service.RegularPostService;
 import RIKU.server.domains.run.post.entity.PostStatus;
 import RIKU.server.domains.user.entity.*;
 import RIKU.server.domains.user.repository.UserRepository;
@@ -72,6 +75,31 @@ class RecruitmentIntegrationTest {
                 List.of(new RecruitmentRequest.Group("A","6:30",BigDecimal.valueOf(5)),new RecruitmentRequest.Group("B","7:00",BigDecimal.valueOf(3)))));
     }
     @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
+
+    @Autowired PostService postService;
+    @Autowired RegularPostService regularPosts;
+
+    @Test void legacyCoverKeepsItsListDefaultUntilTheAuthorChoosesAFit() {
+        Long id = run(1);
+        assertEquals(false, regularPosts.getPostDetail(id, admin).getShowFullImage());
+        new TransactionTemplate(manager).executeWithoutResult(tx ->
+                posts.findById(id).orElseThrow().setShowFullImage(null));
+
+        UpdatePostRequest edit = new UpdatePostRequest();
+        edit.setTitle("기존 정규런");
+        postService.updatePost(admin, "regular", id, edit);
+        assertNull(regularPosts.getPostDetail(id, admin).getShowFullImage());
+        assertNull(postService.getPostsByRunType("regular").getUpcomingRuns().stream()
+                .filter(row -> row.getId().equals(id)).findFirst().orElseThrow().getShowFullImage());
+
+        for (boolean full : List.of(true, false)) {
+            edit.setShowFullImage(full);
+            postService.updatePost(admin, "regular", id, edit);
+            assertEquals(full, regularPosts.getPostDetail(id, admin).getShowFullImage());
+            assertEquals(full, postService.getPostsByRunType("regular").getUpcomingRuns().stream()
+                    .filter(row -> row.getId().equals(id)).findFirst().orElseThrow().getShowFullImage());
+        }
+    }
 
     @Test void rosterReadsNamesAndAttendanceWithoutLoadingEveryMember() {
         Long id = run(1);

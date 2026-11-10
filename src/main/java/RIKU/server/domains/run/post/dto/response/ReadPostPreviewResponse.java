@@ -24,14 +24,16 @@ public class ReadPostPreviewResponse {
     private PostStatus postStatus;
 
     private String postImageUrl;
+    private Boolean showFullImage;
 
-    private ReadPostPreviewResponse(Long id, String title, LocalDateTime date, int participants, PostStatus postStatus, String postImageUrl) {
+    private ReadPostPreviewResponse(Long id, String title, LocalDateTime date, int participants, PostStatus postStatus, String postImageUrl, Boolean showFullImage) {
         this.id = id;
         this.title = title;
         this.date = date;
         this.participants = participants;
         this.postStatus = postStatus;
         this.postImageUrl = postImageUrl;
+        this.showFullImage = showFullImage;
     }
 
     public static ReadPostPreviewResponse of (Post post, int participants) {
@@ -41,11 +43,11 @@ public class ReadPostPreviewResponse {
                 post.getDate(),
                 participants,
                 post.getPostStatus(),
-                post.getPostImageUrl()
+                post.getPostImageUrl(), post.getShowFullImage()
         );
     }
 
     public static ReadPostPreviewResponse of(PostPreviewRow post, int participants) {
-        return new ReadPostPreviewResponse(post.id(), post.title(), post.date(), participants, post.postStatus(), post.postImageUrl());
+        return new ReadPostPreviewResponse(post.id(), post.title(), post.date(), participants, post.postStatus(), post.postImageUrl(), post.showFullImage());
     }
 }

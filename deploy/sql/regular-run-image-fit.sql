@@ -1,0 +1,1 @@
+ALTER TABLE post ADD COLUMN show_full_image BOOLEAN NULL;

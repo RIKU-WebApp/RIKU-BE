@@ -59,6 +59,7 @@ public class RecruitmentService {
         if (posts.findByPostCreatorIdAndTitleAndDate(creator.getId(), request.title(), request.date()).isPresent())
             throw new ResponseStatusException(CONFLICT, "이미 등록된 정규런입니다.");
         Post post=posts.save(Post.create(creator,request.title(),request.location(),request.date(),request.content(),null,PostType.REGULAR));
+        post.setShowFullImage(Boolean.TRUE.equals(request.showFullImage()));
         regular.save(RegularPost.create(post));
         recruitment.save(new RunRecruitment(post.getId(),request.capacity(),request.groups().stream()
                 .map(g->new RunRecruitment.GroupPlan(g.name(),g.pace(),g.distanceKm(),g.capacity())).toList()));
