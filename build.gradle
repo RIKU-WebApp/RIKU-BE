@@ -63,5 +63,8 @@ tasks.named('test') {
 }
 
 tasks.named('processResources') {
-    from('deploy/sql/automatic-badge-grant.mysql.sql', 'deploy/sql/regular-run-image-fit.sql') { into 'db' }
+    from('deploy/sql') {
+        include 'automatic-badge-grant.mysql.sql', 'regular-run-image-fit.sql'
+        into 'db'
+    }
 }
