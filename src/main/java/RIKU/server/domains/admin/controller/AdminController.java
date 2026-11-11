@@ -7,6 +7,8 @@ import RIKU.server.domains.admin.dto.response.ReadUsersResponse;
 import RIKU.server.domains.admin.dto.response.SearchAdminUsersResponse;
 import RIKU.server.security.AuthMember;
 import RIKU.server.domains.admin.service.AdminService;
+import RIKU.server.domains.admin.renewal.SemesterRenewalService;
+import RIKU.server.domains.user.entity.UserRole;
 import RIKU.server.global.response.BaseResponse;
 import RIKU.server.global.validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,20 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final SemesterRenewalService semesterRenewals;
+
+    @Operation(summary = "학기 연장이 확정된 회원 조회")
+    @GetMapping("/admin/renewals/{term}")
+    public BaseResponse<List<String>> confirmedStudents(@AuthenticationPrincipal AuthMember admin, @PathVariable String term) {
+        return new BaseResponse<>(semesterRenewals.confirmedStudents(admin, term));
+    }
+
+    @Operation(summary = "회원 학기 연장 확정")
+    @PutMapping("/admin/renewals/{term}/{studentId}")
+    public BaseResponse<UserRole> confirmRenewal(@AuthenticationPrincipal AuthMember admin, @PathVariable String term,
+                                                @PathVariable String studentId) {
+        return new BaseResponse<>(semesterRenewals.confirm(admin, term, studentId));
+    }
 
     @Operation(summary = "운영진 페이지 부원 조회", description = """
             

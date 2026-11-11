@@ -3,6 +3,8 @@ package RIKU.server.domains.user.repository;
 import RIKU.server.global.entity.BaseStatus;
 import RIKU.server.domains.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import RIKU.server.domains.point.ranking.RankingMember;
@@ -21,6 +23,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 학번으로 조회
     Optional<User> findByStudentId(String studentId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from User u where u.studentId = :studentId")
+    Optional<User> findForRenewal(@Param("studentId") String studentId);
 
     List<User> findByStudentIdIn(List<String> studentIds);
 

@@ -36,6 +36,24 @@ class RecruitmentIntegrationTest {
     @Autowired PostRepository posts;
     @Autowired PlatformTransactionManager manager;
     @Autowired RunWaitlist waitlist;
+    @Autowired RIKU.server.domains.admin.renewal.SemesterRenewalService renewals;
+
+    @Test void threeRunCheckInsKeepNewMemberUntilSemesterRenewal() {
+        var newcomer = user(UserRole.NEW_MEMBER);
+        for (int i = 0; i < 3; i++) {
+            Long id = service.create(admin, new RecruitmentRequest("정규런", "공원",
+                    LocalDateTime.now(ZoneOffset.UTC).plusMinutes(5), "안내", 2,
+                    List.of(new RecruitmentRequest.Group("A", "6:30", BigDecimal.ONE))));
+            service.join(id, admin, RUNNER, "A");
+            service.join(id, newcomer, RUNNER, "A");
+            legacy.attendRun("regular", id, newcomer, legacy.createAttendanceCode("regular", id, admin));
+            assertEquals("ATTENDED", service.read(id, newcomer).mine().attendance());
+        }
+        var member = users.findById(newcomer.getId()).orElseThrow();
+        assertEquals(UserRole.NEW_MEMBER, member.getUserRole());
+        renewals.confirm(admin, "2027-1", member.getStudentId());
+        assertEquals(UserRole.MEMBER, users.findById(member.getId()).orElseThrow().getUserRole());
+    }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.EnumSource(value = RIKU.server.domains.run.post.entity.PostType.class, names = {"FLASH", "TRAINING", "EVENT"})
