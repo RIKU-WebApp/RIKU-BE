@@ -78,4 +78,32 @@ class AdminSecurityTest {
     @Test void privateProfileRequiresAuthentication() throws Exception {
         mvc.perform(get("/user/profile/detail")).andExpect(status().isUnauthorized());
     }
+
+    @Test void renewalPromotesOnceAndKeepsEachSemesterSeparate() throws Exception {
+        member.updateUserRole(UserRole.NEW_MEMBER);
+        member.updatePacer(true);
+        String url = "/admin/renewals/2027-1/" + member.getStudentId();
+        String authorization = tokens(admin).getAccessToken();
+        mvc.perform(put(url)).andExpect(status().isUnauthorized());
+        mvc.perform(put(url).header("Authorization", tokens(member).getAccessToken())).andExpect(status().isForbidden());
+        assertEquals(UserRole.NEW_MEMBER, member.getUserRole());
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mvc.perform(put(url).header("Authorization", authorization)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.result").value("MEMBER"));
+        }
+        assertEquals(UserRole.MEMBER, member.getUserRole());
+        assertTrue(member.getIsPacer());
+        mvc.perform(get("/admin/renewals/2027-1").header("Authorization", authorization))
+                .andExpect(jsonPath("$.result.length()").value(1))
+                .andExpect(jsonPath("$.result[0]").value(member.getStudentId()));
+        mvc.perform(get("/admin/renewals/2027-2").header("Authorization", authorization))
+                .andExpect(jsonPath("$.isSuccess").value(true)).andExpect(jsonPath("$.result").doesNotExist());
+        mvc.perform(put("/admin/renewals/2027-2/" + admin.getStudentId()).header("Authorization", authorization))
+                .andExpect(jsonPath("$.result").value("ADMIN"));
+        member.updateStatus(RIKU.server.global.entity.BaseStatus.INACTIVE);
+        mvc.perform(put("/admin/renewals/2027-2/" + member.getStudentId()).header("Authorization", authorization))
+                .andExpect(status().isConflict());
+        mvc.perform(put("/admin/renewals/2027-3/" + member.getStudentId()).header("Authorization", authorization))
+                .andExpect(status().isBadRequest());
+    }
 }

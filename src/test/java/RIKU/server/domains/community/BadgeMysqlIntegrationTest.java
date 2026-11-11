@@ -189,6 +189,13 @@ class BadgeMysqlIntegrationTest {
         assertEquals(1, db.update("UPDATE post SET show_full_image=TRUE WHERE post_id=105"));
         imageFit.execute(ds);
         assertEquals(true, db.queryForObject("SELECT show_full_image FROM post WHERE post_id=105", Boolean.class));
+        var renewal = new ResourceDatabasePopulator(new ClassPathResource("db/semester-renewal.sql"));
+        renewal.execute(ds);
+        String confirm = "INSERT INTO semester_renewal(term,member_id,confirmed_by,confirmed_at) VALUES(?,100,101,NOW())";
+        db.update(confirm, "2027-1");
+        renewal.execute(ds);
+        assertThrows(org.springframework.dao.DuplicateKeyException.class, () -> db.update(confirm, "2027-1"));
+        assertEquals(1, db.update(confirm, "2027-2"));
     }
 
     private void compareMemberMonthAfterCorrections(JdbcTemplate db) throws Exception {
