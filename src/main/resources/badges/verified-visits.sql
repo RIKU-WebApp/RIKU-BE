@@ -1,6 +1,6 @@
 WITH old_pacer_values AS (
- SELECT post_id,pacer_group,LOWER(REPLACE(TRIM(distance),' ','')) AS raw_km FROM pacer
- WHERE pacer_group IS NOT NULL AND TRIM(pacer_group)<>''
+ SELECT post_id,pacer_group,LOWER(REPLACE(TRIM(distance),' ','')) AS raw_km FROM pacer legacy
+ WHERE pacer_group IS NOT NULL AND TRIM(pacer_group)<>'' /*__MEMBER_PACER_SCOPE__*/
 ), old_pacer_km AS (
  SELECT post_id,pacer_group,CASE WHEN REGEXP_LIKE(raw_km,'^[0-9]{1,3}([.][0-9]{1,2})?(km)?$')
      THEN CAST(REPLACE(raw_km,'km','') AS DECIMAL(7,2)) END AS km FROM old_pacer_values
