@@ -26,7 +26,8 @@ public class RunWaitlist {
     private final RunEnrollmentRepository queue;
 
     public record View(Integer capacity, List<String> waiting, boolean mine,
-                       List<RunRecruitment.GroupPlan> groups, Map<String, Long> usedByGroup) {}
+                       List<RunRecruitment.GroupPlan> groups, Map<String, Long> usedByGroup,
+                       Map<String, Long> waitingByGroup) {}
 
     private Post checked(Post post, String type) {
         if (post.getStatus() != BaseStatus.ACTIVE || post.getPostType() == PostType.REGULAR
@@ -43,10 +44,15 @@ public class RunWaitlist {
         if (config.isPresent()) {
             participants.countConfirmedByGroup(id).forEach(row -> used.put(row.getName(), row.getUsed()));
         }
+        Map<String, Long> waitingByGroup = new HashMap<>();
+        for (var entry : entries) {
+            String group = entry.getGroupName();
+            if (group != null && !group.isBlank()) waitingByGroup.merge(group, 1L, Long::sum);
+        }
         return new View(config.map(RunRecruitment::getCapacity).orElse(null),
                 entries.stream().map(RunEnrollmentRepository.RosterRow::getName).toList(),
                 entries.stream().anyMatch(e -> e.getUserId().equals(member)),
-                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()), used);
+                config.map(c -> List.copyOf(c.getGroups())).orElse(List.of()), used, waitingByGroup);
     }
 
     @Transactional
