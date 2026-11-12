@@ -345,12 +345,14 @@ class RecruitmentIntegrationTest {
         assertThrows(ResponseStatusException.class,()->join.accept(aw,"B"));
         join.accept(b,"B"); join.accept(bw,"B");
         if (!regular) assertEquals(java.util.Map.of("A", 1L, "B", 1L), waitlist.read(path, id, b.getId()).usedByGroup());
+        if (!regular) assertEquals(java.util.Map.of("A", 1L, "B", 1L), waitlist.read(path, id, b.getId()).waitingByGroup());
         assertThrows(ResponseStatusException.class,()->join.accept(b,"A"));
         assertThrows(ResponseStatusException.class,()->configure.accept(List.of(plan("B",2))));
         assertEquals("B",participants.findByPostIdAndUserId(id,b.getId()).orElseThrow().getGroup());
         if (regular) service.cancel(id,b); else legacy.joinRun(path,id,null,b);
         assertTrue(participants.findByPostIdAndUserId(id,bw.getId()).isPresent());
         assertTrue(participants.findByPostIdAndUserId(id,aw.getId()).isEmpty());
+        if (!regular) assertEquals(java.util.Map.of("A", 1L), waitlist.read(path, id, b.getId()).waitingByGroup());
         if (regular) service.cancel(id,a); else legacy.joinRun(path,id,null,a);
         assertTrue(participants.findByPostIdAndUserId(id,aw.getId()).isPresent());
     }
