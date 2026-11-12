@@ -35,6 +35,7 @@ public class ReadTrainingPostDetailResponse {
     private String content;
     private PostStatus postStatus;
     private String postImageUrl;
+    private Boolean showFullImage;
     private List<String> attachmentUrls;
 
     // 유저 관련
@@ -61,6 +62,7 @@ public class ReadTrainingPostDetailResponse {
                 .content(post.getContent())
                 .postStatus(post.getPostStatus())
                 .postImageUrl(post.getPostImageUrl())
+                .showFullImage(post.getShowFullImage())
                 .attachmentUrls(attachmentUrls)
                 .userInfo(user)
                 .comments(comments)

@@ -43,6 +43,8 @@ public class CreateTrainingPostRequest extends RIKU.server.domains.run.recruitme
     @NotBlank(message = "내용은 필수 항목입니다.")
     private String content;     // 게시글 내용
 
+    private Boolean showFullImage;
+
     @Nullable
     private MultipartFile postImage;    // 게시글 이미지
 
@@ -50,7 +52,7 @@ public class CreateTrainingPostRequest extends RIKU.server.domains.run.recruitme
     private List<MultipartFile> attachments;    // 게시글 첨부파일
 
     public Post toPostEntity(User user, String postImageUrl) {
-        return Post.create(
+        Post post = Post.create(
                 user,
                 this.getTitle(),
                 this.getLocation(),
@@ -58,6 +60,8 @@ public class CreateTrainingPostRequest extends RIKU.server.domains.run.recruitme
                 this.getContent(),
                 postImageUrl,
                 PostType.TRAINING);
+        post.setShowFullImage(Boolean.TRUE.equals(showFullImage));
+        return post;
     }
 
     public TrainingPost toTrainingPostEntity(Post post, String trainingType) {
