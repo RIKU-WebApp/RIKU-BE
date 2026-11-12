@@ -35,15 +35,18 @@ public interface RunEnrollmentRepository extends JpaRepository<RunEnrollment, Lo
             "from RunEnrollment e where e.postId = ?1 order by e.id")
     List<RosterRow> findRoster(Long postId);
 
-    @Query("select e.group from RunEnrollment e where e.postId = ?1 and e.state = ?2")
-    List<String> findOccupiedGroups(Long postId, RunEnrollment.State state);
+    // Java treats case, accents and trailing spaces as significant in a group name.
+    @Query(value = """
+            select group_name as name, count(*) as used from run_enrollment
+            where post_id = ?1 and (?2 is null or state = ?2)
+            group by group_name, cast(group_name as binary) order by min(id)
+            """, nativeQuery = true)
+    List<GroupOccupancy> countOccupiedGroups(Long postId, String state);
 
     long countByPostIdAndState(Long postId, RunEnrollment.State state);
     @EntityGraph(attributePaths = "user")
     Optional<RunEnrollment> findFirstByPostIdAndStateOrderByIdAsc(Long postId, RunEnrollment.State state);
 
-    @EntityGraph(attributePaths = "user")
-    List<RunEnrollment> findByPostIdOrderByIdAsc(Long postId);
     Optional<RunEnrollment> findByPostIdAndUserId(Long postId, Long userId);
     void deleteByPostId(Long postId);
 }

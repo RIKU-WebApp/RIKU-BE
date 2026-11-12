@@ -32,7 +32,15 @@ public class AutomaticBadges {
         var monthly = new ClassPathResource("badges/monthly-ranks.sql").getContentAsString(StandardCharsets.UTF_8)
                 .replace("__MONTH_KEY__", "EXTRACT(YEAR_MONTH FROM TIMESTAMPADD(HOUR,9,UTC_TIMESTAMP()))");
         String visits=new ClassPathResource("badges/verified-visits.sql").getContentAsString(StandardCharsets.UTF_8);
-        memberDistance=visits.replace("__MEMBER_FILTER__","AND a.user_id=?")+" SELECT COALESCE(SUM(km),0) FROM visits";
+        memberDistance = visits.replace("/*__MEMBER_PACER_SCOPE__*/", """
+                AND EXISTS (
+                    SELECT 1 FROM participant a JOIN post p ON p.post_id=a.post_id
+                    WHERE a.user_id=? AND a.participant_status='ATTENDED'
+                      AND p.status='ACTIVE' AND p.post_status='CLOSED'
+                      AND a.post_id=legacy.post_id AND a.participant_group=legacy.pacer_group
+                )
+                """).replace("__MEMBER_FILTER__", "AND a.user_id=?")
+                + " SELECT COALESCE(SUM(km),0) FROM visits";
         snapshot = new ClassPathResource("badges/eligibility.sql").getContentAsString(StandardCharsets.UTF_8)
                 .replace("__VISITS__",visits.replace("__MEMBER_FILTER__",""))
                 .replace("__MONTHLY_RANKS__", storage.rankingsEnabled() ? monthly : "SELECT NULL AS user_id, NULL AS best_rank WHERE FALSE")
@@ -99,7 +107,7 @@ public class AutomaticBadges {
     }
 
     java.math.BigDecimal verifiedKm(long id){
-        return db.queryForObject(memberDistance,java.math.BigDecimal.class,id);
+        return db.queryForObject(memberDistance,java.math.BigDecimal.class,id,id);
     }
 
     List<CommunityService.Badge> grants(long id) {

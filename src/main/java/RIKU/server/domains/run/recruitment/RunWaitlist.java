@@ -70,11 +70,11 @@ public class RunWaitlist {
         var limit = config.orElseGet(() -> new RunRecruitment(post.getId(), null, List.of()));
         if (plans != null) {
             var occupied = new java.util.ArrayList<String>();
-            participants.findByPost(post).forEach(p -> occupied.add(p.getGroup()));
-            for (var entry : queue.findByPostIdOrderByIdAsc(post.getId())) {
-                if (!plans.isEmpty() && entry.getGroup().isBlank())
+            participants.countOccupiedGroups(post.getId()).forEach(row -> occupied.add(row.getName()));
+            for (var entry : queue.countOccupiedGroups(post.getId(), null)) {
+                if (!plans.isEmpty() && entry.getName().isBlank())
                     throw new ResponseStatusException(CONFLICT, "그룹 미지정 대기자가 있어 그룹을 설정할 수 없습니다.");
-                occupied.add(entry.getGroup());
+                occupied.add(entry.getName());
             }
             limit.replacePlans(plans, occupied);
         }
@@ -110,7 +110,7 @@ public class RunWaitlist {
     }
 
     private GroupSeats seats(Post post, RunRecruitment limit) {
-        return new GroupSeats(limit, participants.findOccupiedGroups(post));
+        return new GroupSeats(limit, participants.countOccupiedGroups(post.getId()));
     }
 
     private void validateGroup(Post post, RunRecruitment limit, String group) {

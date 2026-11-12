@@ -164,8 +164,8 @@ public class RecruitmentService {
         });
         if (plans != null) {
             if (plans.isEmpty()) throw new ResponseStatusException(BAD_REQUEST, "그룹이 하나 이상 필요합니다.");
-            var entries = enrollments.findByPostIdOrderByIdAsc(post.getId());
-            config.replacePlans(plans, entries.stream().map(RunEnrollment::getGroup).toList());
+            var occupied = enrollments.countOccupiedGroups(post.getId(), null);
+            config.replacePlans(plans, occupied.stream().map(GroupOccupancy::getName).toList());
             for (var pacer : pacers.findByPost(post)) {
                 var p = plan(config, pacer.getGroup());
                 pacer.updateDetails(p.getName(), p.getPace(), p.getDistanceKm().toPlainString());
@@ -176,7 +176,7 @@ public class RecruitmentService {
     }
 
     private GroupSeats seats(RunRecruitment config) {
-        var confirmed = enrollments.findOccupiedGroups(config.getPostId(), CONFIRMED);
+        var confirmed = enrollments.countOccupiedGroups(config.getPostId(), CONFIRMED.name());
         return new GroupSeats(config, confirmed);
     }
 

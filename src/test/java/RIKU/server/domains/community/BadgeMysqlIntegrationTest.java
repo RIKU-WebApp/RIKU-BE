@@ -75,6 +75,22 @@ class BadgeMysqlIntegrationTest {
             for(int i=100;i<120;i++)db.update("INSERT INTO user_point VALUES(?,?,'ADD_ATTENDANCE','2025-10-15')",i,i==100?1000:1);
             paused.reconcile(); pausedRanks.settle();
         });
+        // Compare the member-scoped calculation with the full award calculation on the same snapshot.
+        String allVisits = new ClassPathResource("badges/verified-visits.sql")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8).replace("__MEMBER_FILTER__", "");
+        tx.executeWithoutResult(status -> {
+            db.update("INSERT INTO pacer VALUES(105,104,'A','invalid'),(106,105,'A','')");
+            db.update("INSERT INTO participant VALUES(105,118,'A','ATTENDED'),(0,118,'A','PENDING')");
+            db.update("INSERT INTO post VALUES(107,100,'FLASH','2025-01-01','ACTIVE','NOW')");
+            db.update("INSERT INTO participant VALUES(107,118,'A','ATTENDED')");
+            db.update("INSERT INTO pacer VALUES(107,100,'A','18')");
+            for (long member : List.of(100L, 101L, 118L, 119L, 999L)) {
+                var expected = db.queryForObject(allVisits + " SELECT COALESCE(SUM(km),0) FROM visits WHERE user_id=?",
+                        java.math.BigDecimal.class, member);
+                assertEquals(0, expected.compareTo(engine.verifiedKm(member)), "member " + member);
+            }
+            status.setRollbackOnly();
+        });
         var actor = org.mockito.Mockito.mock(RIKU.server.security.AuthMember.class);
         org.mockito.Mockito.when(actor.getId()).thenReturn(100L);
         var progress = new BadgeProgressController(db,on).progress(actor).getResult();
