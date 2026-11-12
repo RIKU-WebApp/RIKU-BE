@@ -6,6 +6,11 @@ import RIKU.server.domains.run.participant.service.ParticipantService;
 import RIKU.server.domains.run.post.repository.PostRepository;
 import RIKU.server.domains.run.post.dto.request.UpdatePostRequest;
 import RIKU.server.domains.run.post.service.PostService;
+import RIKU.server.domains.run.post.service.TrainingPostService;
+import RIKU.server.domains.run.post.dto.request.CreateTrainingPostRequest;
+import RIKU.server.domains.run.pacer.dto.request.CreatePacerRequest;
+import RIKU.server.global.response.BaseResponseStatus;
+import RIKU.server.global.exception.CustomException;
 import RIKU.server.domains.run.post.service.RegularPostService;
 import RIKU.server.domains.run.post.entity.PostStatus;
 import RIKU.server.domains.user.entity.*;
@@ -96,6 +101,98 @@ class RecruitmentIntegrationTest {
 
     @Autowired PostService postService;
     @Autowired RegularPostService regularPosts;
+
+    @Autowired TrainingPostService training;
+
+    private CreatePacerRequest pacer(Long id, String group) {
+        var request = new CreatePacerRequest();
+        request.setPacerId(id);
+        request.setGroup(group);
+        request.setPace("6:00");
+        request.setDistance("5");
+        return request;
+    }
+
+    private CreateTrainingPostRequest trainingRequest(List<CreatePacerRequest> pacers) {
+        var request = new CreateTrainingPostRequest();
+        request.setTitle("intervals");
+        request.setDate(LocalDateTime.now(ZoneOffset.UTC).plusDays(1));
+        request.setTrainingType("intervals");
+        request.setLocation("park");
+        request.setContent("test");
+        request.setPacers(pacers);
+        return request;
+    }
+
+    @Test void trainingCreationReadsTwentyPacersTogetherAndKeepsTheirGroups() {
+        var requests = new ArrayList<CreatePacerRequest>();
+        for (int i = 0; i < 20; i++) {
+            Long id = i == 0 ? admin.getId() : user(UserRole.MEMBER).getId();
+            new TransactionTemplate(manager).executeWithoutResult(tx -> users.findById(id).orElseThrow().updatePacer(true));
+            requests.add(pacer(id, "group-" + i));
+        }
+        var stats = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        Long postId = training.createPost(admin, trainingRequest(requests));
+        System.out.printf("training-create sql=%d loaded=%d inserts=%d%n", stats.getPrepareStatementCount(),
+                stats.getEntityLoadCount(), stats.getEntityInsertCount());
+        assertEquals(42, stats.getEntityInsertCount());
+        assertTrue(stats.getPrepareStatementCount() <= 46);
+        var post = posts.findById(postId).orElseThrow();
+        var members = participants.findWithUserByPost(post);
+        var leaders = pacerRows.findWithUserByPost(post);
+        assertEquals(20, members.size());
+        assertEquals(20, leaders.size());
+        for (int i = 0; i < requests.size(); i++) {
+            assertEquals(requests.get(i).getPacerId(), members.get(i).getUser().getId());
+            assertEquals(requests.get(i).getGroup(), members.get(i).getGroup());
+            assertEquals(requests.get(i).getPacerId(), leaders.get(i).getUser().getId());
+            assertEquals(requests.get(i).getGroup(), leaders.get(i).getGroup());
+        }
+    }
+
+    @Autowired RIKU.server.domains.run.pacer.repository.PacerRepository pacerRows;
+
+    @Test void trainingCreationKeepsFirstValidationErrorAndRollsBack() {
+        var creator = pacer(admin.getId(), "A");
+        var missing = pacer(Long.MAX_VALUE, "B");
+        long before = posts.count();
+        assertTrainingError(List.of(creator, creator), BaseResponseStatus.DUPLICATED_PACER, before);
+        assertTrainingError(List.of(missing, creator), BaseResponseStatus.USER_NOT_FOUND, before);
+        assertTrainingError(List.of(creator, missing), BaseResponseStatus.UNAUTHORIZED_USER, before);
+    }
+
+    private void assertTrainingError(List<CreatePacerRequest> requests, BaseResponseStatus expected, long previousCount) {
+        var error = assertThrows(CustomException.class, () -> training.createPost(admin, trainingRequest(requests)));
+        assertEquals(expected, error.getStatus());
+        assertEquals(previousCount, posts.count());
+    }
+
+    @Test void groupEditCountsExactNamesAndProtectsAGroupWithOnlyWaitlistedMembers() {
+        var upper = new RunRecruitment.GroupPlan("Aa", "6:00", BigDecimal.ONE);
+        var lower = new RunRecruitment.GroupPlan("aa", "6:00", BigDecimal.ONE);
+        var plans = List.of(upper, lower);
+        Long id = service.create(admin, new RecruitmentRequest("groups", "park", LocalDateTime.now(ZoneOffset.UTC).plusDays(1),
+                "test", 1, plans.stream().map(p -> new RecruitmentRequest.Group(p.getName(), p.getPace(), p.getDistanceKm())).toList()));
+        var first = user(UserRole.MEMBER);
+        service.join(id, first, RUNNER, upper.getName());
+        for (int i = 0; i < 20; i++) service.join(id, user(UserRole.MEMBER), RUNNER, lower.getName());
+        var tx = new TransactionTemplate(manager);
+        var stats = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        stats.clear();
+        tx.executeWithoutResult(t -> service.edit(posts.findForUpdate(id).orElseThrow(), false, null, plans));
+        System.out.printf("group-edit sql=%d members=%d enrollments=%d%n", stats.getPrepareStatementCount(),
+                stats.getEntityStatistics(User.class.getName()).getLoadCount(),
+                stats.getEntityStatistics(RunEnrollment.class.getName()).getLoadCount());
+        assertEquals(0, stats.getEntityStatistics(User.class.getName()).getLoadCount());
+        assertEquals(0, stats.getEntityStatistics(RunEnrollment.class.getName()).getLoadCount());
+        var error = assertThrows(ResponseStatusException.class, () -> tx.executeWithoutResult(t ->
+                service.edit(posts.findForUpdate(id).orElseThrow(), false, null, List.of(upper))));
+        assertTrue(error.getReason().startsWith(lower.getName()));
+        var roster = service.read(id, first);
+        assertEquals(20, roster.waiting().size());
+        assertEquals(1, roster.confirmed().size());
+    }
 
     @Test void legacyCoverKeepsItsListDefaultUntilTheAuthorChoosesAFit() {
         Long id = run(1);

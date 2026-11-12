@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import RIKU.server.domains.point.ranking.RankingMember;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -16,6 +18,15 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
+
+    default Map<Long, User> findMembersByIds(List<Long> ids) {
+        var members = new HashMap<Long, User>();
+        for (int start = 0; start < ids.size(); start += 500) {
+            findAllById(ids.subList(start, Math.min(start + 500, ids.size())))
+                    .forEach(member -> members.put(member.getId(), member));
+        }
+        return members;
+    }
 
     @Query("select new RIKU.server.domains.point.ranking.RankingMember(u.id, u.name, u.profileImageUrl) " +
             "from User u where u.status = :status and u.id not in :excludedIds")

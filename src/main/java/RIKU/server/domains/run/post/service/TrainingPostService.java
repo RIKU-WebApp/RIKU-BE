@@ -88,19 +88,19 @@ public class TrainingPostService {
         }
 
         // 7. Pacer 엔티티 생성 및 저장
-        List<Pacer> pacers = request.getPacers().stream()
-                .map(pacer -> {
-                    User pacerUser = userRepository.findById(pacer.getPacerId())
-                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-                    // 해당 유저가 페이서인지
-                    if (!pacerUser.getIsPacer()) {
-                        throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
-                    }
-
-                    return pacer.toEntity(pacerUser, savedPost);
-                })
-                .collect(Collectors.toList());
+        var otherIds = pacerIds.stream().filter(Objects::nonNull).filter(id -> !id.equals(user.getId())).toList();
+        var members = userRepository.findMembersByIds(otherIds);
+        members.put(user.getId(), user);
+        List<Pacer> pacers = new ArrayList<>();
+        for (CreatePacerRequest pacer : pacerRequests) {
+            if (pacer.getPacerId() == null) {
+                throw new org.springframework.dao.InvalidDataAccessApiUsageException("The given id must not be null");
+            }
+            User pacerUser = members.get(pacer.getPacerId());
+            if (pacerUser == null) throw new UserException(BaseResponseStatus.USER_NOT_FOUND);
+            if (!pacerUser.getIsPacer()) throw new UserException(BaseResponseStatus.UNAUTHORIZED_USER);
+            pacers.add(pacer.toEntity(pacerUser, savedPost));
+        }
         pacerRepository.saveAll(pacers);
 
         // 8. S3에 첨부파일 이미지 업로드 및 저장
@@ -112,14 +112,9 @@ public class TrainingPostService {
         trainingPostRepository.save(trainingPost);
 
         // 10. 페이서 목록 지정된 그룹에 따라 참여자로 추가
-        List<Participant> participants = request.getPacers().stream()
-                .map(p -> {
-                    User pacerUser = userRepository.findById(p.getPacerId())
-                            .orElseThrow(() -> new UserException(BaseResponseStatus.USER_NOT_FOUND));
-
-                    return Participant.createWithGroup(savedPost, pacerUser, p.getGroup());
-                })
-                .collect(Collectors.toList());
+        List<Participant> participants = pacers.stream()
+                .map(pacer -> Participant.createWithGroup(savedPost, pacer.getUser(), pacer.getGroup()))
+                .toList();
         participantRepository.saveAll(participants);
 
         if (request.getCapacity() != null || request.isReplaceGroups())

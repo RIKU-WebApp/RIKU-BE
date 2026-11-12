@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.time.LocalDate;
 import java.util.stream.Stream;
 import java.util.List;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -360,11 +359,7 @@ public class PostService {
         Set<Long> requestedIds = new HashSet<>();
         var ids = pacerRequests.stream().filter(Objects::nonNull).map(UpdatePacerRequest::getPacerId)
                 .filter(Objects::nonNull).distinct().toList();
-        Map<Long, User> users = new HashMap<>();
-        for (int i = 0; i < ids.size(); i += 500) {
-            userRepository.findAllById(ids.subList(i, Math.min(i + 500, ids.size())))
-                    .forEach(user -> users.put(user.getId(), user));
-        }
+        Map<Long, User> users = userRepository.findMembersByIds(ids);
         for (UpdatePacerRequest request : pacerRequests) {
             if (request == null || request.getPacerId() == null || request.getPacerId() <= 0 ||
                     request.getGroup() == null || request.getGroup().isBlank() ||

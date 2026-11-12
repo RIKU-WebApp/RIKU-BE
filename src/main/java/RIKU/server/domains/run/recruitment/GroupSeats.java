@@ -13,9 +13,13 @@ final class GroupSeats {
     private final Map<String,Integer> used = new HashMap<>();
     private int total;
 
-    GroupSeats(RunRecruitment config, List<String> confirmed) {
+    GroupSeats(RunRecruitment config, List<GroupOccupancy> confirmed) {
         this.config = config;
-        confirmed.forEach(this::take);
+        for (var group : confirmed) {
+            int count = Math.toIntExact(group.getUsed());
+            used.put(group.getName(), count);
+            total += count;
+        }
     }
     void take(String group) { total++; used.merge(group, 1, Integer::sum); }
     boolean groupAvailable(String group) {

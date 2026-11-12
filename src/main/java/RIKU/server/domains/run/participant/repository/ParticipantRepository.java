@@ -1,6 +1,7 @@
 package RIKU.server.domains.run.participant.repository;
 
 import RIKU.server.domains.run.post.entity.Post;
+import RIKU.server.domains.run.recruitment.GroupOccupancy;
 import RIKU.server.domains.run.participant.entity.Participant;
 import RIKU.server.domains.run.participant.entity.ParticipantStatus;
 import RIKU.server.domains.user.entity.User;
@@ -68,8 +69,11 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     @Query("select p.user.id as userId, p.participantStatus as attendance from Participant p where p.post.id = :postId order by p.id")
     List<AttendanceRow> findAttendanceRows(@Param("postId") Long postId);
 
-    @Query("select p.group from Participant p where p.post = :post")
-    List<String> findOccupiedGroups(@Param("post") Post post);
+    @Query(value = """
+            select participant_group as name, count(*) as used from participant where post_id = ?1
+            group by participant_group, cast(participant_group as binary) order by min(participant_id)
+            """, nativeQuery = true)
+    List<GroupOccupancy> countOccupiedGroups(Long postId);
 
     // 특정 postId에 대한 참여자 수 조회
     @Query("SELECT COUNT(p) FROM Participant p WHERE p.post.id = :postId")
