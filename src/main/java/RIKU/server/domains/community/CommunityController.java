@@ -13,17 +13,26 @@ import java.util.Map;
 @RestController @RequiredArgsConstructor
 public class CommunityController {
     private final CommunityService service;
+    private final BadgeShowcaseService showcase;
     public record RecordRequest(@NotBlank @Size(max=80) String title,@NotNull @PastOrPresent LocalDate date,
              @NotNull @DecimalMin("0.1") @DecimalMax("200") BigDecimal distanceKm,@Min(1) @Max(2880) int minutes) {}
     public record AwardRequest(@NotBlank @Size(max=40) String name,@NotBlank @Size(max=200) String description) {}
     public record FeedbackRequest(@NotNull Feedback.Category category,@NotBlank @Size(max=100) String title,@NotBlank @Size(max=3000) String content) {}
     public record AnswerRequest(@NotNull Feedback.Status status,@Size(max=2000) String answer) {}
     @GetMapping("/user/{id}/public-profile")
-    public BaseResponse<?> profile(@PathVariable Long id) { return new BaseResponse<>(service.profile(id)); }
+    public BaseResponse<?> profile(@PathVariable Long id) { return new BaseResponse<>(showcase.publicProfile(id)); }
     @GetMapping("/user/activity/badges")
     public BaseResponse<?> activity(@AuthenticationPrincipal AuthMember actor) { return new BaseResponse<>(service.privateActivity(actor.getId())); }
     @GetMapping("/user/activity/badge-preview")
-    public BaseResponse<?> badgePreview(@AuthenticationPrincipal AuthMember actor) { return new BaseResponse<>(service.badgePreview(actor.getId())); }
+    public BaseResponse<?> badgePreview(@AuthenticationPrincipal AuthMember actor) { return new BaseResponse<>(showcase.preview(actor.getId())); }
+    @GetMapping("/user/activity/badge-display")
+    public BaseResponse<?> badgeDisplay(@AuthenticationPrincipal AuthMember actor) {
+        return new BaseResponse<>(showcase.editor(actor.getId()));
+    }
+    @PutMapping("/user/activity/badge-display")
+    public BaseResponse<?> badgeDisplay(@AuthenticationPrincipal AuthMember actor, @RequestBody BadgeShowcase.Selection selection) {
+        return new BaseResponse<>(showcase.save(actor.getId(), selection));
+    }
     @PostMapping("/user/records")
     public BaseResponse<?> record(@AuthenticationPrincipal AuthMember actor,@Valid @RequestBody RecordRequest request) { return new BaseResponse<>(service.record(actor,request)); }
     @DeleteMapping("/user/records/{id}")

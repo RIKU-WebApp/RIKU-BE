@@ -40,7 +40,9 @@ public class RankingSnapshotLoader {
                 .map(member -> ReadUserPointResponse.of(member.userId(), member.profileImageUrl(), member.name(),
                         Math.toIntExact(byUser.getOrDefault(member.userId(), 0L))))
                 .sorted(order).toList();
-        return new RankingSnapshot(sorted);
+        var hidden = members.stream().filter(RankingMember::hiddenFromRankingTab)
+                .map(RankingMember::userId).collect(Collectors.toSet());
+        return new RankingSnapshot(sorted, hidden);
     }
 
     private int compareNames(String left, String right, Collator collator) {

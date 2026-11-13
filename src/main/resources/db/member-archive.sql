@@ -33,3 +33,10 @@ PREPARE certificate_distance_stmt FROM @certificate_distance_ddl;
 EXECUTE certificate_distance_stmt;
 DEALLOCATE PREPARE certificate_distance_stmt;
 SET SESSION lock_wait_timeout=DEFAULT;
+
+CREATE TABLE IF NOT EXISTS badge_showcase (
+  user_id BIGINT NOT NULL PRIMARY KEY,
+  medals VARCHAR(255) NULL,
+  badges VARCHAR(255) NULL,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

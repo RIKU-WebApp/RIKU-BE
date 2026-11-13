@@ -71,6 +71,29 @@ class CommunityIntegrationTest {
                 .andExpect(jsonPath("$.result[1].distanceKm").value(5.25));
         assertTrue(service.activity(member.getId()).records().isEmpty());
     }
+    @Test void showcasePreservesOrderAndOnlyAcceptsOwnedBadges() {
+        service.award(admin, member.getId(), new CommunityController.AwardRequest("첫 배지", "하나"));
+        service.award(admin, member.getId(), new CommunityController.AwardRequest("다음 배지", "둘"));
+        var available = service.earnedBadges(member.getId());
+        var second = available.get(1).code();
+        var first = available.get(0).code();
+        var selection = new BadgeShowcase.Selection(null, java.util.List.of(second, first));
+        showcase.save(member.getId(), selection);
+        assertEquals(selection, showcase.selection(member.getId()));
+        assertEquals(selection.badges(), showcase.preview(member.getId()).badges().stream().map(CommunityService.Badge::code).toList());
+        assertThrows(ResponseStatusException.class, () -> showcase.save(other.getId(), selection));
+        assertThrows(ResponseStatusException.class, () -> showcase.save(member.getId(),
+                new BadgeShowcase.Selection(null, java.util.List.of(first, first))));
+        assertThrows(ResponseStatusException.class, () -> showcase.save(member.getId(),
+                new BadgeShowcase.Selection(java.util.List.of("MONTH2099-01-01"), null)));
+        showcase.save(member.getId(), new BadgeShowcase.Selection(null, java.util.List.of()));
+        assertTrue(showcase.preview(member.getId()).badges().isEmpty());
+        showcase.save(member.getId(), new BadgeShowcase.Selection(null, null));
+        assertEquals(service.badgePreview(member.getId()), showcase.preview(member.getId()));
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired BadgeShowcaseService showcase;
+
     @Test void profileOnlyContainsNameAndBadges() throws Exception {
         service.record(member,new CommunityController.RecordRequest("private run",LocalDate.now(),BigDecimal.valueOf(100),45));
         service.award(admin,member.getId(),new CommunityController.AwardRequest("운영진 수여","private note"));

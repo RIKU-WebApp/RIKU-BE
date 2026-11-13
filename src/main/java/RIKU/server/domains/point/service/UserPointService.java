@@ -41,8 +41,8 @@ public class UserPointService {
 
     public ReadUserParticipationsResponse getParticipations(AuthMember authMember) {
         var fromUtc = seasonProvider.seasonStartUtc();
-        var ranking = rankingCache.get(RankingQuery.season(fromUtc)).forUser(authMember.getId());
-        return userActivityService.getParticipations(authMember.getId(), fromUtc, ranking.getUserRanking());
+        var ranking = rankingCache.get(RankingQuery.season(fromUtc)).activityRank(authMember.getId());
+        return userActivityService.getParticipations(authMember.getId(), fromUtc, ranking);
     }
 
     private void validateUser(AuthMember authMember) {
