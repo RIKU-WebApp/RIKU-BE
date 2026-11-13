@@ -84,6 +84,11 @@ public class CommunityService {
         addManualAwards(id,badges);
         return new MyActivity(verified,personalKm,badges,personal);
     }
+    List<Badge> earnedBadges(long id) {
+        var badges = new ArrayList<>(automatic.grants(id));
+        addManualAwards(id, badges);
+        return badges;
+    }
     private void addManualAwards(Long id,List<Badge> badges) {
         awards.findByUserIdOrderByIdAsc(id).forEach(a->badges.add(manualBadge(a)));
     }
