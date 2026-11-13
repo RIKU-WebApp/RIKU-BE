@@ -28,7 +28,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
         return members;
     }
 
-    @Query("select new RIKU.server.domains.point.ranking.RankingMember(u.id, u.name, u.profileImageUrl, u.userRole) " +
+    @Query("select new RIKU.server.domains.point.ranking.RankingMember(u.id, u.name, u.profileImageUrl) " +
             "from User u where u.status = :status and u.id not in :excludedIds")
     List<RankingMember> findRankingMembers(@Param("status") BaseStatus status, @Param("excludedIds") Set<Long> excludedIds);
 
