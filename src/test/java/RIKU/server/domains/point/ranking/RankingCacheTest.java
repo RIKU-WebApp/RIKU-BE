@@ -24,17 +24,15 @@ class RankingCacheTest {
         return new RankingSnapshot(List.of(ReadUserPointResponse.of(100L, null, "회원", points)));
     }
 
-    @Test void hiddenAdminsOnlyAffectRankingTab() {
-        var admin = RIKU.server.domains.user.entity.UserRole.ADMIN;
-        var member = RIKU.server.domains.user.entity.UserRole.MEMBER;
-        for (String name : List.of("박건영", "이찬호", "박준한")) {
-            assertTrue(new RankingMember(1L, name, null, admin).hiddenFromRankingTab());
-            assertFalse(new RankingMember(2L, name, null, member).hiddenFromRankingTab());
-        }
-        assertFalse(new RankingMember(3L, "다른 운영진", null, admin).hiddenFromRankingTab());
+    @Test void hiddenAccountsOnlyAffectRankingTab() {
+        for (long id : List.of(231L, 331L, 412L))
+            assertTrue(new RankingMember(id, "동명이인", null).hiddenFromRankingTab());
+        assertFalse(new RankingMember(1L, "동명이인", null).hiddenFromRankingTab());
         var snapshot = new RankingSnapshot(List.of(ReadUserPointResponse.of(1L, null, "가", 10),
                 ReadUserPointResponse.of(2L, null, "나", 5)), Set.of(1L));
         assertNull(snapshot.forUser(1L).getUserPoints());
+        assertEquals(List.of(2L), snapshot.forUser(1L).getTop20().stream()
+                .map(ReadUserPointResponse::getUserId).toList());
         assertEquals(1, snapshot.forUser(2L).getUserRanking());
         assertEquals(2, snapshot.activityRank(2L));
     }

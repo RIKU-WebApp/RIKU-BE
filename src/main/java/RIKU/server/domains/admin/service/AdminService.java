@@ -12,7 +12,6 @@ import RIKU.server.global.entity.BaseStatus;
 import RIKU.server.domains.run.participant.entity.ParticipantStatus;
 import RIKU.server.domains.user.entity.User;
 import RIKU.server.domains.user.entity.UserRole;
-import static RIKU.server.domains.point.ranking.RankingMember.hiddenFromRankingTab;
 import RIKU.server.domains.run.participant.repository.ParticipantRepository;
 import RIKU.server.domains.run.participant.repository.UserParticipationCount;
 import RIKU.server.domains.point.repository.UserPointRepository;
@@ -101,11 +100,10 @@ public class AdminService {
 
             // 회원 등급 수정
             BaseStatus previousStatus = user.getStatus();
-            boolean wasHidden = hiddenFromRankingTab(user.getName(), user.getUserRole());
             if (request.getUserRole() != null) {
                 updateUserStatus(user, request.getUserRole());
             }
-            rankingChanged |= previousStatus != user.getStatus() || wasHidden != hiddenFromRankingTab(user.getName(), user.getUserRole());
+            rankingChanged |= previousStatus != user.getStatus();
 
             // 페이서 여부 수정
             if (request.getIsPacer() != null) {
