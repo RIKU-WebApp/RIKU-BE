@@ -127,6 +127,11 @@ class BadgeMysqlIntegrationTest {
             status.setRollbackOnly();
         });
         tx.executeWithoutResult(s->{firstRelease.reconcile(); hiddenRanks.settle();});
+        assertEquals(LocalDate.of(2024,1,7), db.queryForObject("SELECT achieved_on FROM badge_activity_date WHERE user_id=100 AND badge_code='checkins_7'",LocalDate.class));
+        assertEquals(LocalDate.of(2024,1,6), db.queryForObject("SELECT achieved_on FROM badge_activity_date WHERE user_id=100 AND badge_code='CLUB_10'",LocalDate.class));
+        assertEquals(LocalDate.of(2024,1,13), db.queryForObject("SELECT achieved_on FROM badge_activity_date WHERE user_id=100 AND badge_code='streak_2'",LocalDate.class));
+        assertNull(db.queryForObject("SELECT achieved_on FROM badge_activity_date WHERE user_id=100 AND badge_code='certificateDays_1'",LocalDate.class));
+        assertEquals(db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant",Integer.class),db.queryForObject("SELECT COUNT(*) FROM badge_activity_date",Integer.class));
         assertEquals(72,firstRelease.grants(100).size());
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE badge_code LIKE 'monthlyRank%'",Integer.class));
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM rank_honor_period",Integer.class));
@@ -146,6 +151,24 @@ class BadgeMysqlIntegrationTest {
         assertTrue(hiddenRanks.forMember(100).isEmpty());
         assertTrue(hiddenRanks.issuedForMember(100).isEmpty());
         var medals=pausedRanks.forMember(100);
+        var ownHistory=new BadgeHistoryController(db,off,org.mockito.Mockito.mock(BadgeAwardRepository.class));
+        var allDates=ownHistory.mine(actor).getResult();
+        assertEquals(expected,allDates.keySet(), "Every issued tier must have an issuance date");
+        assertTrue(allDates.values().stream().allMatch(date->date.issuedOn()!=null));
+        for (var entry : allDates.entrySet()) {
+            if (entry.getKey().startsWith("monthlyRank_") || entry.getKey().equals("certificateDays_1")) continue;
+            assertNotNull(entry.getValue().activityOn(), "Missing activity date for "+entry.getKey());
+            assertFalse(entry.getValue().activityOn().isAfter(entry.getValue().issuedOn()), entry.getKey());
+        }
+        var emptyActor=org.mockito.Mockito.mock(RIKU.server.security.AuthMember.class);
+        org.mockito.Mockito.when(emptyActor.getId()).thenReturn(120L);
+        assertTrue(ownHistory.mine(emptyActor).getResult().isEmpty(), "Dates must be scoped to the authenticated member");
+        var privateStamp=allDates.get("CLUB_10");
+        assertEquals(LocalDate.of(2024,1,6),privateStamp.activityOn());
+        assertFalse(privateStamp.issuedOn().isBefore(privateStamp.activityOn()));
+        assertEquals(medals.size(),pausedRanks.own(100).size());
+        assertTrue(pausedRanks.own(100).stream().allMatch(m->m.issuedOn()!=null));
+        assertEquals("첫 기록증",paused.grants(100).stream().filter(b->b.code().equals("certificateDays_1")).findFirst().orElseThrow().name());
         assertTrue(medals.stream().anyMatch(m->m.kind().equals("MONTH") && m.place()==1));
         assertTrue(medals.stream().anyMatch(m->m.kind().equals("SEMESTER") && m.place()==1));
         var members=org.mockito.Mockito.mock(RIKU.server.domains.user.repository.UserRepository.class);
@@ -172,6 +195,7 @@ class BadgeMysqlIntegrationTest {
         CompletableFuture.allOf(CompletableFuture.runAsync(run),CompletableFuture.runAsync(run)).join();
         assertEquals(List.of("certificateDays_1"),paused.grants(121).stream().map(CommunityService.Badge::code).toList());
         assertEquals(stamp,db.queryForObject("SELECT MIN(granted_at) FROM automatic_badge_grant WHERE user_id=100",java.sql.Timestamp.class));
+        assertEquals(allDates,ownHistory.mine(actor).getResult(), "Retries must preserve existing acquisition dates");
         assertEquals(0,db.queryForObject("SELECT COUNT(*) FROM automatic_badge_grant WHERE user_id=120",Integer.class));
         // A previously undersized month can qualify on a late import; an already-issued podium is immutable.
         for(int i=100;i<120;i++)db.update("INSERT INTO user_point VALUES(?,?,'ADD_ATTENDANCE','2025-09-10')",i,i==100?500:1);
