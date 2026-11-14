@@ -139,7 +139,7 @@ class BadgeMysqlIntegrationTest {
         var expected=new HashSet<String>();
         for(var family:mapper.readTree(new ClassPathResource("badges/series.json").getInputStream())){
             if (family.path("id").asText().equals("personalKm")) continue;
-            for(var goal:family.path("levels"))expected.add(family.path("prefix").asText(family.path("id").asText())+"_"+goal.asInt());
+            for(var goal:family.has("codeLevels") ? family.get("codeLevels") : family.get("levels"))expected.add(family.path("prefix").asText(family.path("id").asText())+"_"+goal.asInt());
         }
         assertEquals(75,expected.size());
         assertEquals(expected,new HashSet<>(paused.grants(100).stream().map(CommunityService.Badge::code).toList()));
@@ -166,6 +166,13 @@ class BadgeMysqlIntegrationTest {
         var privateStamp=allDates.get("CLUB_10");
         assertEquals(LocalDate.of(2024,1,6),privateStamp.activityOn());
         assertFalse(privateStamp.issuedOn().isBefore(privateStamp.activityOn()));
+        // IDs survive threshold changes and remain usable in previously saved showcases.
+        for (int[] tier : new int[][]{{300,200},{500,400},{1000,600}}) {
+            String code="CLUB_"+tier[0];
+            assertEquals(LocalDate.of(2024,1,6).plusWeeks(tier[1]/10-1), allDates.get(code).activityOn());
+            assertTrue(engine.clubBadgesAt(java.math.BigDecimal.valueOf(tier[1])).stream().anyMatch(b->b.code().equals(code)));
+            assertFalse(engine.clubBadgesAt(java.math.BigDecimal.valueOf(tier[1]).subtract(new java.math.BigDecimal("0.01"))).stream().anyMatch(b->b.code().equals(code)));
+        }
         assertEquals(medals.size(),pausedRanks.own(100).size());
         assertTrue(pausedRanks.own(100).stream().allMatch(m->m.issuedOn()!=null));
         assertEquals("첫 기록증",paused.grants(100).stream().filter(b->b.code().equals("certificateDays_1")).findFirst().orElseThrow().name());

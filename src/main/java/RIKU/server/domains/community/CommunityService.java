@@ -76,11 +76,7 @@ public class CommunityService {
             if(c!=null) verified=verified.add(c.getGroups().stream().filter(g->g.getName().equals(p.getGroup()))
                     .map(RIKU.server.domains.run.recruitment.RunRecruitment.GroupPlan::getDistanceKm).findFirst().orElse(BigDecimal.ZERO));
         }
-        List<Badge> badges=new ArrayList<>();
-        for(int km:new int[]{10,50,100,300,500,1000}) {
-            if(verified.compareTo(BigDecimal.valueOf(km))>=0)
-                badges.add(new Badge("CLUB_"+km,km+"km 함께 달리기","출석이 확인된 공식 러닝 누적 "+km+"km","CLUB"));
-        }
+        List<Badge> badges=new ArrayList<>(automatic.clubBadgesAt(verified));
         addManualAwards(id,badges);
         return new MyActivity(verified,personalKm,badges,personal);
     }
