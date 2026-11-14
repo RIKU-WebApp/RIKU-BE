@@ -63,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/user/*/role").denyAll()
-                        .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/user/login", "/user/signup", "/user/password-inquiries").permitAll()
                         .requestMatchers(HttpMethod.GET, "/user/check-id").permitAll()
                         .requestMatchers(HttpMethod.GET, "/public/run-preview/*/*").permitAll()
                         .requestMatchers("/error", "/", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()

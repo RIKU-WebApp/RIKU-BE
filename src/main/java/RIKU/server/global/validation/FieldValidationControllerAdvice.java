@@ -1,5 +1,7 @@
 package RIKU.server.global.validation;
 
+import RIKU.server.domains.auth.recovery.PasswordInquiryController;
+import RIKU.server.domains.user.dto.request.SignUpUserRequest;
 import RIKU.server.global.validation.dto.FieldErrorsDto;
 import RIKU.server.global.validation.dto.FieldValidationError;
 import RIKU.server.global.response.BaseResponse;
@@ -9,7 +11,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.validation.FieldError;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -19,7 +21,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 
 import static RIKU.server.global.response.BaseResponseStatus.INVALID_FIELD;
 import static RIKU.server.global.response.BaseResponseStatus.METHOD_ARGUMENT_TYPE_MISMATCH;
@@ -37,22 +38,24 @@ public class FieldValidationControllerAdvice {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public BaseResponse<Object> handleValidationException(FieldValidationException ex) {
         log.info("handleValidationException");
-        return getFieldErrorsDtos(ex.getBindingResult().getFieldErrors());
+        return getFieldErrorsDtos(ex.getBindingResult());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public BaseResponse<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex){
         log.info("handleMethodArgumentNotValidException");
-        return getFieldErrorsDtos(ex.getBindingResult().getFieldErrors());
+        return getFieldErrorsDtos(ex.getBindingResult());
     }
 
-    private BaseResponse<Object> getFieldErrorsDtos(List<FieldError> fieldErrors) {
+    private BaseResponse<Object> getFieldErrorsDtos(BindingResult binding) {
+        boolean privateValues = binding.getTarget() instanceof SignUpUserRequest
+                || binding.getTarget() instanceof PasswordInquiryController.SubmitRequest;
         FieldErrorsDto build = FieldErrorsDto.builder().errors(
-                        fieldErrors.stream().map(fieldError ->
+                        binding.getFieldErrors().stream().map(fieldError ->
                                 new FieldValidationError(
                                         fieldError.getField(),
-                                        "signUpUserRequest".equals(fieldError.getObjectName()) ? null : String.valueOf(fieldError.getRejectedValue()),
+                                        privateValues ? null : String.valueOf(fieldError.getRejectedValue()),
                                         fieldError.getDefaultMessage())
                         ).toList())
                 .build();

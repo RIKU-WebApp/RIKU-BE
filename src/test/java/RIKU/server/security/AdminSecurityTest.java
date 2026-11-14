@@ -54,6 +54,47 @@ class AdminSecurityTest {
                 .header("Authorization", tokens(admin).getAccessToken())).andExpect(status().isForbidden());
         assertEquals(UserRole.MEMBER, member.getUserRole());
     }
+
+    @Test void publicPasswordInquiryRequiresAdminForReviewAndPreservesCredentials() throws Exception {
+        String endpoint = "/admin/password-inquiries";
+        String adminToken = tokens(admin).getAccessToken();
+        String memberToken = tokens(member).getAccessToken();
+        mvc.perform(post("/user/password-inquiries").contentType("application/json")
+                        .content("""
+                                {"studentId":"legacy","name":"member","major":"major","phone":"incorrect"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.result.errors[0].fieldName").value("phone"))
+                .andExpect(jsonPath("$.result.errors[0].rejectValue").doesNotExist());
+        var existing = mvc.perform(post("/user/password-inquiries").contentType("application/json")
+                        .content("""
+                                {"studentId":"%s","name":"member","major":"major","phone":""}
+                                """.formatted(member.getStudentId())))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.result").value(true))
+                .andReturn().getResponse().getContentAsString();
+        mvc.perform(post("/user/password-inquiries").contentType("application/json")
+                        .content("""
+                                {"studentId":"unknown","name":"visitor","major":"major","phone":"010-1234-5678"}
+                                """))
+                .andExpect(status().isOk()).andExpect(content().string(existing));
+        mvc.perform(get(endpoint)).andExpect(status().isUnauthorized());
+        mvc.perform(get(endpoint).header("Authorization", memberToken)).andExpect(status().isForbidden());
+        var page = mvc.perform(get(endpoint).header("Authorization", adminToken)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.content[0].phone").value("01012345678"))
+                .andExpect(jsonPath("$.result.content[1].studentId").value(member.getStudentId()))
+                .andExpect(jsonPath("$.result.content[1].status").value("RECEIVED"))
+                .andReturn().getResponse().getContentAsString();
+        Number id = com.jayway.jsonpath.JsonPath.read(page, "$.result.content[1].id");
+        String item = endpoint + "/" + id;
+        String resolved = "{\"status\":\"COMPLETED\"}";
+        mvc.perform(patch(item).header("Authorization", memberToken).contentType("application/json").content(resolved))
+                .andExpect(status().isForbidden());
+        mvc.perform(patch(item).header("Authorization", adminToken).contentType("application/json").content(resolved))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.result.status").value("COMPLETED"));
+        assertEquals("hash-b", member.getPassword());
+        mvc.perform(get("/admin/feedback").header("Authorization", adminToken))
+                .andExpect(jsonPath("$.result.totalElements").value(0));
+    }
     @Test void refreshAndMalformedTokensCannotAuthenticate() throws Exception {
         mvc.perform(get("/admin").header("Authorization", tokens(admin).getRefreshToken())).andExpect(status().isUnauthorized());
         mvc.perform(get("/admin").header("Authorization", "Bearer invalid")).andExpect(status().isUnauthorized());
