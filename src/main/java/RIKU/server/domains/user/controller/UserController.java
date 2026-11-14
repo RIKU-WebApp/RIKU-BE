@@ -6,6 +6,11 @@ import RIKU.server.domains.user.dto.response.ReadUserProfileDetailResponse;
 import RIKU.server.domains.user.dto.response.ReadUserProfileResponse;
 import RIKU.server.security.AuthMember;
 import RIKU.server.domains.user.service.UserService;
+import RIKU.server.domains.user.exception.SignupConflictException;
+import RIKU.server.global.validation.dto.FieldErrorsDto;
+import RIKU.server.global.validation.dto.FieldValidationError;
+import org.springframework.http.HttpStatus;
+import java.util.List;
 import RIKU.server.global.response.BaseResponse;
 import RIKU.server.global.validation.FieldValidationException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +33,14 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+
+    @ExceptionHandler(SignupConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public BaseResponse<FieldErrorsDto> signupConflict(SignupConflictException ex) {
+        var status = ex.getStatus();
+        var error = new FieldValidationError(ex.getField(), null, status.getResponseMessage());
+        return new BaseResponse<>(status, new FieldErrorsDto(List.of(error)));
+    }
 
     @Operation(summary = "회원가입", description = """
             

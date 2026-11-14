@@ -2,7 +2,7 @@ package RIKU.server.global.validation;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.BindingResult;
 
 @Getter
@@ -12,7 +12,7 @@ public class ValidationException extends RuntimeException {
 
     public ValidationException(BindingResult bindingResult) {
         this.bindingResult = bindingResult;
-        log.info("{} - message : {}", this.getClass().getSimpleName(),
-                bindingResult.getAllErrors().stream().map(DefaultMessageSourceResolvable::getDefaultMessage));
+        log.info("{} fields={}", this.getClass().getSimpleName(),
+                bindingResult.getFieldErrors().stream().map(FieldError::getField).distinct().toList());
     }
 }

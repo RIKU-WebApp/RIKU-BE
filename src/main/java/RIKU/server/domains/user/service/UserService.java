@@ -24,6 +24,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.hibernate.exception.ConstraintViolationException;
+import RIKU.server.domains.user.exception.SignupConflictException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,14 +54,39 @@ public class UserService {
     // 회원가입
     @Transactional
     public Long signUp(SignUpUserRequest request) {
-        // 1. 로그인 아이디 중복 체크
-        if(userRepository.existsByStudentId(request.getStudentId())) throw new UserException(BaseResponseStatus.DUPLICATED_STUDENTID);
-
-        // 2. DTO -> Entity로 변환
+        if (userRepository.existsByStudentId(request.getStudentId())) {
+            throw SignupConflictException.studentId();
+        }
+        String phone = request.getPhone();
+        if (phone != null) {
+            String digits = phone.replace("-", "");
+            String prefix = digits.substring(0, 3);
+            String middle = digits.substring(3, digits.length() - 4);
+            String end = digits.substring(digits.length() - 4);
+            // Existing members may have either or both separators.
+            if (userRepository.existsByPhoneIn(List.of(digits, prefix + "-" + middle + end,
+                    prefix + middle + "-" + end, prefix + "-" + middle + "-" + end))) {
+                throw SignupConflictException.phone();
+            }
+        }
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User user = request.toEntity(request, encodedPassword);
-
-        Long userId = userRepository.save(user).getId();
+        Long userId;
+        try {
+            userId = userRepository.saveAndFlush(user).getId();
+        } catch (DataIntegrityViolationException ex) {
+            // Concurrent signups may both pass the existence checks before either insert commits.
+            for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+                if (cause instanceof ConstraintViolationException violation && violation.getConstraintName() != null) {
+                    String key = violation.getConstraintName();
+                    switch (key.substring(key.lastIndexOf('.') + 1)) {
+                        case "UKdu5v5sr43g5bfnji4vb8hg5s3" -> throw SignupConflictException.phone();
+                        case "UKqh3otyipv2k9hqte4a1abcyhq" -> throw SignupConflictException.studentId();
+                    }
+                }
+            }
+            throw ex;
+        }
         events.publishEvent(RankingChanged.members());
         return userId;
     }
