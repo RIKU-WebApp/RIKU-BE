@@ -52,7 +52,7 @@ public class FieldValidationControllerAdvice {
                         fieldErrors.stream().map(fieldError ->
                                 new FieldValidationError(
                                         fieldError.getField(),
-                                        String.valueOf(fieldError.getRejectedValue()),
+                                        "signUpUserRequest".equals(fieldError.getObjectName()) ? null : String.valueOf(fieldError.getRejectedValue()),
                                         fieldError.getDefaultMessage())
                         ).toList())
                 .build();

@@ -47,6 +47,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // 학번 중복 확인
     boolean existsByStudentId(String studentId);
 
+    boolean existsByPhoneIn(List<String> phones);
+
     // 페이서 조회
     List<User> findByIsPacer(Boolean isPacer);
 
