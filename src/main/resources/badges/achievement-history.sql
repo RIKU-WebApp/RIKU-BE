@@ -1,10 +1,12 @@
 __VISITS__,
 pending AS (
  SELECT g.user_id,g.badge_code,SUBSTRING_INDEX(g.badge_code,'_',1) AS family,
-   CASE WHEN SUBSTRING_INDEX(g.badge_code,'_',-1) REGEXP '^[0-9]+$'
-        THEN CAST(SUBSTRING_INDEX(g.badge_code,'_',-1) AS UNSIGNED) END AS goal,
+   rule.goal,
    DATE(TIMESTAMPADD(SECOND,FLOOR(UNIX_TIMESTAMP(g.granted_at))+32400,CAST('1970-01-01' AS DATETIME))) AS issued_day
- FROM automatic_badge_grant g __MISSING__
+ FROM automatic_badge_grant g
+ LEFT JOIN JSON_TABLE(?, '$[*]' COLUMNS(code VARCHAR(64) PATH '$.code', goal INT PATH '$.goal')) AS rule
+        ON BINARY rule.code=BINARY g.badge_code
+ __MISSING__
 ), totals AS (
  SELECT v.*, COUNT(*) OVER w AS n,SUM(led) OVER w AS leads,SUM(WEEKDAY(local_time)>=5) OVER w AS weekends,
  SUM(COALESCE(km,0)) OVER w AS distance_km,SUM(post_type='REGULAR') OVER w AS r,

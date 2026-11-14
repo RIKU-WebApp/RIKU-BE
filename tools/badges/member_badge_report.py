@@ -10,13 +10,16 @@ root = Path(__file__).resolve().parents[2]
 assets = root / "src/main/resources/badges"
 catalog = json.loads((assets / "series.json").read_text(encoding="utf-8"))
 labels = {}
+rules = []
 for family in catalog:
     prefix = family.get("prefix", family["id"])
     tiers = family["tiers"]
-    milestone = family["id"] in ("verifiedKm","personalKm") and tiers[-1]=="명예" and family["levels"][-1]==1000
+    milestone = family["id"] in ("verifiedKm","personalKm") and tiers[-1]=="명예"
     assert 1 <= len(tiers) <= (6 if milestone else 5) and family["levels"] == sorted(set(family["levels"]))
-    for target, tier in zip(family["levels"], tiers, strict=True):
-        labels[f"{prefix}_{target}"] = f"{family['name']} {tier}"
+    for target, key, tier in zip(family["levels"], family.get("codeLevels", family["levels"]), tiers, strict=True):
+        code = f"{prefix}_{key}"
+        rules.append({"metric": family["id"], "code": code, "goal": target})
+        labels[code] = f"{family['name']} {tier}"
 
 def podium_query(with_ledger=False):
     # Enumerate periods from the same read-only snapshot, including any newly imported older data.
@@ -41,7 +44,7 @@ def podium_query(with_ledger=False):
     FROM periods JOIN LATERAL ("""+template+""") podium ON TRUE ORDER BY member,achieved_on DESC,kind"""
 
 def snapshot_sql(with_ledger=False):
-    compact = json.dumps([{k: d[k] for k in ("id","levels","prefix") if k in d} for d in catalog]).encode().hex()
+    compact = json.dumps(rules).encode().hex()
     sql = (assets / "eligibility.sql").read_text(encoding="utf-8")
     sql = sql.replace("__VISITS__", (assets/"verified-visits.sql").read_text(encoding="utf8").replace("__MEMBER_FILTER__",""))
     sql = sql.replace("__MONTHLY_RANKS__",(assets/"monthly-ranks.sql").read_text(encoding="utf-8").replace("__MONTH_KEY__", "EXTRACT(YEAR_MONTH FROM TIMESTAMPADD(HOUR,9,UTC_TIMESTAMP()))"))

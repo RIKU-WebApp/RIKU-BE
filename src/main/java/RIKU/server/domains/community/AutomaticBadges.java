@@ -23,6 +23,7 @@ public class AutomaticBadges {
     private final JdbcTemplate db;
     private final String snapshot, catalog, memberDistance, history;
     private static final String MISSING_HISTORY = " WHERE NOT EXISTS (SELECT 1 FROM badge_activity_date d WHERE d.user_id=g.user_id AND d.badge_code=g.badge_code)";
+    private final NavigableMap<Integer, CommunityService.Badge> clubMilestones = new TreeMap<>();
     private final BadgeStorage storage;
     private final Map<String, CommunityService.Badge> labels = new LinkedHashMap<>();
     private final List<List<String>> previewFamilies = new ArrayList<>();
@@ -46,13 +47,14 @@ public class AutomaticBadges {
                 .replace("__VISITS__",visits.replace("__MEMBER_FILTER__",""))
                 .replace("__MONTHLY_RANKS__", storage.rankingsEnabled() ? monthly : "SELECT NULL AS user_id, NULL AS best_rank WHERE FALSE")
                 .replace("__RECORD_PEAKS__", new ClassPathResource("badges/record-peaks.sql").getContentAsString(StandardCharsets.UTF_8));
-        catalog = new ClassPathResource("badges/series.json").getContentAsString(StandardCharsets.UTF_8);
+        String definitions = new ClassPathResource("badges/series.json").getContentAsString(StandardCharsets.UTF_8);
         history = new ClassPathResource("badges/achievement-history.sql").getContentAsString(StandardCharsets.UTF_8)
                 .replace("__VISITS__", visits.replace("__MEMBER_FILTER__",""))
                 .replace("__MISSING__", MISSING_HISTORY);
         var families = new HashSet<String>();
         var ordered = new ArrayList<com.fasterxml.jackson.databind.JsonNode>();
-        mapper.readTree(catalog).forEach(ordered::add);
+        var rules = mapper.createArrayNode();
+        mapper.readTree(definitions).forEach(ordered::add);
         ordered.sort(Comparator.comparingInt(family -> family.path("profileOrder").asInt(Integer.MAX_VALUE)));
         for (var f : ordered) {
             String id = f.required("id").asText();
@@ -62,22 +64,33 @@ public class AutomaticBadges {
             var tiers = f.required("tiers");
             var levels=f.required("levels");
             boolean honor = (id.equals("verifiedKm") || id.equals("personalKm")) && tiers.size()==6 &&
-                    tiers.get(5).asText().equals("명예") && levels.path(5).asInt()==1000;
+                    tiers.get(5).asText().equals("명예");
             if(tiers.size()<1 || tiers.size()>(honor?6:5) || tiers.size()!=levels.size()) throw new IllegalArgumentException("Invalid tiers: "+id);
+            var codeLevels = f.has("codeLevels") ? f.required("codeLevels") : levels;
+            if (codeLevels.size()!=levels.size()) throw new IllegalArgumentException("Invalid badge codes: "+id);
             int i=0;
             var codes = new ArrayList<String>();
             for(var target : f.required("levels")) {
                 if (!target.isIntegralNumber() || !target.canConvertToInt() || target.asInt() <= (i==0 ? 0 : levels.get(i-1).asInt()))
                     throw new IllegalArgumentException("Invalid threshold: "+id);
-                String code=prefix+"_"+target.intValue();
+                String code=prefix+"_"+codeLevels.get(i).asInt();
+                rules.addObject().put("metric",id).put("code",code).put("goal",target.intValue());
                 codes.add(code);
                 String tier=tiers.get(i++).asText();
                 var badge=new CommunityService.Badge(code,f.required("name").asText()+(tiers.size()==1 ? "" : " "+tier),
                         f.required("rule").asText()+" — "+(f.has("conditions") ? f.required("conditions").required(i-1).asText() : target.asText()+f.required("unit").asText()),prefix.equals("PERSONAL")?"PERSONAL":"CLUB");
+                if (id.equals("verifiedKm")) clubMilestones.put(target.intValue(),badge);
                 if(labels.put(code,badge)!=null) throw new IllegalArgumentException("Duplicate badge "+code);
             }
             if (!id.equals("monthlyRank")) previewFamilies.add(List.copyOf(codes));
         }
+        catalog = rules.toString();
+    }
+
+    List<CommunityService.Badge> clubBadgesAt(java.math.BigDecimal distance) {
+        return clubMilestones.entrySet().stream()
+                .filter(entry -> distance.compareTo(java.math.BigDecimal.valueOf(entry.getKey())) >= 0)
+                .map(Map.Entry::getValue).toList();
     }
 
     // The periodic reconciliation also catches late attendance corrections and members who never sign in.
@@ -93,7 +106,7 @@ public class AutomaticBadges {
                 """, (rs,n)->new Grant(rs.getLong(1),rs.getString(2)), catalog);
         persist(due);
         if (Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM automatic_badge_grant g" + MISSING_HISTORY + ")", Boolean.class))) {
-            db.update("INSERT INTO badge_activity_date(user_id,badge_code,achieved_on) " + history);
+            db.update("INSERT INTO badge_activity_date(user_id,badge_code,achieved_on) " + history, catalog);
         }
         if (!due.isEmpty()) org.slf4j.LoggerFactory.getLogger(AutomaticBadges.class).info("Badge reconciliation: processed {} eligible grants", due.size());
     }

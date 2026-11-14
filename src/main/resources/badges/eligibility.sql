@@ -24,11 +24,11 @@ __VISITS__, days AS (SELECT DISTINCT user_id,DATE_SUB(DATE(local_time),INTERVAL 
  UNION ALL SELECT user_id,'certificateDays',COUNT(DISTINCT date) FROM run_certificate GROUP BY user_id
  __RECORD_PEAKS__
 ), rules AS (
- SELECT metric,COALESCE(code_prefix,metric) AS code_prefix,goal FROM JSON_TABLE(?, '$[*]' COLUMNS(
-   metric VARCHAR(32) PATH '$.id', code_prefix VARCHAR(32) PATH '$.prefix', NESTED PATH '$.levels[*]' COLUMNS(goal INT PATH '$')
+ SELECT * FROM JSON_TABLE(?, '$[*]' COLUMNS(
+   metric VARCHAR(32) PATH '$.metric', code VARCHAR(64) PATH '$.code', goal INT PATH '$.goal'
  )) AS catalog
 ), qualified AS (
- SELECT DISTINCT m.user_id, CONCAT(r.code_prefix,'_',r.goal) AS code
+ SELECT DISTINCT m.user_id, r.code
  FROM base_metrics m JOIN rules r ON BINARY r.metric=BINARY m.metric AND m.n>=r.goal
 )
 SELECT u.user_id,u.status,q.code FROM users u LEFT JOIN qualified q ON q.user_id=u.user_id
