@@ -21,7 +21,8 @@ public class AutomaticBadges {
     private static final Set<String> METRICS = Set.of("visits","months","kinds","leads","weekends","streak",
             "REGULAR","FLASH","TRAINING","EVENT","hosted","verifiedKm","personalKm","monthlyRank","checkins","fourSeasons","certificateDays");
     private final JdbcTemplate db;
-    private final String snapshot, catalog, memberDistance;
+    private final String snapshot, catalog, memberDistance, history;
+    private static final String MISSING_HISTORY = " WHERE NOT EXISTS (SELECT 1 FROM badge_activity_date d WHERE d.user_id=g.user_id AND d.badge_code=g.badge_code)";
     private final BadgeStorage storage;
     private final Map<String, CommunityService.Badge> labels = new LinkedHashMap<>();
     private final List<List<String>> previewFamilies = new ArrayList<>();
@@ -46,6 +47,9 @@ public class AutomaticBadges {
                 .replace("__MONTHLY_RANKS__", storage.rankingsEnabled() ? monthly : "SELECT NULL AS user_id, NULL AS best_rank WHERE FALSE")
                 .replace("__RECORD_PEAKS__", new ClassPathResource("badges/record-peaks.sql").getContentAsString(StandardCharsets.UTF_8));
         catalog = new ClassPathResource("badges/series.json").getContentAsString(StandardCharsets.UTF_8);
+        history = new ClassPathResource("badges/achievement-history.sql").getContentAsString(StandardCharsets.UTF_8)
+                .replace("__VISITS__", visits.replace("__MEMBER_FILTER__",""))
+                .replace("__MISSING__", MISSING_HISTORY);
         var families = new HashSet<String>();
         var ordered = new ArrayList<com.fasterxml.jackson.databind.JsonNode>();
         mapper.readTree(catalog).forEach(ordered::add);
@@ -67,7 +71,8 @@ public class AutomaticBadges {
                     throw new IllegalArgumentException("Invalid threshold: "+id);
                 String code=prefix+"_"+target.intValue();
                 codes.add(code);
-                var badge=new CommunityService.Badge(code,f.required("name").asText()+" "+tiers.get(i++).asText(),
+                String tier=tiers.get(i++).asText();
+                var badge=new CommunityService.Badge(code,f.required("name").asText()+(tiers.size()==1 ? "" : " "+tier),
                         f.required("rule").asText()+" — "+(f.has("conditions") ? f.required("conditions").required(i-1).asText() : target.asText()+f.required("unit").asText()),prefix.equals("PERSONAL")?"PERSONAL":"CLUB");
                 if(labels.put(code,badge)!=null) throw new IllegalArgumentException("Duplicate badge "+code);
             }
@@ -87,6 +92,9 @@ public class AutomaticBadges {
                 WHERE s.status='ACTIVE' AND s.code IS NOT NULL AND g.user_id IS NULL ORDER BY s.user_id,s.code
                 """, (rs,n)->new Grant(rs.getLong(1),rs.getString(2)), catalog);
         persist(due);
+        if (Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM automatic_badge_grant g" + MISSING_HISTORY + ")", Boolean.class))) {
+            db.update("INSERT INTO badge_activity_date(user_id,badge_code,achieved_on) " + history);
+        }
         if (!due.isEmpty()) org.slf4j.LoggerFactory.getLogger(AutomaticBadges.class).info("Badge reconciliation: processed {} eligible grants", due.size());
     }
 

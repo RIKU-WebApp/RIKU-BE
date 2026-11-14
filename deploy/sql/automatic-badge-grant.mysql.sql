@@ -10,6 +10,16 @@ CREATE TABLE IF NOT EXISTS automatic_badge_grant (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Immutable activity evidence, separate from the original grant timestamp.
+-- A NULL date means there was no reliably dated qualifying activity.
+CREATE TABLE IF NOT EXISTS badge_activity_date (
+  user_id BIGINT NOT NULL,
+  badge_code VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  achieved_on DATE NULL,
+  PRIMARY KEY(user_id,badge_code),
+  FOREIGN KEY(user_id,badge_code) REFERENCES automatic_badge_grant(user_id,badge_code) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS rank_honor_period (
   kind VARCHAR(12) NOT NULL, starts_on DATE NOT NULL, ends_before DATE NOT NULL,
   settled BOOLEAN NOT NULL DEFAULT FALSE, PRIMARY KEY(kind,starts_on)

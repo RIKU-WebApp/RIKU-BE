@@ -152,6 +152,16 @@ public class RankHonors {
         return db.query("SELECT h.kind,h.starts_on,p.ends_before,h.place_no " + VISIBLE_HONORS
                 + DISPLAY_ORDER, (rs,n)->readMedal(rs),id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM,w.term(),w.month());
     }
+    record OwnMedal(String kind, LocalDate start, LocalDate achievedOn, int place, LocalDate issuedOn) {
+        OwnMedal(Medal m, LocalDate issued) {this(m.kind(),m.start(),m.achievedOn(),m.place(),issued);}
+    }
+    List<OwnMedal> own(long id) {
+        if(!podiumsEnabled || !storage.hasRanks()) return forMember(id).stream().map(m->new OwnMedal(m,null)).toList();
+        var w=displayWindow(LocalDate.now(SEOUL));
+        return db.query("SELECT h.kind,h.starts_on,p.ends_before,h.place_no,UNIX_TIMESTAMP(h.issued_at) AS issued " + VISIBLE_HONORS
+                + DISPLAY_ORDER, (rs,n)->new OwnMedal(readMedal(rs),java.time.Instant.ofEpochSecond(rs.getLong("issued"))
+                .atZone(SEOUL).toLocalDate()),id,LAST_RELEASED_MONTH,LAST_RELEASED_TERM,w.term(),w.month());
+    }
     public record Preview(List<Medal> medals, int total) {}
     Preview previewForMember(long id) {
         return previewForMember(id,LocalDate.now(SEOUL));
@@ -183,5 +193,5 @@ class RankHonorController {
     private final RankHonors honors;
     RankHonorController(RankHonors honors){this.honors=honors;}
     @GetMapping("/user/activity/rank-honors")
-    public BaseResponse<?> mine(@AuthenticationPrincipal AuthMember actor){return new BaseResponse<>(honors.forMember(actor.getId()));}
+    public BaseResponse<?> mine(@AuthenticationPrincipal AuthMember actor){return new BaseResponse<>(honors.own(actor.getId()));}
 }
