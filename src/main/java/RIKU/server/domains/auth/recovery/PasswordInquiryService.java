@@ -7,17 +7,30 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
 class PasswordInquiryService {
+    private static final Duration DUPLICATE_WINDOW = Duration.ofMinutes(10);
+    private static final int SUBMISSION_LOCK_SLOTS = 64;
     private final PasswordInquiryRepository inquiries;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void submit(PasswordInquiryController.SubmitRequest request) {
-        inquiries.save(new PasswordInquiry(request.studentId(), request.name(), request.major(), request.phone()));
+        String studentId = request.studentId().trim();
+        int slot = Math.floorMod(studentId.toLowerCase(Locale.ROOT).hashCode(), SUBMISSION_LOCK_SLOTS);
+        inquiries.lockSubmissionSlot(slot);
+        var inquiry = new PasswordInquiry(studentId, request.name(), request.major(), request.phone());
+        if (!inquiries.existsByStudentIdAndNameAndMajorAndPhoneAndCreatedAtAfter(studentId,
+                inquiry.getName(), inquiry.getMajor(), inquiry.getPhone(), inquiry.getCreatedAt().minus(DUPLICATE_WINDOW))) {
+            inquiries.save(inquiry);
+        }
     }
 
     @Transactional(readOnly = true)

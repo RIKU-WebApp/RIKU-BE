@@ -9,12 +9,13 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 
 @Entity
+@Table(indexes = @Index(name = "ix_password_inquiry_student_time", columnList = "student_id, created_at"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PasswordInquiry {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
+    @Column(name = "student_id", nullable = false)
     private String studentId;
     @Column(nullable = false)
     private String name;
@@ -24,7 +25,7 @@ public class PasswordInquiry {
     private String phone;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 32)
     private Feedback.Status status;
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
     PasswordInquiry(String studentId, String name, String major, String phone) {
