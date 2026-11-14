@@ -31,8 +31,12 @@ class SignupIntegrationTest {
     @MockBean AmazonS3 s3;
 
     private ResultActions signup(String studentId, String phone, String password) throws Exception {
+        return signup(studentId, phone, password, "테스트");
+    }
+
+    private ResultActions signup(String studentId, String phone, String password, String name) throws Exception {
         var body = new HashMap<String, String>(Map.of("studentId", studentId, "password", password,
-                "name", "테스트", "college", "건축대학", "major", "건축학부"));
+                "name", name, "college", "건축대학", "major", "건축학부"));
         body.put("phone", phone);
         return mvc.perform(post("/user/signup").contentType("application/json")
                 .content(mapper.writeValueAsBytes(body)));
@@ -41,12 +45,26 @@ class SignupIntegrationTest {
     @Test
     void legacyPhoneConflictCanBeCorrectedWithoutChangingOtherFields() throws Exception {
         users.saveAndFlush(User.create("legacy", "encoded", "기존", "건축대학", "건축학부", "010-3456-7890"));
-        signup("new", "01034567890", "Signup123!")
+        signup("202612345", "01034567890", "Signup123!")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.result.errors[0].fieldName").value("phone"));
-        signup("new", null, "Signup123!")
+        signup("202612345", "", "Signup123!")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.isSuccess").value(true));
-        signup("new", null, "Signup123!")
+        signup("202612345", null, "Signup123!")
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.result.errors[0].fieldName").value("studentId"));
+    }
+
+    @Test
+    void signupEnforcesStudentIdAndNameBoundaries() throws Exception {
+        signup("2026123456", null, "Signup123!", "김".repeat(21))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.result.errors[?(@.fieldName == 'studentId')]").isNotEmpty())
+                .andExpect(jsonPath("$.result.errors[?(@.fieldName == 'name')]").isNotEmpty());
+        signup("20261234a", null, "Signup123!").andExpect(status().isBadRequest());
+        signup("20261234", null, "Signup123!").andExpect(status().isBadRequest());
+        signup("KL1234567", null, "Signup123!").andExpect(status().isBadRequest());
+        signup("KL123456", null, "Signup123!").andExpect(status().isOk());
+        signup("202612346", null, "Signup123!", "김".repeat(20))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.isSuccess").value(true));
     }
 
     @Test
