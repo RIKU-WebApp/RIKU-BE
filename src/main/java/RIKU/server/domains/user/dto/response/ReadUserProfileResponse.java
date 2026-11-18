@@ -10,6 +10,9 @@ import java.util.List;
 
 @Getter
 public class ReadUserProfileResponse {
+    @lombok.Setter
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private String localRunTestOrigin;
 
     private String studentId;
 
